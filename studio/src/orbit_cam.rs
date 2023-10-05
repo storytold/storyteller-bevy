@@ -267,14 +267,10 @@ fn do_rotate(win: &Window, delta: Vec2, xform: &mut Transform, orbit_cam: &mut O
 
 /// Fit a [0, 1] `t` interpolation parameter to a sine curve
 ///
-/// yoinked from https://github.com/dannymcgee/Unreal_RotaryWingAircraft/blob/9f4240d3519ff50faeb144fe625a330b8ccb2cb8/Source/RotaryWingAircraft/Private/RWA/Util.h#L21
+/// https://www.desmos.com/calculator/k9x4c4cr5y
 #[inline]
 fn curve_sin(t: f32) -> f32 {
-    if t < 0.5 {
-        -1. * f32::cos(t * consts::FRAC_PI_2) + 1.
-    } else {
-        f32::sin(t * consts::FRAC_PI_2)
-    }
+    -1. * (f32::cos(t * consts::PI) / 2.) + 0.5
 }
 
 trait NearlyEq {
