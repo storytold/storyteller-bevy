@@ -1,4 +1,4 @@
-use bevy::{input::mouse::MouseMotion, math::vec2, prelude::*};
+use bevy::{input::mouse::MouseMotion, prelude::*};
 
 pub struct StudioInputPlugin;
 
