@@ -1,13 +1,14 @@
 #![allow(clippy::type_complexity)]
 
 use bevy::prelude::*;
-use orbit_cam::{OrbitCam, OrbitCamPlugin};
+use input::StudioInputPlugin;
 use skybox::SkyboxPlugin;
 use test_scene::TestScenePlugin;
 use ui::UiLayerPlugin;
 use viewport::ViewportSize;
 use wasm_bindgen::prelude::*;
 
+mod input;
 mod orbit_cam;
 mod skybox;
 mod test_scene;
@@ -32,6 +33,7 @@ pub fn init(viewport_size: ViewportSize) {
             }),
             ..default()
         }),
+        StudioInputPlugin,
         OrbitCamPlugin,
         TestScenePlugin,
         SkyboxPlugin,

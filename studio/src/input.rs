@@ -1,0 +1,181 @@
+use bevy::{input::mouse::MouseMotion, math::vec2, prelude::*};
+
+pub struct StudioInputPlugin;
+
+impl Plugin for StudioInputPlugin {
+    fn build(&self, app: &mut App) {
+        app.add_event::<InputAction>();
+        app.add_systems(
+            PreUpdate,
+            translate_bevy_events.after(bevy::input::InputSystem),
+        );
+    }
+}
+
+#[derive(Event, Clone, Copy)]
+pub struct InputAction(pub Lifecycle, pub Action);
+
+#[derive(Clone, Copy)]
+pub enum Lifecycle {
+    Start,
+    Ongoing,
+    Stop,
+}
+
+#[derive(Clone, Copy)]
+pub enum Action {
+    Camera(CameraMotion),
+}
+
+#[derive(Clone, Copy)]
+pub enum CameraMotion {
+    Translate(Vec3),
+    Pan(Vec2),
+    Zoom(f32),
+    Orbit(Vec2),
+    Rotate(Vec2),
+}
+
+impl From<CameraMotion> for Action {
+    fn from(value: CameraMotion) -> Self {
+        Action::Camera(value)
+    }
+}
+
+// TODO: Make the bindings of raw device inputs to InputActions configurable
+fn translate_bevy_events(
+    mouse_motion: EventReader<MouseMotion>,
+    mouse_buttons: Res<Input<MouseButton>>,
+    keyboard: Res<Input<KeyCode>>,
+    mut input: EventWriter<InputAction>,
+) {
+    // Camera Pan
+    if mouse_buttons.pressed(MouseButton::Middle) {
+        let Vec2 { x: dx, y: dy } = read_mouse_delta(mouse_motion);
+        let lifecycle = if mouse_buttons.just_pressed(MouseButton::Middle) {
+            Lifecycle::Start
+        } else {
+            Lifecycle::Ongoing
+        };
+        input.send(InputAction(
+            lifecycle,
+            CameraMotion::Pan(vec2(dx, dy)).into(),
+        ));
+    }
+    // Stop Camera Panning
+    else if mouse_buttons.just_released(MouseButton::Middle) {
+        input.send(InputAction(
+            Lifecycle::Stop,
+            CameraMotion::Pan(Vec2::ZERO).into(),
+        ));
+    }
+    // Camera Orbit/Zoom
+    else if keyboard.any_pressed([KeyCode::AltLeft, KeyCode::AltRight]) {
+        if mouse_buttons.any_pressed([MouseButton::Left, MouseButton::Right]) {
+            let delta = read_mouse_delta(mouse_motion);
+            let lifecycle =
+                if mouse_buttons.any_just_pressed([MouseButton::Left, MouseButton::Right]) {
+                    Lifecycle::Start
+                } else {
+                    Lifecycle::Ongoing
+                };
+
+            let motion = if mouse_buttons.pressed(MouseButton::Left) {
+                CameraMotion::Orbit(delta)
+            } else {
+                CameraMotion::Zoom(delta.y)
+            };
+
+            input.send(InputAction(lifecycle, motion.into()));
+        }
+        // Stop Camera Orbit
+        else if mouse_buttons.just_released(MouseButton::Left) {
+            input.send(InputAction(
+                Lifecycle::Stop,
+                CameraMotion::Orbit(Vec2::ZERO).into(),
+            ));
+        }
+        // Stop Camera Zoom
+        else if mouse_buttons.just_released(MouseButton::Right) {
+            input.send(InputAction(Lifecycle::Stop, CameraMotion::Zoom(0.).into()));
+        }
+    }
+    // Stop Camera Orbit & Zoom
+    else if (keyboard.just_released(KeyCode::AltLeft) && !keyboard.pressed(KeyCode::AltRight))
+        || (keyboard.just_released(KeyCode::AltRight) && !keyboard.pressed(KeyCode::AltLeft))
+    {
+        input.send(InputAction(
+            Lifecycle::Stop,
+            CameraMotion::Orbit(Vec2::ZERO).into(),
+        ));
+        input.send(InputAction(Lifecycle::Stop, CameraMotion::Zoom(0.).into()));
+    }
+    // Camera Translation / Rotation (FPS-like)
+    else if mouse_buttons.pressed(MouseButton::Right) {
+        let lifecycle = if mouse_buttons.just_pressed(MouseButton::Right) {
+            Lifecycle::Start
+        } else {
+            Lifecycle::Ongoing
+        };
+
+        if keyboard.any_pressed([
+            KeyCode::W,
+            KeyCode::A,
+            KeyCode::S,
+            KeyCode::D,
+            KeyCode::Space,
+            KeyCode::ControlLeft,
+        ]) {
+            let mut mvmt = Vec3::ZERO;
+
+            #[rustfmt::skip] {
+            if keyboard.pressed(KeyCode::W)           { mvmt.z -= 1.; }
+            if keyboard.pressed(KeyCode::A)           { mvmt.x -= 1.; }
+            if keyboard.pressed(KeyCode::S)           { mvmt.z += 1.; }
+            if keyboard.pressed(KeyCode::D)           { mvmt.x += 1.; }
+            if keyboard.pressed(KeyCode::Space)       { mvmt.y += 1.; }
+            if keyboard.pressed(KeyCode::ControlLeft) { mvmt.y -= 1.; }
+            };
+
+            let mvmt = mvmt.normalize_or_zero();
+
+            input.send(InputAction(lifecycle, CameraMotion::Translate(mvmt).into()));
+        } else if keyboard.any_just_released([
+            KeyCode::W,
+            KeyCode::A,
+            KeyCode::S,
+            KeyCode::D,
+            KeyCode::Space,
+            KeyCode::ControlLeft,
+        ]) {
+            input.send(InputAction(
+                Lifecycle::Stop,
+                CameraMotion::Translate(Vec3::ZERO).into(),
+            ));
+        }
+
+        let mouse_delta = read_mouse_delta(mouse_motion);
+        input.send(InputAction(
+            lifecycle,
+            CameraMotion::Rotate(mouse_delta).into(),
+        ));
+    }
+    // Stop Camera Translation / Rotation
+    else if mouse_buttons.just_released(MouseButton::Right) {
+        input.send(InputAction(
+            Lifecycle::Stop,
+            CameraMotion::Translate(Vec3::ZERO).into(),
+        ));
+        input.send(InputAction(
+            Lifecycle::Stop,
+            CameraMotion::Rotate(Vec2::ZERO).into(),
+        ))
+    }
+}
+
+#[inline]
+fn read_mouse_delta(mut mouse_motion: EventReader<MouseMotion>) -> Vec2 {
+    mouse_motion
+        .into_iter()
+        .fold(Vec2::ZERO, |accum, current| accum + current.delta)
+}
