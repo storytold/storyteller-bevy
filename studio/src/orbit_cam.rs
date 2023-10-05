@@ -73,7 +73,7 @@ fn spawn_camera(mut cmd: Commands) {
         },
         OrbitCam {
             focus,
-            radius: camera_xform.translation.length(),
+            radius: Vec3::distance(camera_xform.translation, focus),
             ..default()
         },
         Velocity(Vec3::ZERO),
