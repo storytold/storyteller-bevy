@@ -6,7 +6,7 @@ use bevy::{
     render::render_resource::{AsBindGroup, ShaderRef},
 };
 
-use crate::orbit_cam::{self, OrbitCam};
+use crate::orbit_cam::{CameraMotionSystem, OrbitCam};
 
 pub struct TestScenePlugin;
 
@@ -15,10 +15,7 @@ impl Plugin for TestScenePlugin {
         app.insert_resource(ClearColor(Color::hsl(0.0, 0.0, 0.25)))
             .add_plugins(MaterialPlugin::<ProceduralGridMaterial>::default())
             .add_systems(Startup, spawn_scene)
-            .add_systems(
-                PostUpdate,
-                move_plane_with_camera.after(orbit_cam::pan_orbit_camera),
-            );
+            .add_systems(PostUpdate, move_plane_with_camera.after(CameraMotionSystem));
     }
 }
 

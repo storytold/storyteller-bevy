@@ -2,6 +2,7 @@
 
 use bevy::prelude::*;
 use input::StudioInputPlugin;
+use orbit_cam::{CameraMotionSystem, OrbitCam, OrbitCamPlugin};
 use skybox::SkyboxPlugin;
 use test_scene::TestScenePlugin;
 use ui::UiLayerPlugin;
@@ -39,7 +40,7 @@ pub fn init(viewport_size: ViewportSize) {
         SkyboxPlugin,
         UiLayerPlugin,
     ))
-    .add_systems(Update, draw_world_axes.after(orbit_cam::pan_orbit_camera))
+    .add_systems(Update, draw_world_axes.after(CameraMotionSystem))
     .run();
 }
 
