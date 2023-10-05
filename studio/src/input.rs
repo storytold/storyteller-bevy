@@ -51,16 +51,13 @@ fn translate_bevy_events(
 ) {
     // Camera Pan
     if mouse_buttons.pressed(MouseButton::Middle) {
-        let Vec2 { x: dx, y: dy } = read_mouse_delta(mouse_motion);
+        let delta = read_mouse_delta(mouse_motion);
         let lifecycle = if mouse_buttons.just_pressed(MouseButton::Middle) {
             Lifecycle::Start
         } else {
             Lifecycle::Ongoing
         };
-        input.send(InputAction(
-            lifecycle,
-            CameraMotion::Pan(vec2(dx, dy)).into(),
-        ));
+        input.send(InputAction(lifecycle, CameraMotion::Pan(delta).into()));
     }
     // Stop Camera Panning
     else if mouse_buttons.just_released(MouseButton::Middle) {
@@ -118,6 +115,7 @@ fn translate_bevy_events(
             Lifecycle::Ongoing
         };
 
+        // Translation
         if keyboard.any_pressed([
             KeyCode::W,
             KeyCode::A,
@@ -140,7 +138,9 @@ fn translate_bevy_events(
             let mvmt = mvmt.normalize_or_zero();
 
             input.send(InputAction(lifecycle, CameraMotion::Translate(mvmt).into()));
-        } else if keyboard.any_just_released([
+        }
+        // Stop Translation
+        else if keyboard.any_just_released([
             KeyCode::W,
             KeyCode::A,
             KeyCode::S,
@@ -154,13 +154,14 @@ fn translate_bevy_events(
             ));
         }
 
+        // Rotation
         let mouse_delta = read_mouse_delta(mouse_motion);
         input.send(InputAction(
             lifecycle,
             CameraMotion::Rotate(mouse_delta).into(),
         ));
     }
-    // Stop Camera Translation / Rotation
+    // Stop Camera Translation & Rotation
     else if mouse_buttons.just_released(MouseButton::Right) {
         input.send(InputAction(
             Lifecycle::Stop,
