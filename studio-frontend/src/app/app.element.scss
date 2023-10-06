@@ -1,0 +1,9 @@
+:host {
+	position: fixed;
+	inset: 0;
+	pointer-events: none;
+
+	h1 {
+		pointer-events: auto;
+	}
+}

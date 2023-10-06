@@ -1,13 +1,16 @@
 import * as studio from "@storyteller/studio";
 import { ViewportSize } from "@storyteller/studio";
+import { LitElement, html, unsafeCSS } from "lit";
+import { customElement } from "lit/decorators.js";
 import { throttle } from "lodash";
 
-import "./app.element.scss";
+import styles from "./app.element.scss?inline";
 
-export class AppElement extends HTMLElement {
-	static observedAttributes = [];
+@customElement("app-root")
+export class AppElement extends LitElement {
+	static override styles = unsafeCSS(styles);
 
-	connectedCallback(): void {
+	override connectedCallback(): void {
 		const width = window.innerWidth;
 		const height = window.innerHeight;
 		try {
@@ -18,10 +21,14 @@ export class AppElement extends HTMLElement {
 		}
 
 		window.addEventListener("resize", this.onResize);
+
+		super.connectedCallback();
 	}
 
-	disconnectedCallback(): void {
+	override disconnectedCallback(): void {
 		window.removeEventListener("resize", this.onResize);
+
+		super.disconnectedCallback();
 	}
 
 	onResize = throttle(() => {
@@ -29,5 +36,8 @@ export class AppElement extends HTMLElement {
 		const height = window.innerHeight;
 		studio.resize(new ViewportSize(width, height));
 	}, 16.666);
+
+	protected override render = () => html`
+		<h1>Hello, world!</h1>
+	`;
 }
-customElements.define("app-root", AppElement);
