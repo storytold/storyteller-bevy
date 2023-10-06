@@ -1,4 +1,8 @@
-use bevy::{input::mouse::MouseMotion, prelude::*, utils::HashSet};
+use bevy::{
+    input::mouse::{MouseMotion, MouseWheel},
+    prelude::*,
+    utils::HashSet,
+};
 
 pub struct StudioInputPlugin;
 
@@ -45,6 +49,7 @@ impl From<CameraMotion> for Action {
 // TODO: Make the bindings of raw device inputs to InputActions configurable
 fn translate_bevy_events(
     mouse_motion: EventReader<MouseMotion>,
+    mut mouse_wheel: EventReader<MouseWheel>,
     mouse_buttons: Res<Input<MouseButton>>,
     keyboard: Res<Input<KeyCode>>,
     mut input: EventWriter<InputAction>,
@@ -123,7 +128,25 @@ fn translate_bevy_events(
         input.send(InputAction(
             Lifecycle::Stop,
             CameraMotion::Rotate(Vec2::ZERO).into(),
-        ))
+        ));
+    }
+    // Alt Camera Rotation (designed for laptop)
+    else if keyboard.pressed(KeyCode::ShiftLeft) {
+        let lifecycle = if keyboard.just_pressed(KeyCode::ShiftLeft) {
+            Lifecycle::Start
+        } else {
+            Lifecycle::Ongoing
+        };
+
+        let delta = read_mouse_delta(mouse_motion);
+        input.send(InputAction(lifecycle, CameraMotion::Rotate(delta).into()));
+    }
+    // Stop Camera Rotation
+    else if keyboard.just_released(KeyCode::ShiftLeft) {
+        input.send(InputAction(
+            Lifecycle::Stop,
+            CameraMotion::Rotate(Vec2::ZERO).into(),
+        ));
     }
 
     // Camera Translation (FPS-like)
@@ -173,6 +196,39 @@ fn translate_bevy_events(
             Lifecycle::Stop,
             CameraMotion::Translate(Vec3::ZERO).into(),
         ));
+    }
+
+    // Wheel zoom
+    for &MouseWheel { y, .. } in mouse_wheel.iter() {
+        // info!("wheel: ({x}, {y}) [{unit:?}]");
+        // let rem_x = (100. / x).abs() % 1.;
+        // let rem_y = (100. / y).abs() % 1.;
+
+        // if (rem_x.is_nan() || rem_x < 1e-5_f32) && (rem_y.is_nan() || rem_y < 1e-5_f32) {
+        input.send(InputAction(
+            Lifecycle::Ongoing,
+            CameraMotion::Zoom(y).into(),
+        ));
+        // } else {
+        // FIXME: I had high hopes for this, but the input translation from
+        //        Bevy / winit is herky-jerky-janky af. It seems to be
+        //        trying to force the wheel to only emit one axis at a time,
+        //        unless the user makes a really deliberate diagonal motion
+        //        to start. But even then, it makes bizarre jumps
+        //        intermittently instead of just translating the input
+        //        motion directly.
+        //
+        //        I Was hoping to achieve something like what Blender does
+        //        with touchpad input to pan, but it doesn't look like
+        //        that's going to be possible without bypassing bevy::input
+        //        and reading the system events directly. We may want to do
+        //        that eventually, but not today.
+
+        // input.send(InputAction(
+        //     Lifecycle::Ongoing,
+        //     CameraMotion::Pan(vec2(x, y)).into(),
+        // ));
+        // }
     }
 }
 
