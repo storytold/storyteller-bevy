@@ -6,7 +6,7 @@ use bevy::{
     window::{CursorGrabMode, PrimaryWindow},
 };
 
-use crate::input::{self, Action, CameraMotion, InputAction};
+use crate::input::{self, Action, CameraMotion, InputAction, Lifecycle};
 
 pub struct OrbitCamPlugin;
 
@@ -119,7 +119,7 @@ fn camera_control_kinematic(
                 Translate(delta) => do_translate(*delta, &mut target_vel, &mut t),
                 Pan(delta) => do_pan(proj, &window, *delta, &mut xform, &mut orbit_cam),
                 Zoom(delta) => do_zoom(&window, *delta, &mut xform, &mut orbit_cam),
-                Orbit(delta) => do_orbit(&window, *delta, &mut xform, &orbit_cam),
+                Orbit(delta) => do_orbit(&window, *delta, *lifecycle, &mut xform, &mut orbit_cam),
                 Rotate(delta) => do_rotate(&window, *delta, &mut xform, &mut orbit_cam),
             }
         }
@@ -184,7 +184,18 @@ fn do_translate(delta: Vec3, target_vel: &mut TargetVelocity, t: &mut Interp) {
 }
 
 #[inline]
-fn do_orbit(win: &Window, delta: Vec2, xform: &mut Transform, orbit_cam: &OrbitCam) {
+fn do_orbit(
+    win: &Window,
+    delta: Vec2,
+    event_lifecycle: Lifecycle,
+    xform: &mut Transform,
+    orbit_cam: &mut OrbitCam,
+) {
+    // Set `upside_down` flag if the event just started or stopped
+    if matches!(event_lifecycle, Lifecycle::Start | Lifecycle::Stop) {
+        orbit_cam.upside_down = xform.up().y <= 0.;
+    }
+
     // Translate to origin
     xform.translation += xform.forward() * orbit_cam.radius;
 
