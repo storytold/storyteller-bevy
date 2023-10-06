@@ -1,4 +1,4 @@
-use bevy::{input::mouse::MouseMotion, prelude::*};
+use bevy::{input::mouse::MouseMotion, prelude::*, utils::HashSet};
 
 pub struct StudioInputPlugin;
 
@@ -107,7 +107,7 @@ fn translate_bevy_events(
         ));
         input.send(InputAction(Lifecycle::Stop, CameraMotion::Zoom(0.).into()));
     }
-    // Camera Translation / Rotation (FPS-like)
+    // Camera Rotation
     else if mouse_buttons.pressed(MouseButton::Right) {
         let lifecycle = if mouse_buttons.just_pressed(MouseButton::Right) {
             Lifecycle::Start
@@ -115,62 +115,64 @@ fn translate_bevy_events(
             Lifecycle::Ongoing
         };
 
-        // Translation
-        if keyboard.any_pressed([
-            KeyCode::W,
-            KeyCode::A,
-            KeyCode::S,
-            KeyCode::D,
-            KeyCode::Space,
-            KeyCode::ControlLeft,
-        ]) {
-            let mut mvmt = Vec3::ZERO;
-
-            #[rustfmt::skip] {
-            if keyboard.pressed(KeyCode::W)           { mvmt.z -= 1.; }
-            if keyboard.pressed(KeyCode::A)           { mvmt.x -= 1.; }
-            if keyboard.pressed(KeyCode::S)           { mvmt.z += 1.; }
-            if keyboard.pressed(KeyCode::D)           { mvmt.x += 1.; }
-            if keyboard.pressed(KeyCode::Space)       { mvmt.y += 1.; }
-            if keyboard.pressed(KeyCode::ControlLeft) { mvmt.y -= 1.; }
-            };
-
-            let mvmt = mvmt.normalize_or_zero();
-
-            input.send(InputAction(lifecycle, CameraMotion::Translate(mvmt).into()));
-        }
-        // Stop Translation
-        else if keyboard.any_just_released([
-            KeyCode::W,
-            KeyCode::A,
-            KeyCode::S,
-            KeyCode::D,
-            KeyCode::Space,
-            KeyCode::ControlLeft,
-        ]) {
-            input.send(InputAction(
-                Lifecycle::Stop,
-                CameraMotion::Translate(Vec3::ZERO).into(),
-            ));
-        }
-
-        // Rotation
-        let mouse_delta = read_mouse_delta(mouse_motion);
-        input.send(InputAction(
-            lifecycle,
-            CameraMotion::Rotate(mouse_delta).into(),
-        ));
+        let delta = read_mouse_delta(mouse_motion);
+        input.send(InputAction(lifecycle, CameraMotion::Rotate(delta).into()));
     }
-    // Stop Camera Translation & Rotation
+    // Stop Camera Rotation
     else if mouse_buttons.just_released(MouseButton::Right) {
-        input.send(InputAction(
-            Lifecycle::Stop,
-            CameraMotion::Translate(Vec3::ZERO).into(),
-        ));
         input.send(InputAction(
             Lifecycle::Stop,
             CameraMotion::Rotate(Vec2::ZERO).into(),
         ))
+    }
+
+    // Camera Translation (FPS-like)
+    use KeyCode::*;
+    let wasd_keys = [W, A, S, D, E, Q];
+    let wasd_keys_set = wasd_keys.into_iter().collect::<HashSet<_>>();
+
+    // A little unfortunate that `get_pressed()` doesn't just return a reference
+    // to the original HashSet >_< Maybe the compiler will be nice to us and
+    // optimize away the redundant clone?
+    let keys_pressed = keyboard.get_pressed().cloned().collect::<HashSet<_>>();
+    let wasd_keys_pressed = wasd_keys_set
+        .intersection(&keys_pressed)
+        .collect::<HashSet<_>>();
+
+    if !wasd_keys_pressed.is_empty() {
+        let mut mvmt = Vec3::ZERO;
+
+        #[rustfmt::skip] {
+        if wasd_keys_pressed.contains(&W) { mvmt.z -= 1.; }
+        if wasd_keys_pressed.contains(&A) { mvmt.x -= 1.; }
+        if wasd_keys_pressed.contains(&S) { mvmt.z += 1.; }
+        if wasd_keys_pressed.contains(&D) { mvmt.x += 1.; }
+        if wasd_keys_pressed.contains(&E) { mvmt.y += 1.; }
+        if wasd_keys_pressed.contains(&Q) { mvmt.y -= 1.; }
+        };
+
+        let mvmt = mvmt.normalize_or_zero();
+
+        // Compare WASD keys pressed with WASD keys _just_ pressed to determine lifecycle
+        let keys_just_pressed = keyboard.get_just_pressed().cloned().collect::<HashSet<_>>();
+        let wasd_keys_just_pressed = keys_just_pressed
+            .intersection(&wasd_keys_set)
+            .collect::<HashSet<_>>();
+
+        let lifecycle = if wasd_keys_pressed.len() == wasd_keys_just_pressed.len() {
+            Lifecycle::Start
+        } else {
+            Lifecycle::Ongoing
+        };
+
+        input.send(InputAction(lifecycle, CameraMotion::Translate(mvmt).into()));
+    }
+    // Stop Translation
+    else if keyboard.any_just_released(wasd_keys) {
+        input.send(InputAction(
+            Lifecycle::Stop,
+            CameraMotion::Translate(Vec3::ZERO).into(),
+        ));
     }
 }
 

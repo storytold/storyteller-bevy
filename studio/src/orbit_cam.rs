@@ -1,4 +1,4 @@
-use std::f32::consts;
+use std::{f32::consts, mem};
 
 use bevy::{
     math::vec3,
@@ -6,7 +6,7 @@ use bevy::{
     window::{CursorGrabMode, PrimaryWindow},
 };
 
-use crate::input::{self, Action, CameraMotion, InputAction, Lifecycle};
+use crate::input::{Action, CameraMotion, InputAction, Lifecycle};
 
 pub struct OrbitCamPlugin;
 
@@ -109,10 +109,13 @@ fn camera_control_kinematic(
         if let InputAction(lifecycle, Action::Camera(motion)) = action {
             use CameraMotion::*;
 
-            match lifecycle {
-                input::Lifecycle::Start => any_started = true,
-                input::Lifecycle::Ongoing => any_ongoing = true,
-                input::Lifecycle::Stop => any_stopped = true,
+            // Ignore translation actions for the sake of pointer capture
+            if mem::discriminant(motion) != mem::discriminant(&Translate(Vec3::ZERO)) {
+                match lifecycle {
+                    Lifecycle::Start => any_started = true,
+                    Lifecycle::Ongoing => any_ongoing = true,
+                    Lifecycle::Stop => any_stopped = true,
+                }
             }
 
             match motion {
