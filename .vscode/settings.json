@@ -1,3 +1,6 @@
 {
 	"rust-analyzer.showUnlinkedFileNotification": false,
+	"explorer.fileNesting.patterns": {
+		"*.element.ts": "${capture}.element.scss, ${capture}.element.spec.ts",
+	},
 }

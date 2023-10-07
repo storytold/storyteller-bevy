@@ -2,8 +2,16 @@
 	position: fixed;
 	inset: 0;
 	pointer-events: none;
+}
 
-	h1 {
-		pointer-events: auto;
-	}
+.btn-help {
+	position: absolute;
+	top: 16px;
+	right: 16px;
+}
+
+.help {
+	position: absolute;
+	top: 60px;
+	right: 16px;
 }

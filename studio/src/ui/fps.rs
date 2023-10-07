@@ -30,8 +30,8 @@ fn layout(mut cmd: Commands) {
         .with_text_alignment(TextAlignment::Right)
         .with_style(Style {
             position_type: PositionType::Absolute,
-            top: Val::Px(16.),
             right: Val::Px(16.),
+            bottom: Val::Px(16.),
             ..default()
         }),
     ));

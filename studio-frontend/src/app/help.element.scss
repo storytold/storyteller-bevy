@@ -1,0 +1,32 @@
+:host {
+	padding: 20px 30px;
+	border-radius: 0.5rem;
+
+	font: {
+		family: "Fira Sans", sans-serif;
+		size: 15px;
+		weight: 400;
+	}
+
+	background: #0006;
+	backdrop-filter: blur(16px);
+
+	pointer-events: auto;
+}
+
+th {
+	text-align: start;
+	color: #FFF;
+	font-weight: 700;
+	line-height: 2;
+}
+
+td {
+	color: #FFFA;
+	vertical-align: top;
+	line-height: 1.4;
+
+	&:has(+ td) {
+		padding-right: 30px;
+	}
+}
