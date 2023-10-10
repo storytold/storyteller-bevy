@@ -30,6 +30,7 @@ pub fn init(viewport_size: ViewportSize) {
         DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
                 resolution: viewport_size.into(),
+                title: "Storyteller Studio".into(),
                 ..default()
             }),
             ..default()

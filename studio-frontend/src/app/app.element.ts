@@ -53,7 +53,7 @@ export class AppElement extends LitElement {
 				throw err;
 		}
 
-		return document.querySelector<HTMLCanvasElement>(`canvas[alt="App"]`);
+		return document.querySelector<HTMLCanvasElement>(`canvas[alt="Storyteller Studio"]`);
 	}
 
 	protected override render = () => html`
