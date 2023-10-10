@@ -2,15 +2,13 @@ import * as studio from "@storyteller/studio";
 import { ViewportSize } from "@storyteller/studio";
 import { LitElement, html, unsafeCSS } from "lit";
 import { customElement, state } from "lit/decorators.js";
-import { throttle } from "lodash";
 
-import "./icons/fa-circle-info.element";
 import "./button.element";
+import { on } from "./decorators/on";
 import "./help.element";
+import "./icons/fa-circle-info.element";
 
 import styles from "./app.element.scss?inline";
-
-type Option<T> = T | undefined | null;
 
 @customElement("app-root")
 export class AppElement extends LitElement {
@@ -18,32 +16,25 @@ export class AppElement extends LitElement {
 
 	@state() showHelp = false;
 
-	#studioCanvas?: Option<HTMLCanvasElement>;
+	#studioCanvas?: HTMLCanvasElement | null;
 
 	override connectedCallback(): void {
 		this.#studioCanvas = this.#initStudio();
-		window.addEventListener("resize", this.onResize);
-
 		super.connectedCallback();
 	}
 
-	override disconnectedCallback(): void {
-		window.removeEventListener("resize", this.onResize);
-
-		super.disconnectedCallback();
-	}
-
-	onResize = throttle(() => {
+	@on("window:resize")
+	onWindowResize(): void {
 		const width = window.innerWidth;
 		const height = window.innerHeight;
 		studio.resize(new ViewportSize(width, height));
-	}, 16.666);
+	}
 
 	toggleHelp(): void {
 		this.showHelp = !this.showHelp;
 	}
 
-	#initStudio(): Option<HTMLCanvasElement> {
+	#initStudio(): HTMLCanvasElement | null {
 		const width = window.innerWidth;
 		const height = window.innerHeight;
 		try {
