@@ -22,6 +22,63 @@ type MatchReturn<K extends Key, T extends Matcher<K>>
 	: never
 	;
 
+/**
+ * Behaves like a simple [switch expression](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/operators/switch-expression)
+ * for JavaScript.
+ *
+ * @example
+ * ```typescript
+ * enum Direction {
+ *   Forward,
+ *   Left,
+ *   Back,
+ *   Right,
+ * }
+ *
+ * function getDirection(event: KeyboardEvent): Direction {
+ *   return match (event.key, {
+ *     "W": () => Direction.Forward,
+ *     "A": () => Direction.Left,
+ *     "S": () => Direction.Back,
+ *     "D": () => Direction.Right,
+ *     _: () => {
+ *       throw new Error(`${event.key} is not bound to a direction!`);
+ *     },
+ *   });
+ * }
+ * ```
+ * An enum can also be used as the subject, as long as its enumerators are
+ * assigned to values that can be used as JavaScript object keys (i.e. `string`,
+ * `number`, or `symbol`):
+ *
+ * @example
+ * ```typescript
+ * enum Direction {
+ *   Up = "up",
+ *   Down = "down",
+ *   Right = "right",
+ *   Left = "left",
+ * }
+ *
+ * enum Orientation {
+ *   North,
+ *   South,
+ *   East,
+ *   West,
+ * }
+ *
+ * function toOrientation(direction: Direction): Orientation {
+ *   // Note that if the `matcher` argument is exhaustive,
+ *   // you don't need to provide a `_` fallback.
+ *   return match (direction, {
+ *     [Direction.Up]: () => Orientation.North,
+ *     [Direction.Right]: () => Orientation.East,
+ *     [Direction.Down]: () => Orientation.South,
+ *     [Direction.Left]: () => Orientation.West,
+ *   });
+ * }
+ * ```
+ */
 export function match<K extends Key, T extends Matcher<K>>(
 	subject: K | null | undefined,
 	matcher: T,
