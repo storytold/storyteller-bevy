@@ -1,9 +1,9 @@
 import { match } from "@storyteller/utility";
+import { on } from "@storyteller/framework";
 import { LitElement, html, unsafeCSS } from "lit";
 import { customElement, property } from "lit/decorators.js";
 
 import styles from "./button.element.scss?inline";
-import { on } from "./decorators/on";
 
 @customElement("sts-button")
 export class ButtonElement extends LitElement {

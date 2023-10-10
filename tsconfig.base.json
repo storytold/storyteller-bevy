@@ -15,6 +15,7 @@
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
     "paths": {
+      "@storyteller/framework": ["framework/src/index.ts"],
       "@storyteller/studio": ["dist/studio"],
       "@storyteller/utility": ["utility/src/index.ts"]
     }

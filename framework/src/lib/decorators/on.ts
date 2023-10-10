@@ -1,8 +1,14 @@
-// TODO: Figure out a better place to put this
-
 import { match } from "@storyteller/utility";
-import { LitElement } from "lit";
+import type { LitElement } from "lit";
 
+/**
+ * Adds the decorated method as an event listener for the given event name, and
+ * automatically cleans up the listener when the element is removed from the
+ * DOM.
+ *
+ * The event name can be prefixed with `window:` or `document:` to add the
+ * listener to one of those targets instead of the custom element itself.
+ */
 export function on(eventSelector: string) {
 	const [targetName, eventName] = eventSelector.includes(":")
 		? eventSelector.split(":")

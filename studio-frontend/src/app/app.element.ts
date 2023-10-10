@@ -1,10 +1,10 @@
+import { on } from "@storyteller/framework";
 import * as studio from "@storyteller/studio";
 import { ViewportSize } from "@storyteller/studio";
 import { LitElement, html, unsafeCSS } from "lit";
 import { customElement, state } from "lit/decorators.js";
 
 import "./button.element";
-import { on } from "./decorators/on";
 import "./help.element";
 import "./icons/fa-circle-info.element";
 
