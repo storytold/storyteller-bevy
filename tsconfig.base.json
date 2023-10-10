@@ -15,7 +15,8 @@
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
     "paths": {
-      "@storyteller/studio": ["dist/studio"]
+      "@storyteller/studio": ["dist/studio"],
+      "@storyteller/utility": ["utility/src/index.ts"]
     }
   },
   "exclude": ["node_modules", "tmp"]

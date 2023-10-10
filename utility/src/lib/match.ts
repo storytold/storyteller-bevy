@@ -1,9 +1,4 @@
-// TODO: Figure out a better place to put this
-// Shamelessly copy/pasted from https://github.com/dannymcgee/electric/blob/faf388b1ff3de27b4f848875b90301472729d13f/packages/utils/src/lib/match.ts
-// (Why does JavaScript still not even have switch expressions in 2023?)
-export interface Fn<Args extends any[] = [], R = void> {
-	(...args: Args): R;
-}
+import { Fn } from "./types";
 
 type Key = string | number;
 

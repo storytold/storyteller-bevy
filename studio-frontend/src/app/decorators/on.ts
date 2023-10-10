@@ -1,8 +1,7 @@
 // TODO: Figure out a better place to put this
 
+import { match } from "@storyteller/utility";
 import { LitElement } from "lit";
-
-import { match } from "../util";
 
 export function on(eventSelector: string) {
 	const [targetName, eventName] = eventSelector.includes(":")
