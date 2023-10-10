@@ -2,7 +2,19 @@
 
 import { LitElement } from "lit";
 
-export function on(eventName: string) {
+import { match } from "../util";
+
+export function on(eventSelector: string) {
+	const [targetName, eventName] = eventSelector.includes(":")
+		? eventSelector.split(":")
+		: [null, eventSelector];
+
+	let target = match (targetName, {
+		"window": () => window as EventTarget,
+		"document": () => document as EventTarget,
+		_: () => null,
+	});
+
 	return <T extends LitElement>(proto: T, propName: keyof T, desc: PropertyDescriptor) => {
 		const handler = desc?.value ?? proto[propName] ?? (() => {});
 
@@ -11,7 +23,8 @@ export function on(eventName: string) {
 
 		Object.defineProperty(proto, "connectedCallback", {
 			value: function (this: HTMLElement) {
-				this.addEventListener(eventName, handler);
+				target ??= this;
+				target.addEventListener(eventName, handler);
 				connectedCb.call(this);
 			},
 			configurable: true,
@@ -20,7 +33,8 @@ export function on(eventName: string) {
 
 		Object.defineProperty(proto, "disconnectedCallback", {
 			value: function (this: HTMLElement) {
-				this.removeEventListener(eventName, handler);
+				target ??= this;
+				target.removeEventListener(eventName, handler);
 				disconnectedCb.call(this);
 			},
 			configurable: true,
