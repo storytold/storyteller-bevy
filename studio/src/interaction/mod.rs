@@ -2,17 +2,12 @@ use bevy::prelude::*;
 use bitflags::bitflags;
 use wasm_bindgen::prelude::*;
 
-use self::gizmos::StudioGizmosPlugin;
-
-mod gizmos;
-
 pub struct InteractionPlugin;
 
 impl Plugin for InteractionPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(SelectionMode::default())
-            .insert_resource(InteractionMode::default())
-            .add_plugins(StudioGizmosPlugin);
+            .insert_resource(InteractionMode::default());
 
         #[cfg(target_arch = "wasm32")]
         app.add_systems(
