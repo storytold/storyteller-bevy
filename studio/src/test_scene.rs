@@ -33,7 +33,8 @@ fn spawn_scene(
     // Skeletal mesh
     cmd.spawn((
         SceneBundle {
-            scene: assets.load("gltf/base_human_male.gltf#Scene0"),
+            // scene: assets.load("gltf/base_human_male.gltf#Scene0"),
+            scene: assets.load("gltf/Couch.gltf#Scene0"),
             ..default()
         },
         Selected,

@@ -54,6 +54,7 @@ const mimeTypes = {
     ".zip": "application/zip",
     ".rar": "application/x-rar-compressed",
     ".7z": "application/x-7z-compressed",
+    ".bin": "application/octet-stream",
 }
 
 export function ServerMiddleWare(server: ViteDevServer, assets: string[] = []) {
