@@ -46,9 +46,23 @@ fn spawn_scene(
     // mut std_mats: ResMut<Assets<StandardMaterial>>,
     mut mat_proc_grid: ResMut<Assets<ProceduralGridMaterial>>,
 ) {
-    // Skeletal mesh
+    // Test scene
     cmd.spawn(SceneBundle {
         scene: assets.load("gltf/sample-room.gltf#Scene0"),
+        ..default()
+    });
+
+    // Main light
+    // TODO: get Blender to export enough metadata to automate light placements
+    cmd.spawn(PointLightBundle {
+        point_light: PointLight {
+            color: Color::hex("FFE5B4").unwrap(),
+            intensity: 1500.,
+            radius: 0.1,
+            shadows_enabled: true,
+            ..default()
+        },
+        transform: Transform::from_xyz(0.35263, 2.4348, 0.19601),
         ..default()
     });
 

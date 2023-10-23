@@ -1,8 +1,10 @@
 use std::{f32::consts, mem};
 
 use bevy::{
+    core_pipeline::tonemapping::Tonemapping,
     math::vec3,
     prelude::*,
+    render::view::ColorGrading,
     window::{CursorGrabMode, PrimaryWindow},
 };
 
@@ -65,6 +67,11 @@ fn spawn_camera(mut cmd: Commands) {
     cmd.spawn((
         Camera3dBundle {
             transform: camera_xform,
+            tonemapping: Tonemapping::BlenderFilmic,
+            color_grading: ColorGrading {
+                exposure: -2.,
+                ..default()
+            },
             camera: Camera {
                 hdr: true,
                 ..default()
