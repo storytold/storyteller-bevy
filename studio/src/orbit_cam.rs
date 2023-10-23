@@ -61,7 +61,7 @@ impl Default for OrbitCam {
 }
 
 fn spawn_camera(mut cmd: Commands) {
-    let focus = vec3(0., 1.5, 0.);
+    let focus = vec3(0.35011, 0.5, -0.99576);
     let camera_xform = Transform::from_xyz(-2.5, 4.5, 5.0).looking_at(focus, Vec3::Y);
 
     cmd.spawn((
