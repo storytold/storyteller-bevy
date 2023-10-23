@@ -1,13 +1,10 @@
 use bevy::{
-    gltf::{Gltf, GltfMesh},
-    utils::HashSet,
-};
-#[rustfmt::skip]
-use bevy::{
+    gltf::Gltf,
     pbr::NotShadowCaster,
     prelude::*,
     reflect::{TypePath, TypeUuid},
     render::render_resource::{AsBindGroup, ShaderRef},
+    utils::HashSet,
 };
 
 use crate::orbit_cam::{CameraMotionSystem, OrbitCam};
@@ -21,8 +18,6 @@ impl Plugin for TestScenePlugin {
             .insert_resource(SpawnTimer(Timer::from_seconds(5., TimerMode::Repeating)))
             .add_plugins(MaterialPlugin::<ProceduralGridMaterial>::default())
             .add_systems(Startup, spawn_scene)
-            // .add_systems(Startup, load_gltf)
-            // .add_systems(Update, spawn_gltf_objects)
             .add_systems(PostUpdate, move_plane_with_camera.after(CameraMotionSystem));
     }
 }
@@ -97,69 +92,6 @@ fn spawn_scene(
             NotShadowCaster,
         ));
     });
-}
-
-fn load_gltf(mut cmd: Commands, assets: Res<AssetServer>) {
-    let gltf = assets.load("gltf/sample-room.gltf");
-    cmd.insert_resource(TestSceneGltf(gltf));
-}
-
-#[allow(clippy::too_many_arguments)]
-fn spawn_gltf_objects(
-    mut cmd: Commands,
-    time: Res<Time>,
-    mut timer: ResMut<SpawnTimer>,
-    gltf: Res<TestSceneGltf>,
-    assets: Res<Assets<Gltf>>,
-    meshes: Res<Assets<GltfMesh>>,
-    mut mats: ResMut<Assets<StandardMaterial>>,
-    mut spawned: ResMut<SpawnedFromScene>,
-) {
-    if !timer.tick(time.delta()).just_finished() {
-        return;
-    }
-
-    let Some(gltf) = assets.get(&gltf) else {
-        info!("GLTF loading...");
-        return;
-    };
-
-    for (name, handle) in gltf.named_meshes.iter() {
-        info!("Processing mesh '{name}'...");
-
-        if spawned.contains(name) {
-            info!("   Already spawned!");
-            continue;
-        }
-
-        let Some(mesh) = meshes.get(handle) else {
-            info!("   No handle for mesh!");
-            continue;
-        };
-
-        info!("   Spawning!");
-
-        for (idx, prim) in mesh.primitives.iter().enumerate() {
-            info!("      Spawning primitiave [{idx}]");
-
-            let mat = match prim.material.as_ref() {
-                Some(mat) => mat.clone(),
-                None => mats.add(StandardMaterial {
-                    emissive: Color::rgb(1., 0., 1.),
-                    ..default()
-                }),
-            };
-
-            cmd.spawn(PbrBundle {
-                mesh: prim.mesh.clone(),
-                material: mat.clone(),
-                ..default()
-            });
-        }
-
-        spawned.insert(name.clone());
-        break;
-    }
 }
 
 fn move_plane_with_camera(
