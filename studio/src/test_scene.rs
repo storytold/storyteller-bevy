@@ -1,3 +1,7 @@
+use bevy::{
+    gltf::{Gltf, GltfMesh},
+    utils::HashSet,
+};
 #[rustfmt::skip]
 use bevy::{
     pbr::NotShadowCaster,
@@ -13,11 +17,24 @@ pub struct TestScenePlugin;
 impl Plugin for TestScenePlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(ClearColor(Color::hsl(0.0, 0.0, 0.25)))
+            .insert_resource(SpawnedFromScene(HashSet::new()))
+            .insert_resource(SpawnTimer(Timer::from_seconds(5., TimerMode::Repeating)))
             .add_plugins(MaterialPlugin::<ProceduralGridMaterial>::default())
             .add_systems(Startup, spawn_scene)
+            // .add_systems(Startup, load_gltf)
+            // .add_systems(Update, spawn_gltf_objects)
             .add_systems(PostUpdate, move_plane_with_camera.after(CameraMotionSystem));
     }
 }
+
+#[derive(Resource, Deref, Debug)]
+struct TestSceneGltf(Handle<Gltf>);
+
+#[derive(Resource, Deref, DerefMut, Debug)]
+struct SpawnedFromScene(HashSet<String>);
+
+#[derive(Resource, Deref, DerefMut, Debug)]
+struct SpawnTimer(Timer);
 
 #[derive(Component)]
 struct WorldGridPlane;
@@ -26,11 +43,12 @@ fn spawn_scene(
     mut cmd: Commands,
     assets: Res<AssetServer>,
     mut meshes: ResMut<Assets<Mesh>>,
+    // mut std_mats: ResMut<Assets<StandardMaterial>>,
     mut mat_proc_grid: ResMut<Assets<ProceduralGridMaterial>>,
 ) {
     // Skeletal mesh
     cmd.spawn(SceneBundle {
-        scene: assets.load("gltf/base_human_male.gltf#Scene0"),
+        scene: assets.load("gltf/sample-room.gltf#Scene0"),
         ..default()
     });
 
@@ -65,6 +83,69 @@ fn spawn_scene(
             NotShadowCaster,
         ));
     });
+}
+
+fn load_gltf(mut cmd: Commands, assets: Res<AssetServer>) {
+    let gltf = assets.load("gltf/sample-room.gltf");
+    cmd.insert_resource(TestSceneGltf(gltf));
+}
+
+#[allow(clippy::too_many_arguments)]
+fn spawn_gltf_objects(
+    mut cmd: Commands,
+    time: Res<Time>,
+    mut timer: ResMut<SpawnTimer>,
+    gltf: Res<TestSceneGltf>,
+    assets: Res<Assets<Gltf>>,
+    meshes: Res<Assets<GltfMesh>>,
+    mut mats: ResMut<Assets<StandardMaterial>>,
+    mut spawned: ResMut<SpawnedFromScene>,
+) {
+    if !timer.tick(time.delta()).just_finished() {
+        return;
+    }
+
+    let Some(gltf) = assets.get(&gltf) else {
+        info!("GLTF loading...");
+        return;
+    };
+
+    for (name, handle) in gltf.named_meshes.iter() {
+        info!("Processing mesh '{name}'...");
+
+        if spawned.contains(name) {
+            info!("   Already spawned!");
+            continue;
+        }
+
+        let Some(mesh) = meshes.get(handle) else {
+            info!("   No handle for mesh!");
+            continue;
+        };
+
+        info!("   Spawning!");
+
+        for (idx, prim) in mesh.primitives.iter().enumerate() {
+            info!("      Spawning primitiave [{idx}]");
+
+            let mat = match prim.material.as_ref() {
+                Some(mat) => mat.clone(),
+                None => mats.add(StandardMaterial {
+                    emissive: Color::rgb(1., 0., 1.),
+                    ..default()
+                }),
+            };
+
+            cmd.spawn(PbrBundle {
+                mesh: prim.mesh.clone(),
+                material: mat.clone(),
+                ..default()
+            });
+        }
+
+        spawned.insert(name.clone());
+        break;
+    }
 }
 
 fn move_plane_with_camera(
