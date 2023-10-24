@@ -52,12 +52,25 @@ fn spawn_scene(
     cmd.spawn(PointLightBundle {
         point_light: PointLight {
             color: Color::hex("FFE5B4").unwrap(),
-            intensity: 1500.,
+            intensity: 200.,
             radius: 0.1,
             shadows_enabled: true,
             ..default()
         },
         transform: Transform::from_xyz(0.35263, 2.4348, 0.19601),
+        ..default()
+    });
+
+    // Monitor glow
+    cmd.spawn(PointLightBundle {
+        point_light: PointLight {
+            color: Color::WHITE,
+            intensity: 6.,
+            radius: 0.25,
+            shadows_enabled: false,
+            ..default()
+        },
+        transform: Transform::from_xyz(0.42615, 1.0706, -2.0705),
         ..default()
     });
 
