@@ -1,10 +1,8 @@
 use bevy::{
-    gltf::Gltf,
     pbr::NotShadowCaster,
     prelude::*,
     reflect::{TypePath, TypeUuid},
     render::render_resource::{AsBindGroup, ShaderRef},
-    utils::HashSet,
 };
 
 use crate::orbit_cam::{CameraMotionSystem, OrbitCam};
@@ -14,22 +12,11 @@ pub struct TestScenePlugin;
 impl Plugin for TestScenePlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(ClearColor(Color::hsl(0.0, 0.0, 0.25)))
-            .insert_resource(SpawnedFromScene(HashSet::new()))
-            .insert_resource(SpawnTimer(Timer::from_seconds(5., TimerMode::Repeating)))
             .add_plugins(MaterialPlugin::<ProceduralGridMaterial>::default())
             .add_systems(Startup, spawn_scene)
             .add_systems(PostUpdate, move_plane_with_camera.after(CameraMotionSystem));
     }
 }
-
-#[derive(Resource, Deref, Debug)]
-struct TestSceneGltf(Handle<Gltf>);
-
-#[derive(Resource, Deref, DerefMut, Debug)]
-struct SpawnedFromScene(HashSet<String>);
-
-#[derive(Resource, Deref, DerefMut, Debug)]
-struct SpawnTimer(Timer);
 
 #[derive(Component)]
 struct WorldGridPlane;
@@ -38,7 +25,6 @@ fn spawn_scene(
     mut cmd: Commands,
     assets: Res<AssetServer>,
     mut meshes: ResMut<Assets<Mesh>>,
-    // mut std_mats: ResMut<Assets<StandardMaterial>>,
     mut mat_proc_grid: ResMut<Assets<ProceduralGridMaterial>>,
 ) {
     // Test scene
