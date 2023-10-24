@@ -35677,17 +35677,12 @@
 		},
 		{
 			"emissiveFactor":[
-				2,
-				2,
-				2
+				0.5,
+				0.5,
+				0.5
 			],
 			"emissiveTexture":{
 				"index":19
-			},
-			"extensions":{
-				"KHR_materials_emissive_strength":{
-					"emissiveStrength":2
-				}
 			},
 			"name":"Archisketch_391610_Frame_Wall-mountedType.001",
 			"normalTexture":{
