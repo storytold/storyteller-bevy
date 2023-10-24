@@ -3,9 +3,13 @@
   "$schema": "../node_modules/nx/schemas/project-schema.json",
   "projectType": "application",
   "sourceRoot": "./studio/src",
+  "namedInputs": {
+    "assets": ["{projectRoot}/assets/**/*"]
+  },
   "targets": {
     "build": {
       "executor": "@nxrs/cargo:build",
+      "inputs": ["assets"],
       "options": {
         "release": false
       },
@@ -17,6 +21,7 @@
     },
     "build:web": {
       "executor": "nx:run-commands",
+      "inputs": ["assets"],
       "options": {
         "commands": [
           "wasm-pack build --out-dir ../dist/studio/ -- --features wasm",
