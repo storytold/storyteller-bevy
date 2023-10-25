@@ -24,14 +24,12 @@ impl Plugin for OrbitCamPlugin {
         app.add_systems(
             Update,
             (
-                camera_control_kinematic.in_set(CameraMotionSystem),
-                update_velocity
-                    .in_set(CameraMotionSystem)
-                    .after(camera_control_kinematic),
-                camera_control_physical
-                    .in_set(CameraMotionSystem)
-                    .after(update_velocity),
-            ),
+                camera_control_kinematic,
+                update_velocity,
+                camera_control_physical,
+            )
+                .chain()
+                .in_set(CameraMotionSystem),
         );
     }
 }
