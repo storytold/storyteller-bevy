@@ -3,16 +3,16 @@
 use bevy::prelude::*;
 use input::StudioInputPlugin;
 use orbit_cam::{CameraMotionSystem, OrbitCam, OrbitCamPlugin};
+use scene::ScenePlugin;
 use skybox::SkyboxPlugin;
-use test_scene::TestScenePlugin;
 use ui::UiLayerPlugin;
 use viewport::ViewportSize;
 use wasm_bindgen::prelude::*;
 
 mod input;
 mod orbit_cam;
+mod scene;
 mod skybox;
-mod test_scene;
 mod ui;
 mod viewport;
 
@@ -37,7 +37,7 @@ pub fn init(viewport_size: ViewportSize) {
         }),
         StudioInputPlugin,
         OrbitCamPlugin,
-        TestScenePlugin,
+        ScenePlugin,
         SkyboxPlugin,
         UiLayerPlugin,
     ))

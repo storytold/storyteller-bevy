@@ -7,9 +7,9 @@ use bevy::{
 
 use crate::orbit_cam::{CameraMotionSystem, OrbitCam};
 
-pub struct TestScenePlugin;
+pub struct ScenePlugin;
 
-impl Plugin for TestScenePlugin {
+impl Plugin for ScenePlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(ClearColor(Color::hsl(0.0, 0.0, 0.25)))
             .add_plugins(MaterialPlugin::<ProceduralGridMaterial>::default())
