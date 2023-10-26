@@ -2,7 +2,7 @@
 
 use bevy::prelude::Vec3;
 
-use super::Zero;
+use super::internal::Zero;
 
 pub trait NearlyEq<Rhs, Tolerance = Rhs> {
     const DEFAULT_TOLERANCE: Tolerance;
@@ -46,7 +46,7 @@ impl NearlyEq<Vec3, f32> for Vec3 {
     }
 }
 
-impl super::Zero for Vec3 {
+impl Zero for Vec3 {
     #[inline]
     fn zero() -> Self {
         Vec3::ZERO

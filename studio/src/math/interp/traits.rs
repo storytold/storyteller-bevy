@@ -1,14 +1,11 @@
-//! Helpers for interpolating between values.
-
 use std::ops;
 
-use bevy::prelude::*;
+use bevy::prelude::Vec3;
 
-use super::NearlyZero;
-
-/// A `newtype` component for a `t` interpolation parameter.
-#[derive(Component, Deref, DerefMut, Debug, Clone, Copy)]
-pub struct Interp(pub f32);
+use crate::math::{
+    internal::{Clamp, One, Zero},
+    NearlyZero,
+};
 
 pub trait Lerp<Operand> {
     /// Interpolate linearly between `a` and `b`, using `self` as the `t` parameter.
@@ -76,41 +73,6 @@ pub trait CurveSin {
     /// }
     /// ```
     fn curve_sin(self) -> Self;
-}
-
-// Helpers for blanket Lerp/InvLerp/Remap impls. These allow either f32 or f64
-// to be used as the `t` parameter without having to copy/paste the same
-// implementation twice for each trait.
-#[rustfmt::skip] pub(super) trait Zero { fn zero() -> Self; }
-#[rustfmt::skip] impl Zero for f32 { #[inline] fn zero() -> Self { 0_f32 } }
-#[rustfmt::skip] impl Zero for f64 { #[inline] fn zero() -> Self { 0_f64 } }
-
-#[rustfmt::skip] pub(super) trait One { fn one() -> Self; }
-#[rustfmt::skip] impl One for f32 { #[inline] fn one() -> Self { 1_f32 } }
-#[rustfmt::skip] impl One for f64 { #[inline] fn one() -> Self { 1_f64 } }
-
-trait Clamp {
-    fn clamp(self, min: Self, max: Self) -> Self;
-}
-
-impl<T> Clamp for T
-where
-    T: Sized + Copy + PartialOrd + core::fmt::Debug,
-{
-    #[inline]
-    fn clamp(mut self, min: Self, max: Self) -> Self {
-        assert!(
-            min <= max,
-            "min > max, or either was NaN. min = {min:?}, max = {max:?}"
-        );
-        if self < min {
-            self = min
-        }
-        if self > max {
-            self = max
-        }
-        self
-    }
 }
 
 impl<T, Operand> Lerp<Operand> for T

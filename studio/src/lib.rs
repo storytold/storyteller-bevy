@@ -2,6 +2,7 @@
 
 use bevy::prelude::*;
 use input::StudioInputPlugin;
+use math::InterpolationPlugin;
 use orbit_cam::{CameraMotionSystem, OrbitCam, OrbitCamPlugin};
 use scene::ScenePlugin;
 use skybox::SkyboxPlugin;
@@ -37,6 +38,7 @@ pub fn init(viewport_size: ViewportSize) {
             ..default()
         }),
         StudioInputPlugin,
+        InterpolationPlugin,
         OrbitCamPlugin,
         ScenePlugin,
         SkyboxPlugin,

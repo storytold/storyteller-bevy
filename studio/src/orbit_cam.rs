@@ -1,4 +1,4 @@
-use std::{f32::consts, mem};
+use std::f32::consts;
 
 use bevy::{
     core_pipeline::{
@@ -13,7 +13,7 @@ use bevy::{
 
 use crate::{
     input::{Action, CameraMotion, InputAction, Lifecycle},
-    math::{CurveSin, Interp, Lerp, NearlyEq},
+    math::{Easing, InterpVelocity, Interpolation, InterpolationSystem, NearlyEq, Velocity},
 };
 
 pub struct OrbitCamPlugin;
@@ -28,21 +28,13 @@ impl Plugin for OrbitCamPlugin {
             Update,
             (
                 camera_control_kinematic,
-                update_velocity,
-                camera_control_physical,
+                process_physical_inputs.before(InterpolationSystem),
+                camera_control_physical.after(InterpolationSystem),
             )
-                .chain()
                 .in_set(CameraMotionSystem),
         );
     }
 }
-
-// TODO: These don't really belong in this module
-#[derive(Component, Deref, DerefMut)]
-pub struct Velocity(pub Vec3);
-
-#[derive(Component, Deref, DerefMut)]
-pub struct TargetVelocity(pub Vec3);
 
 #[derive(Component)]
 pub struct OrbitCam {
@@ -94,53 +86,47 @@ fn spawn_camera(mut cmd: Commands) {
             ..default()
         },
         Velocity(Vec3::ZERO),
-        TargetVelocity(Vec3::ZERO),
-        Interp(1.),
     ));
 }
 
 fn camera_control_kinematic(
     mut q_window: Query<&mut Window, With<PrimaryWindow>>,
     mut input: EventReader<InputAction>,
-    mut q_camera: Query<(
-        &mut OrbitCam,
-        &mut TargetVelocity,
-        &mut Interp,
-        &mut Transform,
-        &Projection,
-    )>,
+    mut q_camera: Query<(&mut OrbitCam, &mut Transform, &Projection)>,
 ) {
     if input.is_empty() {
         return;
     }
 
-    let (mut orbit_cam, mut target_vel, mut t, mut xform, proj) = q_camera.single_mut();
+    let (mut orbit_cam, mut xform, proj) = q_camera.single_mut();
     let mut window = q_window.single_mut();
 
     let mut any_ongoing = false;
     let mut any_started = false;
     let mut any_stopped = false;
 
-    for action in input.iter() {
+    for action in input.iter().filter(|action| {
+        !matches!(
+            action,
+            InputAction(_, Action::Camera(CameraMotion::Translate(_)))
+        )
+    }) {
         #[allow(irrefutable_let_patterns)] // Will eventually be more variants
         if let InputAction(lifecycle, Action::Camera(motion)) = action {
             use CameraMotion::*;
 
-            // Ignore translation actions for the sake of pointer capture
-            if mem::discriminant(motion) != mem::discriminant(&Translate(Vec3::ZERO)) {
-                match lifecycle {
-                    Lifecycle::Start => any_started = true,
-                    Lifecycle::Ongoing => any_ongoing = true,
-                    Lifecycle::Stop => any_stopped = true,
-                }
+            match lifecycle {
+                Lifecycle::Start => any_started = true,
+                Lifecycle::Ongoing => any_ongoing = true,
+                Lifecycle::Stop => any_stopped = true,
             }
 
             match motion {
-                Translate(delta) => do_translate(*delta, &mut target_vel, &mut t),
                 Pan(delta) => do_pan(proj, &window, *delta, &mut xform, &mut orbit_cam),
                 Zoom(delta) => do_zoom(&window, *delta, &mut xform, &mut orbit_cam),
                 Orbit(delta) => do_orbit(&window, *delta, *lifecycle, &mut xform, &mut orbit_cam),
                 Rotate(delta) => do_rotate(&window, *delta, &mut xform, &mut orbit_cam),
+                _ => {}
             }
         }
     }
@@ -152,35 +138,49 @@ fn camera_control_kinematic(
     }
 }
 
-// TODO: This doesn't really belong in this module
-fn update_velocity(
-    time: Res<Time>,
-    mut q_velocity: Query<(&mut Velocity, &TargetVelocity, &mut Interp)>,
+fn process_physical_inputs(
+    mut cmd: Commands,
+    mut input: EventReader<InputAction>,
+    q_camera: Query<(Entity, &Velocity), With<OrbitCam>>,
+    mut q_interp: Query<&mut InterpVelocity>,
 ) {
-    let dt = time.delta_seconds();
-    // TODO: Move these somewhere else -- component maybe?
-    let accel_zero2max = 0.333;
-    let max_speed = 0.075;
-
-    for (mut velocity, target_vel, mut t) in q_velocity.iter_mut() {
-        let target = **target_vel * max_speed;
-        **t = (**t + dt / accel_zero2max).clamp(0., 1.);
-
-        **velocity = if t.nearly_eq(0.) {
-            Vec3::ZERO
-        } else if t.nearly_eq(1.) {
-            target
-        } else {
-            t.curve_sin().lerp(**velocity, target)
+    for action in input.iter() {
+        let &InputAction(_, Action::Camera(CameraMotion::Translate(delta))) = action else {
+            continue;
         };
+
+        for (ent, velocity) in q_camera.iter() {
+            let target = delta * 0.075;
+
+            if let Ok(mut interp) = q_interp.get_mut(ent) {
+                if interp.target.nearly_eq_within(target, 1e-3) {
+                    continue;
+                }
+
+                interp.initial = **velocity;
+                interp.target = target;
+                interp.t = 0.;
+            } else {
+                cmd.entity(ent).insert(InterpVelocity {
+                    inner: Interpolation {
+                        initial: **velocity,
+                        target,
+                        easing: Easing::Sine,
+                        ..default()
+                    },
+                    accel_zero2max: 0.333,
+                });
+            }
+        }
     }
 }
 
 fn camera_control_physical(mut q_camera: Query<(&mut OrbitCam, &mut Transform, &Velocity)>) {
-    let (mut orbit_cam, mut xform, velocity) = q_camera.single_mut();
-    let delta_pos = xform.rotation * velocity.0;
-    xform.translation += delta_pos;
-    orbit_cam.focus += delta_pos;
+    for (mut orbit_cam, mut xform, velocity) in q_camera.iter_mut() {
+        let delta_pos = xform.rotation * (**velocity);
+        xform.translation += delta_pos;
+        orbit_cam.focus += delta_pos;
+    }
 }
 
 #[inline]
@@ -193,14 +193,6 @@ fn capture_pointer(window: &mut Window) {
 fn release_pointer(window: &mut Window) {
     window.cursor.visible = true;
     window.cursor.grab_mode = CursorGrabMode::None;
-}
-
-#[inline]
-fn do_translate(delta: Vec3, target_vel: &mut TargetVelocity, t: &mut Interp) {
-    if !delta.nearly_eq(target_vel.0) {
-        target_vel.0 = delta;
-        t.0 = 0.;
-    }
 }
 
 #[inline]
