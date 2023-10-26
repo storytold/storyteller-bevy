@@ -11,7 +11,10 @@ use bevy::{
     window::{CursorGrabMode, PrimaryWindow},
 };
 
-use crate::input::{Action, CameraMotion, InputAction, Lifecycle};
+use crate::{
+    input::{Action, CameraMotion, InputAction, Lifecycle},
+    math::{CurveSin, Interp, Lerp, NearlyEq},
+};
 
 pub struct OrbitCamPlugin;
 
@@ -35,14 +38,11 @@ impl Plugin for OrbitCamPlugin {
 }
 
 // TODO: These don't really belong in this module
-#[derive(Component)]
+#[derive(Component, Deref, DerefMut)]
 pub struct Velocity(pub Vec3);
 
-#[derive(Component)]
+#[derive(Component, Deref, DerefMut)]
 pub struct TargetVelocity(pub Vec3);
-
-#[derive(Component)]
-pub struct Interp(pub f32);
 
 #[derive(Component)]
 pub struct OrbitCam {
@@ -163,15 +163,15 @@ fn update_velocity(
     let max_speed = 0.075;
 
     for (mut velocity, target_vel, mut t) in q_velocity.iter_mut() {
-        let target_vel = target_vel.0 * max_speed;
-        t.0 = (t.0 + dt / accel_zero2max).clamp(0., 1.);
+        let target = **target_vel * max_speed;
+        **t = (**t + dt / accel_zero2max).clamp(0., 1.);
 
-        velocity.0 = if t.0.nearly_eq(0.) {
+        **velocity = if t.nearly_eq(0.) {
             Vec3::ZERO
-        } else if t.0.nearly_eq(1.) {
-            target_vel
+        } else if t.nearly_eq(1.) {
+            target
         } else {
-            Vec3::lerp(velocity.0, target_vel, curve_sin(t.0))
+            t.curve_sin().lerp(**velocity, target)
         };
     }
 }
@@ -294,34 +294,4 @@ fn do_rotate(win: &Window, delta: Vec2, xform: &mut Transform, orbit_cam: &mut O
 
     // Update focus point
     orbit_cam.focus = xform.translation + xform.forward() * orbit_cam.radius;
-}
-
-/// Fit a [0, 1] `t` interpolation parameter to a sine curve
-///
-/// https://www.desmos.com/calculator/k9x4c4cr5y
-#[inline]
-fn curve_sin(t: f32) -> f32 {
-    -1. * (f32::cos(t * consts::PI) / 2.) + 0.5
-}
-
-trait NearlyEq {
-    type Rhs;
-
-    fn nearly_eq(self, rhs: Self::Rhs) -> bool;
-}
-
-impl NearlyEq for f32 {
-    type Rhs = Self;
-
-    fn nearly_eq(self, rhs: Self::Rhs) -> bool {
-        (self - rhs).abs() < Self::EPSILON
-    }
-}
-
-impl NearlyEq for Vec3 {
-    type Rhs = Self;
-
-    fn nearly_eq(self, rhs: Self::Rhs) -> bool {
-        self.x.nearly_eq(rhs.x) && self.y.nearly_eq(rhs.y) && self.z.nearly_eq(rhs.z)
-    }
 }

@@ -10,6 +10,7 @@ use viewport::ViewportSize;
 use wasm_bindgen::prelude::*;
 
 mod input;
+mod math;
 mod orbit_cam;
 mod scene;
 mod skybox;
