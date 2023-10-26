@@ -1,18 +1,18 @@
 #![allow(clippy::type_complexity)]
 
 use bevy::prelude::*;
+use camera_controller::{CameraController, CameraControllerPlugin, CameraMotionSystem};
 use input::StudioInputPlugin;
 use math::InterpolationPlugin;
-use orbit_cam::{CameraMotionSystem, OrbitCam, OrbitCamPlugin};
 use scene::ScenePlugin;
 use skybox::SkyboxPlugin;
 use ui::UiLayerPlugin;
 use viewport::ViewportSize;
 use wasm_bindgen::prelude::*;
 
+mod camera_controller;
 mod input;
 mod math;
-mod orbit_cam;
 mod scene;
 mod skybox;
 mod ui;
@@ -39,7 +39,7 @@ pub fn init(viewport_size: ViewportSize) {
         }),
         StudioInputPlugin,
         InterpolationPlugin,
-        OrbitCamPlugin,
+        CameraControllerPlugin,
         ScenePlugin,
         SkyboxPlugin,
         UiLayerPlugin,
@@ -48,8 +48,8 @@ pub fn init(viewport_size: ViewportSize) {
     .run();
 }
 
-fn draw_world_axes(mut gizmos: Gizmos, q: Query<&OrbitCam>) {
-    let &OrbitCam { focus, radius, .. } = q.single();
+fn draw_world_axes(mut gizmos: Gizmos, q: Query<&CameraController>) {
+    let &CameraController { focus, radius, .. } = q.single();
 
     let mut draw_axis = |direction: Vec3, color: Color| {
         let end = focus + direction * radius / 15.;

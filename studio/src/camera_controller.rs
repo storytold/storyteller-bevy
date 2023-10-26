@@ -10,12 +10,12 @@ use crate::{
     math::{Easing, InterpVelocity, Interpolation, InterpolationSystem, NearlyEq, Velocity},
 };
 
-pub struct OrbitCamPlugin;
+pub struct CameraControllerPlugin;
 
 #[derive(SystemSet, Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub struct CameraMotionSystem;
 
-impl Plugin for OrbitCamPlugin {
+impl Plugin for CameraControllerPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             Update,
@@ -30,13 +30,13 @@ impl Plugin for OrbitCamPlugin {
 }
 
 #[derive(Component)]
-pub struct OrbitCam {
+pub struct CameraController {
     pub focus: Vec3,
     pub radius: f32,
     pub upside_down: bool,
 }
 
-impl Default for OrbitCam {
+impl Default for CameraController {
     fn default() -> Self {
         Self {
             focus: Vec3::ZERO,
@@ -47,15 +47,15 @@ impl Default for OrbitCam {
 }
 
 #[derive(Bundle)]
-pub struct OrbitCamBundle {
-    orbit_cam: OrbitCam,
+pub struct CameraControllerBundle {
+    controller: CameraController,
     velocity: Velocity,
 }
 
-impl OrbitCamBundle {
+impl CameraControllerBundle {
     pub fn new(focus: Vec3, position: Vec3) -> Self {
         Self {
-            orbit_cam: OrbitCam {
+            controller: CameraController {
                 focus,
                 radius: Vec3::distance(position, focus),
                 ..default()
@@ -68,13 +68,13 @@ impl OrbitCamBundle {
 fn camera_control_kinematic(
     mut q_window: Query<&mut Window, With<PrimaryWindow>>,
     mut input: EventReader<InputAction>,
-    mut q_camera: Query<(&mut OrbitCam, &mut Transform, &Projection)>,
+    mut q_camera: Query<(&mut CameraController, &mut Transform, &Projection)>,
 ) {
     if input.is_empty() {
         return;
     }
 
-    let (mut orbit_cam, mut xform, proj) = q_camera.single_mut();
+    let (mut controller, mut xform, proj) = q_camera.single_mut();
     let mut window = q_window.single_mut();
 
     let mut any_ongoing = false;
@@ -98,10 +98,10 @@ fn camera_control_kinematic(
             }
 
             match motion {
-                Pan(delta) => do_pan(proj, &window, *delta, &mut xform, &mut orbit_cam),
-                Zoom(delta) => do_zoom(&window, *delta, &mut xform, &mut orbit_cam),
-                Orbit(delta) => do_orbit(&window, *delta, *lifecycle, &mut xform, &mut orbit_cam),
-                Rotate(delta) => do_rotate(&window, *delta, &mut xform, &mut orbit_cam),
+                Pan(delta) => do_pan(proj, &window, *delta, &mut xform, &mut controller),
+                Zoom(delta) => do_zoom(&window, *delta, &mut xform, &mut controller),
+                Orbit(delta) => do_orbit(&window, *delta, *lifecycle, &mut xform, &mut controller),
+                Rotate(delta) => do_rotate(&window, *delta, &mut xform, &mut controller),
                 _ => {}
             }
         }
@@ -117,7 +117,7 @@ fn camera_control_kinematic(
 fn process_physical_inputs(
     mut cmd: Commands,
     mut input: EventReader<InputAction>,
-    q_camera: Query<(Entity, &Velocity), With<OrbitCam>>,
+    q_camera: Query<(Entity, &Velocity), With<CameraController>>,
     mut q_interp: Query<&mut InterpVelocity>,
 ) {
     for action in input.iter() {
@@ -151,11 +151,13 @@ fn process_physical_inputs(
     }
 }
 
-fn camera_control_physical(mut q_camera: Query<(&mut OrbitCam, &mut Transform, &Velocity)>) {
-    for (mut orbit_cam, mut xform, velocity) in q_camera.iter_mut() {
+fn camera_control_physical(
+    mut q_camera: Query<(&mut CameraController, &mut Transform, &Velocity)>,
+) {
+    for (mut controller, mut xform, velocity) in q_camera.iter_mut() {
         let delta_pos = xform.rotation * (**velocity);
         xform.translation += delta_pos;
-        orbit_cam.focus += delta_pos;
+        controller.focus += delta_pos;
     }
 }
 
@@ -177,20 +179,20 @@ fn do_orbit(
     delta: Vec2,
     event_lifecycle: Lifecycle,
     xform: &mut Transform,
-    orbit_cam: &mut OrbitCam,
+    controller: &mut CameraController,
 ) {
     // Set `upside_down` flag if the event just started or stopped
     if matches!(event_lifecycle, Lifecycle::Start | Lifecycle::Stop) {
-        orbit_cam.upside_down = xform.up().y <= 0.;
+        controller.upside_down = xform.up().y <= 0.;
     }
 
     // Translate to origin
-    xform.translation += xform.forward() * orbit_cam.radius;
+    xform.translation += xform.forward() * controller.radius;
 
     // Calculate rotation
     let delta_x = {
         let delta = delta.x / (win.physical_width() as f32) * consts::PI * 2.0;
-        match orbit_cam.upside_down {
+        match controller.upside_down {
             true => -delta,
             false => delta,
         }
@@ -205,7 +207,7 @@ fn do_orbit(
     xform.rotation *= pitch;
 
     // Translate back to the original position
-    xform.translation += xform.back() * orbit_cam.radius;
+    xform.translation += xform.back() * controller.radius;
 }
 
 #[inline]
@@ -214,7 +216,7 @@ fn do_pan(
     win: &Window,
     delta: Vec2,
     xform: &mut Transform,
-    orbit_cam: &mut OrbitCam,
+    controller: &mut CameraController,
 ) {
     // Normalize the pan distance with respect to the window resolution
     let pan = match proj {
@@ -231,22 +233,22 @@ fn do_pan(
     // Pan along local XY plane, with the distance scaled by the radius
     let up = xform.up();
     let left = xform.left();
-    let delta = (pan.y * up + pan.x * left) * orbit_cam.radius;
+    let delta = (pan.y * up + pan.x * left) * controller.radius;
 
     // Update camera translation and focus point
     xform.translation += delta;
-    orbit_cam.focus += delta;
+    controller.focus += delta;
 }
 
 #[inline]
-fn do_zoom(win: &Window, delta: f32, xform: &mut Transform, orbit_cam: &mut OrbitCam) {
+fn do_zoom(win: &Window, delta: f32, xform: &mut Transform, controller: &mut CameraController) {
     let delta = (delta * 1.5) / (win.physical_height() as f32);
-    orbit_cam.radius -= orbit_cam.radius * delta;
-    xform.translation = orbit_cam.focus + xform.back() * orbit_cam.radius;
+    controller.radius -= controller.radius * delta;
+    xform.translation = controller.focus + xform.back() * controller.radius;
 }
 
 #[inline]
-fn do_rotate(win: &Window, delta: Vec2, xform: &mut Transform, orbit_cam: &mut OrbitCam) {
+fn do_rotate(win: &Window, delta: Vec2, xform: &mut Transform, controller: &mut CameraController) {
     // TODO: Move this somewhere else
     let sensitivity = 0.75;
 
@@ -261,5 +263,5 @@ fn do_rotate(win: &Window, delta: Vec2, xform: &mut Transform, orbit_cam: &mut O
     xform.rotation *= pitch;
 
     // Update focus point
-    orbit_cam.focus = xform.translation + xform.forward() * orbit_cam.radius;
+    controller.focus = xform.translation + xform.forward() * controller.radius;
 }

@@ -12,7 +12,7 @@ use bevy::{
 };
 
 use crate::{
-    orbit_cam::{CameraMotionSystem, OrbitCam, OrbitCamBundle},
+    camera_controller::{CameraController, CameraControllerBundle, CameraMotionSystem},
     skybox::SkyboxId,
 };
 
@@ -58,7 +58,7 @@ fn spawn_scene(
             },
             ..default()
         },
-        OrbitCamBundle::new(focus, camera_xform.translation),
+        CameraControllerBundle::new(focus, camera_xform.translation),
         BloomSettings {
             composite_mode: BloomCompositeMode::EnergyConserving,
             intensity: 0.25,
@@ -133,9 +133,9 @@ fn spawn_scene(
 
 fn move_plane_with_camera(
     mut plane: Query<(&WorldGridPlane, &mut Transform)>,
-    camera: Query<&OrbitCam, Changed<OrbitCam>>,
+    camera: Query<&CameraController, Changed<CameraController>>,
 ) {
-    if let Ok(&OrbitCam { focus, .. }) = camera.get_single() {
+    if let Ok(&CameraController { focus, .. }) = camera.get_single() {
         let (_, mut xform) = plane.single_mut();
 
         xform.translation.x = focus.x;
