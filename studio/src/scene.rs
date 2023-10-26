@@ -5,7 +5,10 @@ use bevy::{
     render::render_resource::{AsBindGroup, ShaderRef},
 };
 
-use crate::orbit_cam::{CameraMotionSystem, OrbitCam};
+use crate::{
+    orbit_cam::{CameraMotionSystem, OrbitCam},
+    skybox::SkyboxId,
+};
 
 pub struct ScenePlugin;
 
@@ -27,6 +30,9 @@ fn spawn_scene(
     mut meshes: ResMut<Assets<Mesh>>,
     mut mat_proc_grid: ResMut<Assets<ProceduralGridMaterial>>,
 ) {
+    // Skybox
+    cmd.insert_resource(SkyboxId("test_scene".into()));
+
     // Test scene
     cmd.spawn(SceneBundle {
         scene: assets.load("gltf/sample-room.gltf#Scene0"),
