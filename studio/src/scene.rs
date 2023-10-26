@@ -1,4 +1,10 @@
 use bevy::{
+    core_pipeline::{
+        bloom::{BloomCompositeMode, BloomPrefilterSettings, BloomSettings},
+        fxaa::Fxaa,
+        tonemapping::Tonemapping,
+    },
+    math::vec3,
     pbr::NotShadowCaster,
     prelude::*,
     reflect::{TypePath, TypeUuid},
@@ -6,7 +12,7 @@ use bevy::{
 };
 
 use crate::{
-    orbit_cam::{CameraMotionSystem, OrbitCam},
+    orbit_cam::{CameraMotionSystem, OrbitCam, OrbitCamBundle},
     skybox::SkyboxId,
 };
 
@@ -33,11 +39,37 @@ fn spawn_scene(
     // Skybox
     cmd.insert_resource(SkyboxId("test_scene".into()));
 
-    // Test scene
+    // glTF scene
     cmd.spawn(SceneBundle {
         scene: assets.load("gltf/sample-room.gltf#Scene0"),
         ..default()
     });
+
+    // Camera, graphics settings
+    let focus = vec3(0.35011, 0.5, -0.99576);
+    let camera_xform = Transform::from_xyz(-2.5, 4.5, 5.0).looking_at(focus, Vec3::Y);
+    cmd.spawn((
+        Camera3dBundle {
+            transform: camera_xform,
+            tonemapping: Tonemapping::BlenderFilmic,
+            camera: Camera {
+                hdr: true,
+                ..default()
+            },
+            ..default()
+        },
+        OrbitCamBundle::new(focus, camera_xform.translation),
+        BloomSettings {
+            composite_mode: BloomCompositeMode::EnergyConserving,
+            intensity: 0.25,
+            prefilter_settings: BloomPrefilterSettings {
+                threshold: 0.8,
+                threshold_softness: 0.5,
+            },
+            ..default()
+        },
+        Fxaa::default(),
+    ));
 
     // Main light
     // TODO: get Blender to export enough metadata to automate light placements
