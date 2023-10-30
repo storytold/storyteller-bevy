@@ -201,16 +201,19 @@ fn mark_scene_objects(
 
     for (ent_parent, name, children) in q_parents.iter() {
         // See if this name matches any of the meshes or nodes in our glTF scene
-        let Some(gltf_mesh_handle) = gltf.named_meshes.get(&**name).cloned().or_else(|| {
-            gltf.named_nodes.get(&**name).and_then(|node_handle| {
-                ra_gltf_nodes
-                    .get(node_handle)
-                    .and_then(|node| node.mesh.clone())
+        let Some(gltf_mesh) = gltf
+            .named_meshes
+            .get(&**name)
+            .cloned()
+            .or_else(|| {
+                gltf.named_nodes.get(&**name).and_then(|node_handle| {
+                    ra_gltf_nodes
+                        .get(node_handle)
+                        .and_then(|node| node.mesh.clone())
+                })
             })
-        }) else {
-            continue;
-        };
-        let Some(gltf_mesh) = ra_gltf_meshes.get(&gltf_mesh_handle) else {
+            .and_then(|handle| ra_gltf_meshes.get(&handle))
+        else {
             continue;
         };
 
