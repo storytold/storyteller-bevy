@@ -1,7 +1,5 @@
-#![allow(unused_imports, dead_code)]
-
 use bevy::{
-    asset::{AssetPathId, HandleId, LoadState},
+    asset::LoadState,
     core_pipeline::{
         bloom::{BloomCompositeMode, BloomPrefilterSettings, BloomSettings},
         fxaa::Fxaa,
@@ -15,10 +13,11 @@ use bevy::{
     render::render_resource::{AsBindGroup, ShaderRef},
     utils::HashSet,
 };
-use bevy_mod_picking::prelude::Pickable;
+use bevy_mod_picking::PickableBundle;
 
 use crate::{
     camera_controller::{CameraController, CameraControllerBundle, CameraMotionSystem},
+    interaction::Selectable,
     skybox::SkyboxId,
 };
 
@@ -45,9 +44,6 @@ impl Plugin for ScenePlugin {
 #[derive(Component)]
 struct WorldGridPlane;
 
-#[derive(Component)]
-struct SceneObject;
-
 #[derive(Resource, Deref, DerefMut)]
 struct NewGltf(pub Handle<Gltf>);
 
@@ -60,10 +56,8 @@ fn initialize(
     // Skybox
     cmd.insert_resource(SkyboxId("test_scene".into()));
 
-    // glTF
-    cmd.insert_resource(NewGltf(assets.load("gltf/sample-room.gltf")));
-
     // glTF scene
+    cmd.insert_resource(NewGltf(assets.load("gltf/sample-room.gltf")));
     cmd.spawn((
         Name::new("Scene"),
         SceneBundle {
@@ -200,7 +194,7 @@ fn mark_scene_objects(
     ra_gltfs: Res<Assets<Gltf>>,
     ra_gltf_nodes: Res<Assets<gltf::GltfNode>>,
     ra_gltf_meshes: Res<Assets<gltf::GltfMesh>>,
-    q_parents: Query<(Entity, &Name, &Children), Without<SceneObject>>,
+    q_parents: Query<(Entity, &Name, &Children), Without<Selectable>>,
     q_primitives: Query<&Handle<Mesh>>,
 ) {
     let gltf = ra_gltfs.get(&r_gltf).unwrap();
@@ -240,7 +234,13 @@ fn mark_scene_objects(
 
         // If the sets match, this is the entity that represents the glTF mesh
         if prims_from_gltf == prims_from_ecs {
-            cmd.entity(ent_parent).insert(SceneObject);
+            cmd.entity(ent_parent).insert(Selectable);
+
+            for &ent_child in children.iter() {
+                if q_primitives.contains(ent_child) {
+                    cmd.entity(ent_child).insert(PickableBundle::default());
+                }
+            }
         }
     }
 

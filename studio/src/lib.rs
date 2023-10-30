@@ -1,10 +1,11 @@
 #![allow(clippy::type_complexity, clippy::too_many_arguments)]
 
-use bevy::prelude::*;
+use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
-use bevy_mod_picking::{prelude::DebugPickingPlugin, DefaultPickingPlugins};
+use bevy_mod_picking::DefaultPickingPlugins;
 use camera_controller::{CameraController, CameraControllerPlugin, CameraMotionSystem};
 use input::StudioInputPlugin;
+use interaction::InteractionPlugin;
 use math::InterpolationPlugin;
 use scene::ScenePlugin;
 use skybox::SkyboxPlugin;
@@ -14,6 +15,7 @@ use wasm_bindgen::prelude::*;
 
 mod camera_controller;
 mod input;
+mod interaction;
 mod math;
 mod scene;
 mod skybox;
@@ -39,10 +41,9 @@ pub fn init(viewport_size: ViewportSize) {
             }),
             ..default()
         }),
-        DefaultPickingPlugins
-            .build()
-            .disable::<DebugPickingPlugin>(),
+        DefaultPickingPlugins,
         WorldInspectorPlugin::new(),
+        InteractionPlugin,
         StudioInputPlugin,
         InterpolationPlugin,
         CameraControllerPlugin,
@@ -50,8 +51,30 @@ pub fn init(viewport_size: ViewportSize) {
         SkyboxPlugin,
         UiLayerPlugin,
     ))
-    .add_systems(Update, draw_world_axes.after(CameraMotionSystem))
+    .insert_resource(GizmoConfig {
+        enabled: true,
+        depth_bias: -0.1,
+        line_perspective: false,
+        line_width: 2.,
+        ..default()
+    })
+    .add_systems(
+        Update,
+        (
+            update_gizmo_line_thickness,
+            draw_world_axes.after(CameraMotionSystem),
+        ),
+    )
     .run();
+}
+
+fn update_gizmo_line_thickness(
+    mut config: ResMut<GizmoConfig>,
+    q_window: Query<&Window, (Changed<Window>, With<PrimaryWindow>)>,
+) {
+    if let Ok(scale_factor) = q_window.get_single().map(|win| win.scale_factor() as f32) {
+        config.line_width = 2. * scale_factor;
+    }
 }
 
 fn draw_world_axes(mut gizmos: Gizmos, q: Query<&CameraController>) {

@@ -858,7 +858,6 @@ dependencies = [
  "bevy_app",
  "bevy_asset",
  "bevy_ecs",
- "bevy_pbr",
  "bevy_picking_core",
  "bevy_picking_selection",
  "bevy_reflect",
