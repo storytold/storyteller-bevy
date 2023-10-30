@@ -1,6 +1,8 @@
-#![allow(clippy::type_complexity)]
+#![allow(clippy::type_complexity, clippy::too_many_arguments)]
 
 use bevy::prelude::*;
+use bevy_inspector_egui::quick::WorldInspectorPlugin;
+use bevy_mod_picking::{prelude::DebugPickingPlugin, DefaultPickingPlugins};
 use camera_controller::{CameraController, CameraControllerPlugin, CameraMotionSystem};
 use input::StudioInputPlugin;
 use math::InterpolationPlugin;
@@ -37,6 +39,10 @@ pub fn init(viewport_size: ViewportSize) {
             }),
             ..default()
         }),
+        DefaultPickingPlugins
+            .build()
+            .disable::<DebugPickingPlugin>(),
+        WorldInspectorPlugin::new(),
         StudioInputPlugin,
         InterpolationPlugin,
         CameraControllerPlugin,

@@ -19,6 +19,7 @@ struct FramerateCounter;
 fn layout(mut cmd: Commands) {
     cmd.spawn((
         FramerateCounter,
+        Name::new("Framerate Counter"),
         TextBundle::from_section(
             "0 fps",
             TextStyle {
