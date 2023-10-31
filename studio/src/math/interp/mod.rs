@@ -10,6 +10,9 @@ mod traits;
 pub enum Easing {
     Linear,
     Sine,
+    SineOut,
+    #[allow(dead_code)]
+    SineIn,
 }
 
 impl Default for Easing {

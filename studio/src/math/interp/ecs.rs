@@ -52,6 +52,8 @@ where
             let t = match self.easing {
                 Easing::Linear => self.t,
                 Easing::Sine => self.t.curve_sin(),
+                Easing::SineIn => self.t.curve_sin_in(),
+                Easing::SineOut => self.t.curve_sin_out(),
             };
 
             t.lerp(self.initial, self.target)

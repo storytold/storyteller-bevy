@@ -73,6 +73,18 @@ pub trait CurveSin {
     /// }
     /// ```
     fn curve_sin(self) -> Self;
+
+    /// Works like `curve_sin`, except that only the lower half of the line is
+    /// curved, with the upper half progressing linearly.
+    ///
+    /// https://www.desmos.com/calculator/ngceukl6g5
+    fn curve_sin_in(self) -> Self;
+
+    /// Works like `curve_sin`, except that only the upper half of the line is
+    /// curved, with the lower half progressing linearly.
+    ///
+    /// https://www.desmos.com/calculator/umvvxhkd46
+    fn curve_sin_out(self) -> Self;
 }
 
 impl<T, Operand> Lerp<Operand> for T
@@ -141,6 +153,18 @@ impl CurveSin for f32 {
 
         -1. * ((self * PI).cos() / 2.) + 0.5
     }
+
+    fn curve_sin_in(self) -> Self {
+        use std::f32::consts::PI;
+
+        1. - ((self * PI) / 2.).cos()
+    }
+
+    fn curve_sin_out(self) -> Self {
+        use std::f32::consts::PI;
+
+        ((self * PI) / 2.).sin()
+    }
 }
 
 impl CurveSin for f64 {
@@ -148,5 +172,17 @@ impl CurveSin for f64 {
         use std::f64::consts::PI;
 
         -1. * ((self * PI).cos() / 2.) + 0.5
+    }
+
+    fn curve_sin_in(self) -> Self {
+        use std::f64::consts::PI;
+
+        1. - ((self * PI) / 2.).cos()
+    }
+
+    fn curve_sin_out(self) -> Self {
+        use std::f64::consts::PI;
+
+        ((self * PI) / 2.).sin()
     }
 }

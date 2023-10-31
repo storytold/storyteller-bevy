@@ -4,7 +4,10 @@ use bevy_mod_outline::{
 };
 use bevy_mod_picking::{prelude::Pointer, selection::Select};
 
-use crate::camera_controller::CameraMotionSystem;
+use crate::{
+    camera_controller::CameraMotionSystem,
+    input::{self, Action, InputAction, Lifecycle},
+};
 
 #[derive(Component, Clone, Copy)]
 pub struct Selectable;
@@ -35,38 +38,48 @@ impl Plugin for InteractionPlugin {
 fn update_selection(
     mut cmd: Commands,
     mut ev_select: EventReader<Pointer<Select>>,
+    mut ev_input: EventReader<InputAction>,
     q_parents: Query<&Parent>,
     q_selectable: Query<&Selectable>,
     q_selected: Query<Entity, With<Selected>>,
 ) {
-    let Some(event) = ev_select.iter().last() else {
-        return;
-    };
-
-    // Clear any existing `Selected` components
-    for ent in q_selected.iter() {
-        cmd.entity(ent).remove::<Selected>();
-    }
-
-    // Find the nearest Selectable parent of the target entity
-    let mut ent = event.target;
-    let ent_selected = loop {
-        if q_selectable.get(ent).is_ok() {
-            break Some(ent);
+    if let Some(event) = ev_select.iter().last() {
+        // Clear any existing `Selected` components
+        for ent in q_selected.iter() {
+            cmd.entity(ent).remove::<Selected>();
         }
 
-        if let Ok(parent) = q_parents.get(ent) {
-            ent = parent.get();
+        // Find the nearest Selectable parent of the target entity
+        let mut ent = event.target;
+        let ent_selected = loop {
+            if q_selectable.get(ent).is_ok() {
+                break Some(ent);
+            }
+
+            if let Ok(parent) = q_parents.get(ent) {
+                ent = parent.get();
+            } else {
+                break None;
+            }
+        };
+
+        if let Some(ent) = ent_selected {
+            cmd.insert_resource(Selection(ent));
+            cmd.entity(ent).insert(Selected);
         } else {
-            break None;
+            cmd.remove_resource::<Selection>();
         }
-    };
-
-    if let Some(ent) = ent_selected {
-        cmd.insert_resource(Selection(ent));
-        cmd.entity(ent).insert(Selected);
-    } else {
+    } else if ev_input.iter().any(|action| {
+        matches!(
+            action,
+            InputAction(Lifecycle::Stop, Action::Selection(input::Selection::Clear))
+        )
+    }) {
         cmd.remove_resource::<Selection>();
+
+        for ent in q_selected.iter() {
+            cmd.entity(ent).remove::<Selected>();
+        }
     }
 }
 

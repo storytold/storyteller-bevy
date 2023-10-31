@@ -6,8 +6,12 @@ use bevy::{
 };
 
 use crate::{
-    input::{Action, CameraMotion, InputAction, Lifecycle},
-    math::{Easing, InterpVelocity, Interpolation, InterpolationSystem, NearlyEq, Velocity},
+    input::{Action, CameraMotion, InputAction, Lifecycle, Selection},
+    interaction::Selected,
+    math::{
+        Easing, InterpPosition, InterpVelocity, Interpolation, InterpolationSystem, NearlyEq,
+        Velocity,
+    },
 };
 
 pub struct CameraControllerPlugin;
@@ -21,8 +25,8 @@ impl Plugin for CameraControllerPlugin {
             Update,
             (
                 camera_control_kinematic,
-                process_physical_inputs.before(InterpolationSystem),
-                camera_control_physical.after(InterpolationSystem),
+                (process_physical_inputs, process_focus_inputs).before(InterpolationSystem),
+                (camera_control_physical, interp_camera_focus).after(InterpolationSystem),
             )
                 .in_set(CameraMotionSystem),
         );
@@ -87,7 +91,6 @@ fn camera_control_kinematic(
             InputAction(_, Action::Camera(CameraMotion::Translate(_)))
         )
     }) {
-        #[allow(irrefutable_let_patterns)] // Will eventually be more variants
         if let InputAction(lifecycle, Action::Camera(motion)) = action {
             use CameraMotion::*;
 
@@ -151,6 +154,64 @@ fn process_physical_inputs(
     }
 }
 
+fn process_focus_inputs(
+    mut cmd: Commands,
+    mut input: EventReader<InputAction>,
+    mut q_camera: Query<(Entity, &CameraController, &mut Velocity)>,
+    q_interp_vel: Query<&InterpVelocity>,
+    mut q_interp_pos: Query<&mut InterpPosition>,
+    q_selected_xform: Query<&GlobalTransform, With<Selected>>,
+) {
+    if input.iter().any(|action| {
+        matches!(
+            action,
+            InputAction(Lifecycle::Stop, Action::Selection(Selection::Focus))
+        )
+    }) {
+        let Ok(target) = q_selected_xform
+            .get_single()
+            .map(|xform| xform.translation())
+        else {
+            return;
+        };
+
+        for (ent, controller, mut velocity) in q_camera.iter_mut() {
+            // Zero out any existing camera velocity or interpolation
+            **velocity = Vec3::ZERO;
+
+            if q_interp_vel.get(ent).is_ok() {
+                cmd.entity(ent).remove::<InterpVelocity>();
+            }
+
+            let initial = controller.focus;
+            let easing = Easing::SineOut;
+            let duration = 0.25;
+
+            if let Ok(mut interp) = q_interp_pos.get_mut(ent) {
+                if interp.target.nearly_eq_within(target, 1e-3) {
+                    continue;
+                }
+
+                interp.initial = initial;
+                interp.target = target;
+                interp.easing = easing;
+                interp.t = 0.;
+                interp.duration = duration;
+            } else {
+                cmd.entity(ent).insert(InterpPosition {
+                    inner: Interpolation {
+                        initial,
+                        target,
+                        easing,
+                        ..default()
+                    },
+                    duration,
+                });
+            }
+        }
+    }
+}
+
 fn camera_control_physical(
     mut q_camera: Query<(&mut CameraController, &mut Transform, &Velocity)>,
 ) {
@@ -158,6 +219,23 @@ fn camera_control_physical(
         let delta_pos = xform.rotation * (**velocity);
         xform.translation += delta_pos;
         controller.focus += delta_pos;
+    }
+}
+
+fn interp_camera_focus(
+    mut q_camera: Query<(
+        &mut CameraController,
+        &mut Transform,
+        &GlobalTransform,
+        &InterpPosition,
+    )>,
+) {
+    for (mut controller, mut xform, _world_xform, interp) in q_camera.iter_mut() {
+        let target_focus = interp.current();
+        let delta_pos = target_focus - controller.focus;
+
+        controller.focus = target_focus;
+        xform.translation += delta_pos;
     }
 }
 

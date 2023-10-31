@@ -11,6 +11,11 @@ export class HelpElement extends LitElement {
 		<table>
 			<thead>
 				<tr>
+					<th class="section-header" colspan="3">
+						Navigation
+					</th>
+				</tr>
+				<tr>
 					<th>Action</th>
 					<th>Controls</th>
 					<th>Alternate</th>
@@ -32,16 +37,38 @@ export class HelpElement extends LitElement {
 				</tr>
 				<tr>
 					<td>Free fly</td>
-					<td colspan="2">W, A, S, D</td>
-				</tr>
-				<tr>
-					<td style="padding-left: 20px">Up / Down</td>
-					<td colspan="2">E, Q</td>
+					<td colspan="2">W, A, S, D, E, Q</td>
 				</tr>
 				<tr>
 					<td>Free look</td>
 					<td>RMB</td>
 					<td>Shift</td>
+				</tr>
+			</tbody>
+			<thead>
+				<tr>
+					<th class="section-header" colspan="3">
+						Interaction
+					</th>
+				</tr>
+				<tr>
+					<th>Action</th>
+					<th>Controls</th>
+					<th>Alternate</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr>
+					<td>Select</td>
+					<td colspan="2">LMB</td>
+				</tr>
+				<tr>
+					<td>Clear Selection</td>
+					<td colspan="2">Esc</td>
+				</tr>
+				<tr>
+					<td>Focus Selection</td>
+					<td colspan="2">F</td>
 				</tr>
 			</tbody>
 		</table>

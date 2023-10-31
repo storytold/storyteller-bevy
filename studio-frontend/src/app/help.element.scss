@@ -16,9 +16,16 @@
 
 th {
 	text-align: start;
-	color: #FFF;
-	font-weight: 700;
+	color: #FFFC;
+	font-weight: 500;
 	line-height: 2;
+
+	&.section-header {
+		padding: 0.5em 0 0;
+		color: #FFFF;
+		font-weight: 700;
+		line-height: 1.6333333;
+	}
 }
 
 td {
@@ -29,4 +36,8 @@ td {
 	&:has(+ td) {
 		padding-right: 30px;
 	}
+}
+
+th:not(.section-header), td {
+	padding-left: 20px;
 }
