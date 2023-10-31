@@ -1,0 +1,37 @@
+[package]
+name = "bevy_mod_outline"
+version = "0.5.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+description = "A mesh outlining plugin for Bevy."
+readme = "README.md"
+homepage = "https://github.com/komadori/bevy_mod_outline/"
+repository = "https://github.com/komadori/bevy_mod_outline/"
+keywords = ["gamedev", "bevy", "outline"]
+categories = ["game-engines", "rendering"]
+
+[dependencies]
+bevy = { version = "0.11", default-features = false, features = [
+    "bevy_asset",
+    "bevy_render",
+    "bevy_pbr",
+    "ktx2",
+    "tonemapping_luts",
+    "zstd",
+    "bevy_core_pipeline",
+] }
+bitfield = "0.14"
+interpolation = "0.2"
+thiserror = "1.0"
+wgpu-types = "0.16.1"
+
+[dev-dependencies]
+bevy = { version = "0.11", default-features = false, features = [
+    "animation",
+    "bevy_gltf",
+    "bevy_pbr",
+    "bevy_scene",
+    "bevy_winit",
+    "png",
+    "x11",
+] }
