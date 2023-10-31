@@ -37,6 +37,10 @@ impl Plugin for InteractionPlugin {
 
 fn update_selection(
     mut cmd: Commands,
+    // FIXME: These events aren't aware of our input actions, so we receive a
+    //        selection event when LMB is released after orbiting the camera.
+    //        Should drop bevy_mod_picking's Selection plugin/feature and just
+    //        use our own conditional click listener.
     mut ev_select: EventReader<Pointer<Select>>,
     mut ev_input: EventReader<InputAction>,
     q_parents: Query<&Parent>,
