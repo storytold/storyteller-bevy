@@ -223,14 +223,9 @@ fn camera_control_physical(
 }
 
 fn interp_camera_focus(
-    mut q_camera: Query<(
-        &mut CameraController,
-        &mut Transform,
-        &GlobalTransform,
-        &InterpPosition,
-    )>,
+    mut q_camera: Query<(&mut CameraController, &mut Transform, &InterpPosition)>,
 ) {
-    for (mut controller, mut xform, _world_xform, interp) in q_camera.iter_mut() {
+    for (mut controller, mut xform, interp) in q_camera.iter_mut() {
         let target_focus = interp.current();
         let delta_pos = target_focus - controller.focus;
 
