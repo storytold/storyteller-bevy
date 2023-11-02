@@ -1,9 +1,9 @@
 #![allow(clippy::type_complexity, clippy::too_many_arguments)]
 
-use bevy::{prelude::*, window::PrimaryWindow};
-use bevy_inspector_egui::quick::WorldInspectorPlugin;
+use bevy::prelude::*;
 use bevy_mod_picking::DefaultPickingPlugins;
-use camera_controller::{CameraController, CameraControllerPlugin, CameraMotionSystem};
+use camera_controller::CameraControllerPlugin;
+use debug::DebugPlugin;
 use input::StudioInputPlugin;
 use interaction::InteractionPlugin;
 use math::InterpolationPlugin;
@@ -14,6 +14,7 @@ use viewport::ViewportSize;
 use wasm_bindgen::prelude::*;
 
 mod camera_controller;
+mod debug;
 mod input;
 mod interaction;
 mod math;
@@ -42,7 +43,7 @@ pub fn init(viewport_size: ViewportSize) {
             ..default()
         }),
         DefaultPickingPlugins,
-        WorldInspectorPlugin::new(),
+        DebugPlugin,
         InteractionPlugin,
         StudioInputPlugin,
         InterpolationPlugin,
@@ -51,41 +52,5 @@ pub fn init(viewport_size: ViewportSize) {
         SkyboxPlugin,
         UiLayerPlugin,
     ))
-    .insert_resource(GizmoConfig {
-        enabled: true,
-        depth_bias: -0.1,
-        line_perspective: false,
-        line_width: 2.,
-        ..default()
-    })
-    .add_systems(
-        Update,
-        (
-            update_gizmo_line_thickness,
-            draw_world_axes.after(CameraMotionSystem),
-        ),
-    )
     .run();
-}
-
-fn update_gizmo_line_thickness(
-    mut config: ResMut<GizmoConfig>,
-    q_window: Query<&Window, (Changed<Window>, With<PrimaryWindow>)>,
-) {
-    if let Ok(scale_factor) = q_window.get_single().map(|win| win.scale_factor() as f32) {
-        config.line_width = 2. * scale_factor;
-    }
-}
-
-fn draw_world_axes(mut gizmos: Gizmos, q: Query<&CameraController>) {
-    let &CameraController { focus, radius, .. } = q.single();
-
-    let mut draw_axis = |direction: Vec3, color: Color| {
-        let end = focus + direction * radius / 15.;
-        gizmos.line(focus, end, color);
-    };
-
-    draw_axis(Vec3::X, Color::RED);
-    draw_axis(Vec3::Y, Color::GREEN);
-    draw_axis(Vec3::Z, Color::BLUE);
 }

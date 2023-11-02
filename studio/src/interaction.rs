@@ -6,6 +6,7 @@ use bevy_mod_picking::{prelude::Pointer, selection::Select};
 
 use crate::{
     camera_controller::CameraMotionSystem,
+    debug,
     input::{self, Action, InputAction, Lifecycle},
 };
 
@@ -29,6 +30,7 @@ impl Plugin for InteractionPlugin {
                 draw_selection_outline.run_if(resource_changed_or_removed::<Selection>()),
                 draw_selection_axes
                     .run_if(resource_exists::<Selection>())
+                    .run_if(debug::is_debug_mode)
                     .after(CameraMotionSystem),
             ),
         );

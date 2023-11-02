@@ -1,7 +1,8 @@
-import { LitElement, html, unsafeCSS } from "lit";
+import { LitElement, html, unsafeCSS, nothing } from "lit";
 import { customElement } from "lit/decorators.js";
 
 import styles from "./help.element.scss?inline";
+import { isDevEnvironment } from "./util";
 
 @customElement("sts-help")
 export class HelpElement extends LitElement {
@@ -71,6 +72,26 @@ export class HelpElement extends LitElement {
 					<td colspan="2">F</td>
 				</tr>
 			</tbody>
+			${isDevEnvironment() ? html`
+				<thead>
+					<tr>
+						<th class="section-header" colspan="3">
+							Developer
+						</th>
+					</tr>
+					<tr>
+						<th>Action</th>
+						<th>Controls</th>
+						<th>Alternate</th>
+					</tr>
+				</thead>
+				<tbody>
+					<tr>
+						<td>Toggle Debug Info</td>
+						<td colspan="2">Ctrl + &grave;</td>
+					</tr>
+				</tbody>
+			` : nothing}
 		</table>
 	`;
 }

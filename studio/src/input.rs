@@ -15,6 +15,7 @@ impl Plugin for StudioInputPlugin {
             PreUpdate,
             (
                 translate_selection_events,
+                translate_debug_toggle,
                 translate_dcc_camera_events,
                 translate_fps_camera_events,
             )
@@ -38,6 +39,7 @@ pub enum Lifecycle {
 pub enum Action {
     Camera(CameraMotion),
     Selection(Selection),
+    ToggleDebug,
 }
 
 #[derive(Clone, Copy)]
@@ -80,6 +82,16 @@ fn translate_selection_events(keyboard: Res<Input<KeyCode>>, mut input: EventWri
         input.send(InputAction(Lifecycle::Start, Selection::Focus.into()));
     } else if keyboard.just_released(KeyCode::F) {
         input.send(InputAction(Lifecycle::Stop, Selection::Focus.into()));
+    }
+}
+
+fn translate_debug_toggle(keyboard: Res<Input<KeyCode>>, mut input: EventWriter<InputAction>) {
+    if keyboard.pressed(KeyCode::ControlLeft) || keyboard.pressed(KeyCode::ControlRight) {
+        if keyboard.just_pressed(KeyCode::Grave) {
+            input.send(InputAction(Lifecycle::Start, Action::ToggleDebug));
+        } else if keyboard.just_released(KeyCode::Grave) {
+            input.send(InputAction(Lifecycle::Stop, Action::ToggleDebug));
+        }
     }
 }
 
