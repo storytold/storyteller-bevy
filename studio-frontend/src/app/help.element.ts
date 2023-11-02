@@ -1,4 +1,4 @@
-import { LitElement, html, unsafeCSS, nothing } from "lit";
+import { LitElement, html, unsafeCSS, nothing, HTMLTemplateResult } from "lit";
 import { customElement } from "lit/decorators.js";
 
 import styles from "./help.element.scss?inline";
@@ -10,88 +10,62 @@ export class HelpElement extends LitElement {
 
 	protected override render = () => html`
 		<table>
-			<thead>
-				<tr>
-					<th class="section-header" colspan="3">
-						Navigation
-					</th>
-				</tr>
-				<tr>
-					<th>Action</th>
-					<th>Controls</th>
-					<th>Alternate</th>
-				</tr>
-			</thead>
-			<tbody>
-				<tr>
-					<td>Pan view</td>
-					<td colspan="2">MMB</td>
-				</tr>
-				<tr>
-					<td>Orbit around point</td>
-					<td colspan="2">Alt + LMB</td>
-				</tr>
-				<tr>
-					<td>Zoom</td>
-					<td>Alt + RMB</td>
-					<td>Mouse Wheel</td>
-				</tr>
-				<tr>
-					<td>Free fly</td>
-					<td colspan="2">W, A, S, D, E, Q</td>
-				</tr>
-				<tr>
-					<td>Free look</td>
-					<td>RMB</td>
-					<td>Shift</td>
-				</tr>
-			</tbody>
-			<thead>
-				<tr>
-					<th class="section-header" colspan="3">
-						Interaction
-					</th>
-				</tr>
-				<tr>
-					<th>Action</th>
-					<th>Controls</th>
-					<th>Alternate</th>
-				</tr>
-			</thead>
-			<tbody>
-				<tr>
-					<td>Select</td>
-					<td colspan="2">LMB</td>
-				</tr>
-				<tr>
-					<td>Clear Selection</td>
-					<td colspan="2">Esc</td>
-				</tr>
-				<tr>
-					<td>Focus Selection</td>
-					<td colspan="2">F</td>
-				</tr>
-			</tbody>
-			${isDevEnvironment() ? html`
-				<thead>
-					<tr>
-						<th class="section-header" colspan="3">
-							Developer
-						</th>
-					</tr>
-					<tr>
-						<th>Action</th>
-						<th>Controls</th>
-						<th>Alternate</th>
-					</tr>
-				</thead>
-				<tbody>
-					<tr>
-						<td>Toggle Debug Info</td>
-						<td colspan="2">Ctrl + &grave;</td>
-					</tr>
-				</tbody>
-			` : nothing}
+			${section("Navigation", [
+				{ name: "Pan View", controls: "MMB" },
+				{ name: "Orbit around point", controls: "Alt + LMB" },
+				{ name: "Zoom", controls: ["Alt + RMB", "Mouse Wheel"]},
+				{ name: "Free fly", controls: "W, A, S, D, E, Q" },
+				{ name: "Free look", controls: ["RMB", "Shift"] },
+			])}
+			${section("Interaction", [
+				{ name: "Select", controls: "LMB" },
+				{ name: "Clear selection", controls: "Esc" },
+				{ name: "Focus selection", controls: "F" },
+			])}
+			${isDevEnvironment()
+				? section("Developer", [
+					{ name: "Toggle debug info", controls: html`Ctrl + &grave;` }
+				])
+				: nothing}
 		</table>
 	`;
+}
+
+interface Action {
+	name: string | HTMLTemplateResult;
+	controls:
+		| string
+		| HTMLTemplateResult
+		| [
+			string | HTMLTemplateResult,
+			string | HTMLTemplateResult
+		];
+}
+
+function section(title: string, actions: Action[]): HTMLTemplateResult {
+	return html`
+		<thead>
+			<tr>
+				<th class="section-header" colspan="3">${title}</th>
+			</tr>
+			<tr>
+				<th>Action</th>
+				<th>Controls</th>
+				<th>Alternate</th>
+			</tr>
+		</thead>
+		<tbody>
+			${actions.map(({ name, controls }) => html`
+				<tr>
+					<td>${name}</td>
+					${Array.isArray(controls) ? html`
+						<td>${controls[0]}</td>
+						<td>${controls[1]}</td>
+					` : html`
+						<td colspan="2">${controls}</td>
+					`}
+				</tr>
+			`)}
+		</tbody>
+	`
 }
