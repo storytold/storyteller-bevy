@@ -1,12 +1,6 @@
 #![allow(clippy::type_complexity, clippy::too_many_arguments)]
 
-use bevy::{
-    prelude::*,
-    render::{
-        settings::{WgpuFeatures, WgpuSettings},
-        RenderPlugin,
-    },
-};
+use bevy::prelude::*;
 use bevy_mod_picking::DefaultPickingPlugins;
 use camera_controller::CameraControllerPlugin;
 use debug::DebugPlugin;
@@ -21,6 +15,7 @@ use wasm_bindgen::prelude::*;
 
 mod camera_controller;
 mod debug;
+mod design_system;
 mod input;
 mod interaction;
 mod math;
@@ -51,12 +46,6 @@ pub fn init(viewport_size: ViewportSize) {
             }),
             ..default()
         }),
-        // .set(RenderPlugin {
-        //     wgpu_settings: WgpuSettings {
-        //         features: WgpuFeatures::POLYGON_MODE_LINE,
-        //         ..default()
-        //     },
-        // }),
         DefaultPickingPlugins,
         DebugPlugin,
         InteractionPlugin,
