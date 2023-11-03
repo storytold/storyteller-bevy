@@ -4,23 +4,14 @@ use bevy::prelude::*;
 use bitflags::bitflags;
 use wasm_bindgen::prelude::wasm_bindgen;
 
-use super::Selection;
-use crate::camera_controller::CameraMotionSystem;
+use super::gizmos::GizmoPlugin;
 
 pub struct TransformationPlugin;
 
 impl Plugin for TransformationPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(TransformMode::default());
-        app.add_systems(
-            PostUpdate,
-            draw_translation_gizmo
-                .run_if(resource_exists::<Selection>())
-                .run_if(should_draw_translation_gizmo)
-                // .run_if(resource_changed::<TransformMode>())
-                .after(CameraMotionSystem),
-        );
-
+        app.add_plugins(GizmoPlugin);
         // #[cfg(target_arch = "wasm32")]
         app.add_systems(PreUpdate, wasm::update_transform_mode);
     }
@@ -56,36 +47,6 @@ bitflags! {
         const ROTATE    = 0b010;
         const SCALE     = 0b100;
     }
-}
-
-fn should_draw_translation_gizmo(r_xform_mode: Res<TransformMode>) -> bool {
-    r_xform_mode.ttype == TransformType::TRANSLATE
-}
-
-fn draw_translation_gizmo(
-    mut gizmos: Gizmos,
-    r_selection: Res<Selection>,
-    r_xform_mode: Res<TransformMode>,
-    q_transform: Query<(&GlobalTransform, &Transform)>,
-) {
-    let Ok((&world_xform, &xform)) = q_transform.get(**r_selection) else {
-        return;
-    };
-
-    let origin = world_xform.translation();
-    let basis = match r_xform_mode.space {
-        TransformSpace::Local => xform,
-        TransformSpace::World => Transform::from_translation(origin),
-    };
-
-    let mut draw_axis = |direction: Vec3, color: Color| {
-        let end = origin + direction * 0.25;
-        gizmos.line(origin, end, color);
-    };
-
-    draw_axis(basis.local_x(), Color::RED);
-    draw_axis(basis.local_y(), Color::GREEN);
-    draw_axis(basis.local_z(), Color::BLUE);
 }
 
 impl fmt::Debug for TransformType {

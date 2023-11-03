@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 
+mod gizmos;
 pub mod selection;
 pub mod transformation;
 

@@ -1,6 +1,12 @@
 #![allow(clippy::type_complexity, clippy::too_many_arguments)]
 
-use bevy::prelude::*;
+use bevy::{
+    prelude::*,
+    render::{
+        settings::{WgpuFeatures, WgpuSettings},
+        RenderPlugin,
+    },
+};
 use bevy_mod_picking::DefaultPickingPlugins;
 use camera_controller::CameraControllerPlugin;
 use debug::DebugPlugin;
@@ -45,6 +51,12 @@ pub fn init(viewport_size: ViewportSize) {
             }),
             ..default()
         }),
+        // .set(RenderPlugin {
+        //     wgpu_settings: WgpuSettings {
+        //         features: WgpuFeatures::POLYGON_MODE_LINE,
+        //         ..default()
+        //     },
+        // }),
         DefaultPickingPlugins,
         DebugPlugin,
         InteractionPlugin,
