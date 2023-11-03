@@ -45,24 +45,20 @@ impl fmt::Debug for ViewportSize {
     }
 }
 
-#[cfg(target_arch = "wasm32")]
+// #[cfg(target_arch = "wasm32")]
 pub mod wasm {
-    use std::{cell::RefCell, sync::OnceLock};
-
     use bevy::prelude::*;
-    use parking_lot::ReentrantMutex;
     use wasm_bindgen::prelude::*;
+
+    use crate::wasm::{self, WasmMessageBuffer};
 
     use super::ViewportSize;
 
-    static RESIZE_BUF: OnceLock<ReentrantMutex<RefCell<Option<ViewportSize>>>> = OnceLock::new();
+    static RESIZE_BUF: WasmMessageBuffer<ViewportSize> = WasmMessageBuffer::new();
 
     #[wasm_bindgen]
     pub fn resize(viewport_size: ViewportSize) {
-        let buffer = RESIZE_BUF.get_or_init(|| ReentrantMutex::new(RefCell::new(None)));
-        if let Some(lock) = buffer.try_lock() {
-            *lock.borrow_mut() = Some(viewport_size);
-        }
+        wasm::write_message!(RESIZE_BUF, viewport_size);
     }
 
     pub struct ViewportPlugin;
@@ -89,11 +85,8 @@ pub mod wasm {
     }
 
     fn dispatch_resize_events(mut events: EventWriter<ViewportResizeEvent>) {
-        let buffer = RESIZE_BUF.get_or_init(|| ReentrantMutex::new(RefCell::new(None)));
-        if let Some(lock) = buffer.try_lock() {
-            if let Some(resize) = lock.borrow_mut().take() {
-                events.send(ViewportResizeEvent(resize));
-            }
-        }
+        wasm::read_buffer!(RESIZE_BUF, |resize| {
+            events.send(ViewportResizeEvent(resize));
+        });
     }
 }

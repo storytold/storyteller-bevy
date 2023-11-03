@@ -31,6 +31,7 @@
     "wasm-pack": "^0.12.1"
   },
   "dependencies": {
+    "@fortawesome/fontawesome-pro": "^6.4.2",
     "lit": "^2.8.0",
     "lodash": "^4.17.21",
     "tslib": "^2.3.0"

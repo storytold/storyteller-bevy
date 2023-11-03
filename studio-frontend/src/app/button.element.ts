@@ -1,9 +1,10 @@
-import { match } from "@storyteller/utility";
 import { on } from "@storyteller/framework";
-import { LitElement, html, unsafeCSS } from "lit";
+import { LitElement, html, nothing, unsafeCSS } from "lit";
 import { customElement, property } from "lit/decorators.js";
 
 import styles from "./button.element.scss?inline";
+
+import "./icon.element";
 
 @customElement("sts-button")
 export class ButtonElement extends LitElement {
@@ -15,16 +16,17 @@ export class ButtonElement extends LitElement {
 	override tabIndex = 0;
 
 	@on("keydown")
-	onKeyDown({ key }: KeyboardEvent) {
-		if (/^( |Enter)$/.test(key))
+	onKeyDown(event: KeyboardEvent) {
+		if (/^( |Enter)$/.test(event.key)) {
+			event.stopPropagation();
 			this.click();
+		}
 	}
 
 	protected override render = () => html`
-		${match (this.icon, {
-			"circle-info": () => html`<fa-circle-info class="icon"></fa-circle-info>`,
-			_: () => null,
-		})}
+		${this.icon
+			? html`<sts-icon icon=${this.icon} aria-hidden="true"></sts-icon>`
+			: nothing}
 		<slot></slot>
 	`
 }

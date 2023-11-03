@@ -1,0 +1,28 @@
+:host {
+	display: flex;
+	width: auto;
+	align-items: center;
+	justify-content: center;
+	height: 1em;
+}
+
+.a11y-label {
+	position: absolute;
+	overflow: hidden;
+	width: 1px;
+	height: 1px;
+	margin: -1px;
+	padding: 0;
+	clip: rect(1px, 1px, 1px, 1px);
+	border: 0;
+	white-space: nowrap;
+}
+
+.svg-wrapper {
+	display: flex;
+}
+
+svg {
+	height: 1em;
+	fill: currentColor;
+}

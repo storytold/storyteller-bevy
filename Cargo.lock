@@ -3312,6 +3312,7 @@ dependencies = [
  "bevy-inspector-egui",
  "bevy_mod_outline",
  "bevy_mod_picking",
+ "bitflags 2.4.0",
  "console_error_panic_hook",
  "parking_lot",
  "wasm-bindgen",

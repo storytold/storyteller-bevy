@@ -23,6 +23,9 @@ mod skybox;
 mod ui;
 mod viewport;
 
+// #[cfg(target_arch = "wasm32")]
+mod wasm;
+
 #[wasm_bindgen]
 pub fn init(viewport_size: ViewportSize) {
     #[cfg(target_arch = "wasm32")]
