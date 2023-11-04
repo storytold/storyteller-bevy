@@ -1,5 +1,7 @@
 use bevy::prelude::*;
 
+use crate::MainCamera;
+
 use self::{
     camera::{spawn_gizmo_camera, GizmoCamera},
     common::*,
@@ -17,12 +19,16 @@ mod translation;
 const GIZMO_RENDER_LAYER: u8 = 1;
 
 pub struct GizmoPlugin;
+
 impl Plugin for GizmoPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, init_resources);
         app.add_systems(
             PreUpdate,
-            spawn_gizmo_camera.run_if(not(resource_exists::<GizmoCamera>())),
+            spawn_gizmo_camera.run_if(
+                any_with_component::<MainCamera>()
+                    .and_then(not(any_with_component::<GizmoCamera>())),
+            ),
         );
         app.add_systems(
             Update,
@@ -32,12 +38,12 @@ impl Plugin for GizmoPlugin {
                         .or_else(resource_changed::<TransformMode>()),
                 ),
                 spawn_gizmo.after(despawn_existing_gizmo).run_if(
-                    not(any_with_component::<TransformGizmoRoot>()).and_then(
-                        resource_exists_and_changed::<Selection>().or_else(
-                            resource_exists::<Selection>()
-                                .and_then(resource_changed::<TransformMode>()),
+                    resource_exists::<Selection>()
+                        .and_then(not(any_with_component::<TransformGizmoRoot>()))
+                        .and_then(
+                            resource_changed::<Selection>()
+                                .or_else(resource_changed::<TransformMode>()),
                         ),
-                    ),
                 ),
             ),
         );
