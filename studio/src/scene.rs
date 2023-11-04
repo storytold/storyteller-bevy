@@ -19,6 +19,7 @@ use crate::{
     camera_controller::{CameraController, CameraControllerBundle, CameraMotionSystem},
     interaction::Selectable,
     skybox::SkyboxId,
+    MainCamera,
 };
 
 pub struct ScenePlugin;
@@ -71,6 +72,7 @@ fn initialize(
     let camera_xform = Transform::from_xyz(-2.5, 4.5, 5.0).looking_at(focus, Vec3::Y);
     cmd.spawn((
         Name::new("Main Camera"),
+        MainCamera,
         Camera3dBundle {
             transform: camera_xform,
             tonemapping: Tonemapping::BlenderFilmic,

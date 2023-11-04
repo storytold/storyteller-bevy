@@ -7,6 +7,8 @@ use bevy::{
     render::render_resource::{TextureViewDescriptor, TextureViewDimension},
 };
 
+use crate::MainCamera;
+
 pub struct SkyboxPlugin;
 
 impl Plugin for SkyboxPlugin {
@@ -59,7 +61,7 @@ fn spawn_skybox(
     mut cmd: Commands,
     mut images: ResMut<Assets<Image>>,
     skybox_assets: Res<SkyboxAssets>,
-    q_camera: Query<Entity, With<Camera3d>>,
+    q_camera: Query<Entity, With<MainCamera>>,
 ) {
     // Configure the skybox texture as a cubemap
     let image = images.get_mut(&skybox_assets.cubemap).unwrap();

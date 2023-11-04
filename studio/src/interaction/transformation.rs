@@ -4,9 +4,7 @@ use bevy::prelude::*;
 use bitflags::bitflags;
 use wasm_bindgen::prelude::wasm_bindgen;
 
-use crate::camera_controller::CameraController;
-
-use super::gizmos::{GizmoPlugin, TransformGizmoRoot};
+use super::gizmos::GizmoPlugin;
 
 pub struct TransformationPlugin;
 
@@ -16,7 +14,6 @@ impl Plugin for TransformationPlugin {
         app.add_plugins(GizmoPlugin);
         // #[cfg(target_arch = "wasm32")]
         app.add_systems(PreUpdate, wasm::update_transform_mode);
-        app.add_systems(PostUpdate, draw_debug_screenspace_axes);
     }
 }
 
@@ -83,28 +80,6 @@ impl fmt::Debug for TransformType {
         }
 
         write!(f, ")")
-    }
-}
-
-fn draw_debug_screenspace_axes(
-    mut gizmos: Gizmos,
-    q_xform: Query<(&Transform, &GlobalTransform), With<TransformGizmoRoot>>,
-    q_cam_xform: Query<&GlobalTransform, With<CameraController>>,
-) {
-    let Ok(cam_xform) = q_cam_xform.get_single() else {
-        return;
-    };
-
-    for (_xform, world_xform) in q_xform.iter() {
-        let origin = world_xform.translation();
-        let up = Vec3::Y;
-        let right = Vec3::X;
-
-        let up = cam_xform.affine().transform_vector3(up);
-        let right = cam_xform.affine().transform_vector3(right);
-
-        gizmos.line(origin, origin + up, Color::GREEN);
-        gizmos.line(origin, origin + right, Color::RED);
     }
 }
 

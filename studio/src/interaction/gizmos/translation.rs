@@ -1,17 +1,12 @@
-use bevy::{ecs::system::EntityCommands, math::vec3, pbr::NotShadowCaster, prelude::*};
-use bevy_mod_picking::prelude::{
-    Drag, DragEnd, DragStart, Listener, ListenerInput, On, Out, Over, Pointer,
-};
+use bevy::{math::vec3, pbr::NotShadowCaster, prelude::*, render::view::RenderLayers};
+use bevy_mod_picking::prelude::{Drag, DragEnd, DragStart, Listener, On, Out, Over, Pointer};
 
-use crate::{camera_controller::CameraController, interaction::TransformSpace};
+use crate::{interaction::TransformSpace, MainCamera};
 
 use super::{
-    on_gizmo_element_hover, on_gizmo_element_unhover, GizmoMats, GizmoMeshes, TransformGizmoBundle,
-    TransformGizmoRoot,
+    on_drag_end, on_drag_start, on_gizmo_element_hover, on_gizmo_element_unhover, GizmoMats,
+    GizmoMeshes, InitialTransform, TransformGizmoBundle, TransformGizmoRoot, GIZMO_RENDER_LAYER,
 };
-
-#[derive(Component, Deref, DerefMut)]
-struct InitialTransform(GlobalTransform);
 
 #[inline]
 pub(super) fn spawn_translation_gizmo(
@@ -34,6 +29,7 @@ pub(super) fn spawn_translation_gizmo(
                     // Center sphere
                     cmd.spawn((
                         NotShadowCaster,
+                        RenderLayers::layer(GIZMO_RENDER_LAYER),
                         MaterialMeshBundle {
                             mesh: meshes.translate_center.clone(),
                             material: mats.translate_center.clone(),
@@ -42,14 +38,15 @@ pub(super) fn spawn_translation_gizmo(
                         },
                         On::<Pointer<Over>>::run(on_gizmo_element_hover),
                         On::<Pointer<Out>>::run(on_gizmo_element_unhover),
-                        On::<Pointer<DragStart>>::run(on_translate_start),
+                        On::<Pointer<DragStart>>::run(on_drag_start),
                         On::<Pointer<Drag>>::run(on_translate_screenspace),
-                        On::<Pointer<DragEnd>>::target_commands_mut(on_translate_end),
+                        On::<Pointer<DragEnd>>::target_commands_mut(on_drag_end),
                     ));
 
                     // X
                     cmd.spawn((
                         NotShadowCaster,
+                        RenderLayers::layer(GIZMO_RENDER_LAYER),
                         MaterialMeshBundle {
                             mesh: meshes.translate_line.clone(),
                             material: mats.translate_x.clone(),
@@ -62,9 +59,12 @@ pub(super) fn spawn_translation_gizmo(
                         },
                         On::<Pointer<Over>>::run(on_gizmo_element_hover),
                         On::<Pointer<Out>>::run(on_gizmo_element_unhover),
+                        On::<Pointer<DragStart>>::run(on_drag_start),
+                        On::<Pointer<DragEnd>>::target_commands_mut(on_drag_end),
                     ));
                     cmd.spawn((
                         NotShadowCaster,
+                        RenderLayers::layer(GIZMO_RENDER_LAYER),
                         MaterialMeshBundle {
                             mesh: meshes.translate_arrow.clone(),
                             material: mats.translate_x.clone(),
@@ -77,11 +77,14 @@ pub(super) fn spawn_translation_gizmo(
                         },
                         On::<Pointer<Over>>::run(on_gizmo_element_hover),
                         On::<Pointer<Out>>::run(on_gizmo_element_unhover),
+                        On::<Pointer<DragStart>>::run(on_drag_start),
+                        On::<Pointer<DragEnd>>::target_commands_mut(on_drag_end),
                     ));
 
                     // Y
                     cmd.spawn((
                         NotShadowCaster,
+                        RenderLayers::layer(GIZMO_RENDER_LAYER),
                         MaterialMeshBundle {
                             mesh: meshes.translate_line.clone(),
                             material: mats.translate_y.clone(),
@@ -94,9 +97,12 @@ pub(super) fn spawn_translation_gizmo(
                         },
                         On::<Pointer<Over>>::run(on_gizmo_element_hover),
                         On::<Pointer<Out>>::run(on_gizmo_element_unhover),
+                        On::<Pointer<DragStart>>::run(on_drag_start),
+                        On::<Pointer<DragEnd>>::target_commands_mut(on_drag_end),
                     ));
                     cmd.spawn((
                         NotShadowCaster,
+                        RenderLayers::layer(GIZMO_RENDER_LAYER),
                         MaterialMeshBundle {
                             mesh: meshes.translate_arrow.clone(),
                             material: mats.translate_y.clone(),
@@ -109,11 +115,14 @@ pub(super) fn spawn_translation_gizmo(
                         },
                         On::<Pointer<Over>>::run(on_gizmo_element_hover),
                         On::<Pointer<Out>>::run(on_gizmo_element_unhover),
+                        On::<Pointer<DragStart>>::run(on_drag_start),
+                        On::<Pointer<DragEnd>>::target_commands_mut(on_drag_end),
                     ));
 
                     // Z
                     cmd.spawn((
                         NotShadowCaster,
+                        RenderLayers::layer(GIZMO_RENDER_LAYER),
                         MaterialMeshBundle {
                             mesh: meshes.translate_line.clone(),
                             material: mats.translate_z.clone(),
@@ -126,9 +135,12 @@ pub(super) fn spawn_translation_gizmo(
                         },
                         On::<Pointer<Over>>::run(on_gizmo_element_hover),
                         On::<Pointer<Out>>::run(on_gizmo_element_unhover),
+                        On::<Pointer<DragStart>>::run(on_drag_start),
+                        On::<Pointer<DragEnd>>::target_commands_mut(on_drag_end),
                     ));
                     cmd.spawn((
                         NotShadowCaster,
+                        RenderLayers::layer(GIZMO_RENDER_LAYER),
                         MaterialMeshBundle {
                             mesh: meshes.translate_arrow.clone(),
                             material: mats.translate_z.clone(),
@@ -141,29 +153,17 @@ pub(super) fn spawn_translation_gizmo(
                         },
                         On::<Pointer<Over>>::run(on_gizmo_element_hover),
                         On::<Pointer<Out>>::run(on_gizmo_element_unhover),
+                        On::<Pointer<DragStart>>::run(on_drag_start),
+                        On::<Pointer<DragEnd>>::target_commands_mut(on_drag_end),
                     ));
                 });
         });
 }
 
-fn on_translate_start(
-    _: Listener<Pointer<DragStart>>,
-    mut cmd: Commands,
-    q_xform: Query<(Entity, &GlobalTransform), With<TransformGizmoRoot>>,
-) {
-    if let Ok((ent, &xform)) = q_xform.get_single() {
-        cmd.entity(ent).insert(InitialTransform(xform));
-    };
-}
-
-fn on_translate_end(_: &ListenerInput<Pointer<DragEnd>>, cmd: &mut EntityCommands<'_, '_, '_>) {
-    cmd.remove::<InitialTransform>();
-}
-
 fn on_translate_screenspace(
     event: Listener<Pointer<Drag>>,
     mut q_xform: Query<(&mut Transform, &InitialTransform), With<TransformGizmoRoot>>,
-    q_cam_xform: Query<(&Camera, &GlobalTransform), With<CameraController>>,
+    q_cam_xform: Query<(&Camera, &GlobalTransform), With<MainCamera>>,
 ) {
     let Ok((mut xform, init_xform)) = q_xform.get_single_mut() else {
         return;

@@ -27,6 +27,9 @@ mod viewport;
 // #[cfg(target_arch = "wasm32")]
 mod wasm;
 
+#[derive(Component)]
+pub(crate) struct MainCamera;
+
 #[wasm_bindgen]
 pub fn init(viewport_size: ViewportSize) {
     #[cfg(target_arch = "wasm32")]

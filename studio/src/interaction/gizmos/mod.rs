@@ -1,7 +1,14 @@
-use bevy::prelude::*;
-use bevy_mod_picking::prelude::{Listener, Out, Over, Pointer};
+use bevy::{
+    core_pipeline::clear_color::ClearColorConfig, ecs::system::EntityCommands, math::vec3,
+    prelude::*, render::view::RenderLayers,
+};
+use bevy_mod_picking::prelude::{DragEnd, DragStart, Listener, ListenerInput, Out, Over, Pointer};
 
-use crate::{design_system, math::geo};
+use crate::{
+    design_system,
+    math::{geo, IsNonUniform},
+    MainCamera,
+};
 
 use self::translation::spawn_translation_gizmo;
 
@@ -22,6 +29,8 @@ pub struct TransformGizmoBundle {
     spatial: SpatialBundle,
 }
 
+pub(super) const GIZMO_RENDER_LAYER: u8 = 1;
+
 #[derive(Resource, Reflect, Debug, Default)]
 #[reflect(Resource)]
 pub struct GizmoMeshes {
@@ -39,24 +48,38 @@ pub struct GizmoMats {
     pub translate_center: Handle<StandardMaterial>,
 }
 
+#[derive(Resource, Deref, DerefMut)]
+pub(super) struct GizmoCamera(Entity);
+
 pub struct GizmoPlugin;
 impl Plugin for GizmoPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, setup);
+        app.add_systems(Startup, init_resources);
         app.add_systems(
-            Update,
-            despawn_existing_gizmo.run_if(resource_changed_or_removed::<Selection>()),
+            PreUpdate,
+            spawn_gizmo_camera.run_if(not(resource_exists::<GizmoCamera>())),
         );
         app.add_systems(
             Update,
-            spawn_gizmo
-                .after(despawn_existing_gizmo)
-                .run_if(resource_exists_and_changed::<Selection>()),
+            (
+                despawn_existing_gizmo.run_if(
+                    resource_changed_or_removed::<Selection>()
+                        .or_else(resource_changed::<TransformMode>()),
+                ),
+                spawn_gizmo.after(despawn_existing_gizmo).run_if(
+                    not(any_with_component::<TransformGizmoRoot>()).and_then(
+                        resource_exists_and_changed::<Selection>().or_else(
+                            resource_exists::<Selection>()
+                                .and_then(resource_changed::<TransformMode>()),
+                        ),
+                    ),
+                ),
+            ),
         );
     }
 }
 
-fn setup(
+fn init_resources(
     mut cmd: Commands,
     mut ra_meshes: ResMut<Assets<Mesh>>,
     mut ra_mats: ResMut<Assets<StandardMaterial>>,
@@ -115,6 +138,38 @@ fn setup(
     });
 }
 
+fn spawn_gizmo_camera(mut cmd: Commands, q_cam_controller: Query<Entity, With<MainCamera>>) {
+    if let Ok(ent) = q_cam_controller.get_single() {
+        let mut gizmo_cam = None;
+
+        cmd.entity(ent).with_children(|cmd| {
+            gizmo_cam = Some(
+                cmd.spawn((
+                    Name::new("Gizmo Camera"),
+                    Camera3dBundle {
+                        camera_3d: Camera3d {
+                            clear_color: ClearColorConfig::None,
+                            ..default()
+                        },
+                        camera: Camera {
+                            hdr: true,
+                            order: 1,
+                            ..default()
+                        },
+                        ..default()
+                    },
+                    RenderLayers::layer(GIZMO_RENDER_LAYER),
+                ))
+                .id(),
+            );
+        });
+
+        if let Some(ent) = gizmo_cam {
+            cmd.insert_resource(GizmoCamera(ent));
+        }
+    }
+}
+
 impl TransformGizmo {
     pub fn compute_basis(owner_xform: &GlobalTransform, space: TransformSpace) -> Transform {
         let (inv_scale, inv_rotation, _) = owner_xform
@@ -123,7 +178,15 @@ impl TransformGizmo {
             .to_scale_rotation_translation();
 
         match space {
-            TransformSpace::Local => Transform::from_scale(inv_scale),
+            TransformSpace::Local => {
+                let inv_scale = if inv_scale.is_non_uniform() {
+                    let s = inv_rotation * inv_scale;
+                    vec3(s.x.abs(), s.y.abs(), s.z.abs())
+                } else {
+                    inv_scale
+                };
+                Transform::from_scale(inv_scale)
+            }
             TransformSpace::World => Transform {
                 rotation: inv_rotation,
                 scale: inv_scale,
@@ -180,6 +243,26 @@ pub(super) fn spawn_gizmo(
             // TODO
         }
     }
+}
+
+#[derive(Component, Deref, DerefMut)]
+pub(super) struct InitialTransform(GlobalTransform);
+
+pub(super) fn on_drag_start(
+    _: Listener<Pointer<DragStart>>,
+    mut cmd: Commands,
+    q_xform: Query<(Entity, &GlobalTransform), With<TransformGizmoRoot>>,
+) {
+    if let Ok((ent, &xform)) = q_xform.get_single() {
+        cmd.entity(ent).insert(InitialTransform(xform));
+    };
+}
+
+pub(super) fn on_drag_end(
+    _: &ListenerInput<Pointer<DragEnd>>,
+    cmd: &mut EntityCommands<'_, '_, '_>,
+) {
+    cmd.remove::<InitialTransform>();
 }
 
 pub(super) fn on_gizmo_element_hover(
