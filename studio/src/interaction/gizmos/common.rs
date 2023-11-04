@@ -80,7 +80,7 @@ pub(super) fn on_gizmo_element_hover(
     q_target: Query<&Handle<StandardMaterial>>,
 ) {
     let mat = ra_mats.get_mut(q_target.get(ev.target).unwrap()).unwrap();
-    mat.base_color *= 3.;
+    mat.base_color *= 2.;
 }
 
 pub(super) fn on_gizmo_element_unhover(
@@ -89,5 +89,5 @@ pub(super) fn on_gizmo_element_unhover(
     q_target: Query<&Handle<StandardMaterial>>,
 ) {
     let mat = ra_mats.get_mut(q_target.get(ev.target).unwrap()).unwrap();
-    mat.base_color *= 1. / 3.;
+    mat.base_color *= 0.5;
 }
