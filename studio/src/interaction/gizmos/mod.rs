@@ -1,9 +1,13 @@
-use bevy::{math::vec3, pbr::NotShadowCaster, prelude::*};
-use bevy_mod_picking::prelude::{Listener, On, Out, Over, Pointer};
+use bevy::prelude::*;
+use bevy_mod_picking::prelude::{Listener, Out, Over, Pointer};
 
 use crate::{design_system, math::geo};
 
-use super::{Selection, TransformMode, TransformSpace};
+use self::translation::spawn_translation_gizmo;
+
+use super::{Selection, TransformMode, TransformSpace, TransformType};
+
+mod translation;
 
 #[derive(Component)]
 pub struct TransformGizmoRoot;
@@ -168,125 +172,17 @@ pub(super) fn spawn_gizmo(
         return;
     };
 
-    cmd.entity(ent)
-        .insert(TransformGizmoRoot)
-        .with_children(|cmd| {
-            cmd.spawn(TransformGizmoBundle::new(xform, r_xform_mode.space))
-                .with_children(|cmd| {
-                    let rot_x = Quat::from_mat3(&Mat3::from_cols(Vec3::NEG_Y, Vec3::X, Vec3::Z));
-                    let rot_y = Quat::IDENTITY;
-                    let rot_z = Quat::from_mat3(&Mat3::from_cols(Vec3::X, Vec3::Z, Vec3::NEG_Y));
-
-                    // Center sphere
-                    cmd.spawn((
-                        NotShadowCaster,
-                        MaterialMeshBundle {
-                            mesh: r_meshes.translate_center.clone(),
-                            material: r_mats.translate_center.clone(),
-                            transform: Transform::IDENTITY,
-                            ..default()
-                        },
-                        On::<Pointer<Over>>::run(on_gizmo_element_hover),
-                        On::<Pointer<Out>>::run(on_gizmo_element_unhover),
-                    ));
-                    // X
-                    cmd.spawn((
-                        NotShadowCaster,
-                        MaterialMeshBundle {
-                            mesh: r_meshes.translate_line.clone(),
-                            material: r_mats.translate_x.clone(),
-                            transform: Transform {
-                                rotation: rot_x,
-                                translation: vec3(0.6, 0., 0.),
-                                scale: Vec3::splat(1.),
-                            },
-                            ..default()
-                        },
-                        On::<Pointer<Over>>::run(on_gizmo_element_hover),
-                        On::<Pointer<Out>>::run(on_gizmo_element_unhover),
-                    ));
-                    cmd.spawn((
-                        NotShadowCaster,
-                        MaterialMeshBundle {
-                            mesh: r_meshes.translate_arrow.clone(),
-                            material: r_mats.translate_x.clone(),
-                            transform: Transform {
-                                rotation: rot_x,
-                                translation: vec3(1., 0., 0.),
-                                scale: Vec3::splat(1.),
-                            },
-                            ..default()
-                        },
-                        On::<Pointer<Over>>::run(on_gizmo_element_hover),
-                        On::<Pointer<Out>>::run(on_gizmo_element_unhover),
-                    ));
-                    // Y
-                    cmd.spawn((
-                        NotShadowCaster,
-                        MaterialMeshBundle {
-                            mesh: r_meshes.translate_line.clone(),
-                            material: r_mats.translate_y.clone(),
-                            transform: Transform {
-                                rotation: rot_y,
-                                translation: vec3(0., 0.6, 0.),
-                                scale: Vec3::splat(1.),
-                            },
-                            ..default()
-                        },
-                        On::<Pointer<Over>>::run(on_gizmo_element_hover),
-                        On::<Pointer<Out>>::run(on_gizmo_element_unhover),
-                    ));
-                    cmd.spawn((
-                        NotShadowCaster,
-                        MaterialMeshBundle {
-                            mesh: r_meshes.translate_arrow.clone(),
-                            material: r_mats.translate_y.clone(),
-                            transform: Transform {
-                                rotation: rot_y,
-                                translation: vec3(0., 1., 0.),
-                                scale: Vec3::splat(1.),
-                            },
-                            ..default()
-                        },
-                        On::<Pointer<Over>>::run(on_gizmo_element_hover),
-                        On::<Pointer<Out>>::run(on_gizmo_element_unhover),
-                    ));
-                    // Z
-                    cmd.spawn((
-                        NotShadowCaster,
-                        MaterialMeshBundle {
-                            mesh: r_meshes.translate_line.clone(),
-                            material: r_mats.translate_z.clone(),
-                            transform: Transform {
-                                rotation: rot_z,
-                                translation: vec3(0., 0., 0.6),
-                                scale: Vec3::splat(1.),
-                            },
-                            ..default()
-                        },
-                        On::<Pointer<Over>>::run(on_gizmo_element_hover),
-                        On::<Pointer<Out>>::run(on_gizmo_element_unhover),
-                    ));
-                    cmd.spawn((
-                        NotShadowCaster,
-                        MaterialMeshBundle {
-                            mesh: r_meshes.translate_arrow.clone(),
-                            material: r_mats.translate_z.clone(),
-                            transform: Transform {
-                                rotation: rot_z,
-                                translation: vec3(0., 0., 1.),
-                                scale: Vec3::splat(1.),
-                            },
-                            ..default()
-                        },
-                        On::<Pointer<Over>>::run(on_gizmo_element_hover),
-                        On::<Pointer<Out>>::run(on_gizmo_element_unhover),
-                    ));
-                });
-        });
+    match r_xform_mode.ttype {
+        TransformType::TRANSLATE => {
+            spawn_translation_gizmo(&mut cmd, ent, xform, r_xform_mode.space, &r_meshes, &r_mats);
+        }
+        _ => {
+            // TODO
+        }
+    }
 }
 
-fn on_gizmo_element_hover(
+pub(super) fn on_gizmo_element_hover(
     ev: Listener<Pointer<Over>>,
     mut ra_mats: ResMut<Assets<StandardMaterial>>,
     q_target: Query<&Handle<StandardMaterial>>,
@@ -295,7 +191,7 @@ fn on_gizmo_element_hover(
     mat.base_color *= 3.;
 }
 
-fn on_gizmo_element_unhover(
+pub(super) fn on_gizmo_element_unhover(
     ev: Listener<Pointer<Out>>,
     mut ra_mats: ResMut<Assets<StandardMaterial>>,
     q_target: Query<&Handle<StandardMaterial>>,
