@@ -37,10 +37,10 @@ impl From<Cone> for Mesh {
             let v2 = ((i + 2) % (c.resolution + 1)).max(1);
 
             #[rustfmt::skip]
-			  indices.extend([
-					v2, v1, v_base,
-					v1, v2, v_tip,
-			  ]);
+            indices.extend([
+                v2, v1, v_base,
+                v1, v2, v_tip,
+            ]);
         }
 
         positions.push(vec3(0., c.length, 0.));
