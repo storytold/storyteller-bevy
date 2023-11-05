@@ -7,7 +7,8 @@ use crate::{design_system, math::geo};
 pub(super) struct GizmoMeshes {
     pub translate_line: Handle<Mesh>,
     pub translate_arrow: Handle<Mesh>,
-    pub translate_center: Handle<Mesh>,
+    pub translate_plane: Handle<Mesh>,
+    pub translate_ss: Handle<Mesh>,
 }
 
 #[derive(Resource, Reflect, Debug, Default)]
@@ -16,7 +17,10 @@ pub(super) struct GizmoMats {
     pub translate_x: Handle<StandardMaterial>,
     pub translate_y: Handle<StandardMaterial>,
     pub translate_z: Handle<StandardMaterial>,
-    pub translate_center: Handle<StandardMaterial>,
+    pub translate_yz: Handle<StandardMaterial>,
+    pub translate_xz: Handle<StandardMaterial>,
+    pub translate_xy: Handle<StandardMaterial>,
+    pub translate_ss: Handle<StandardMaterial>,
 }
 
 pub(super) fn init_resources(
@@ -35,7 +39,11 @@ pub(super) fn init_resources(
         length: 0.4,
         resolution: 12,
     }));
-    let translate_center = ra_meshes.add(
+    let translate_plane = ra_meshes.add(Mesh::from(shape::Plane {
+        size: 0.25,
+        subdivisions: 0,
+    }));
+    let translate_ss = ra_meshes.add(
         Mesh::try_from(shape::Icosphere {
             radius: 0.2,
             subdivisions: 3,
@@ -46,7 +54,8 @@ pub(super) fn init_resources(
     cmd.insert_resource(GizmoMeshes {
         translate_line,
         translate_arrow,
-        translate_center,
+        translate_plane,
+        translate_ss,
     });
 
     let translate_x = ra_mats.add(StandardMaterial {
@@ -54,17 +63,38 @@ pub(super) fn init_resources(
         unlit: true,
         ..default()
     });
+    let translate_yz = ra_mats.add(StandardMaterial {
+        base_color: design_system::Color::RED,
+        unlit: true,
+        cull_mode: None,
+        ..default()
+    });
+
     let translate_y = ra_mats.add(StandardMaterial {
         base_color: design_system::Color::GREEN,
         unlit: true,
         ..default()
     });
+    let translate_xz = ra_mats.add(StandardMaterial {
+        base_color: design_system::Color::GREEN,
+        unlit: true,
+        cull_mode: None,
+        ..default()
+    });
+
     let translate_z = ra_mats.add(StandardMaterial {
         base_color: design_system::Color::BLUE,
         unlit: true,
         ..default()
     });
-    let translate_center = ra_mats.add(StandardMaterial {
+    let translate_xy = ra_mats.add(StandardMaterial {
+        base_color: design_system::Color::BLUE,
+        unlit: true,
+        cull_mode: None,
+        ..default()
+    });
+
+    let translate_ss = ra_mats.add(StandardMaterial {
         base_color: Color::WHITE,
         unlit: true,
         ..default()
@@ -74,6 +104,9 @@ pub(super) fn init_resources(
         translate_x,
         translate_y,
         translate_z,
-        translate_center,
+        translate_yz,
+        translate_xz,
+        translate_xy,
+        translate_ss,
     });
 }

@@ -38,8 +38,8 @@ pub(super) fn spawn_translation_gizmo(
                         NotShadowCaster,
                         RenderLayers::layer(GIZMO_RENDER_LAYER),
                         MaterialMeshBundle {
-                            mesh: meshes.translate_center.clone(),
-                            material: mats.translate_center.clone(),
+                            mesh: meshes.translate_ss.clone(),
+                            material: mats.translate_ss.clone(),
                             transform: Transform::IDENTITY,
                             ..default()
                         },
@@ -175,6 +175,70 @@ pub(super) fn spawn_translation_gizmo(
                         On::<Pointer<Drag>>::run(on_translate),
                         On::<Pointer<DragEnd>>::target_commands_mut(on_drag_end),
                     ));
+
+                    // YZ Plane
+                    cmd.spawn((
+                        NotShadowCaster,
+                        RenderLayers::layer(GIZMO_RENDER_LAYER),
+                        TranslationPlane(Vec3::X),
+                        MaterialMeshBundle {
+                            mesh: meshes.translate_plane.clone(),
+                            material: mats.translate_yz.clone(),
+                            transform: Transform {
+                                rotation: rot_x,
+                                translation: vec3(0., 0.707, 0.707),
+                                scale: Vec3::splat(1.),
+                            },
+                            ..default()
+                        },
+                        On::<Pointer<Over>>::run(on_gizmo_element_hover),
+                        On::<Pointer<Out>>::run(on_gizmo_element_unhover),
+                        On::<Pointer<DragStart>>::run(on_drag_start),
+                        On::<Pointer<Drag>>::run(on_translate),
+                        On::<Pointer<DragEnd>>::target_commands_mut(on_drag_end),
+                    ));
+                    // XZ Plane
+                    cmd.spawn((
+                        NotShadowCaster,
+                        RenderLayers::layer(GIZMO_RENDER_LAYER),
+                        TranslationPlane(Vec3::Y),
+                        MaterialMeshBundle {
+                            mesh: meshes.translate_plane.clone(),
+                            material: mats.translate_xz.clone(),
+                            transform: Transform {
+                                rotation: rot_y,
+                                translation: vec3(0.707, 0., 0.707),
+                                scale: Vec3::splat(1.),
+                            },
+                            ..default()
+                        },
+                        On::<Pointer<Over>>::run(on_gizmo_element_hover),
+                        On::<Pointer<Out>>::run(on_gizmo_element_unhover),
+                        On::<Pointer<DragStart>>::run(on_drag_start),
+                        On::<Pointer<Drag>>::run(on_translate),
+                        On::<Pointer<DragEnd>>::target_commands_mut(on_drag_end),
+                    ));
+                    // XY Plane
+                    cmd.spawn((
+                        NotShadowCaster,
+                        RenderLayers::layer(GIZMO_RENDER_LAYER),
+                        TranslationPlane(Vec3::Z),
+                        MaterialMeshBundle {
+                            mesh: meshes.translate_plane.clone(),
+                            material: mats.translate_xy.clone(),
+                            transform: Transform {
+                                rotation: rot_z,
+                                translation: vec3(0.707, 0.707, 0.),
+                                scale: Vec3::splat(1.),
+                            },
+                            ..default()
+                        },
+                        On::<Pointer<Over>>::run(on_gizmo_element_hover),
+                        On::<Pointer<Out>>::run(on_gizmo_element_unhover),
+                        On::<Pointer<DragStart>>::run(on_drag_start),
+                        On::<Pointer<Drag>>::run(on_translate),
+                        On::<Pointer<DragEnd>>::target_commands_mut(on_drag_end),
+                    ));
                 });
         });
 }
@@ -210,7 +274,7 @@ fn on_translate(
     >,
     q_cam_xform: Query<(&Camera, &GlobalTransform), With<MainCamera>>,
     q_xlation_axis: Query<&TranslationAxis>,
-    _q_xlation_plane: Query<&TranslationPlane>, // TODO
+    q_xlation_plane: Query<&TranslationPlane>,
 ) {
     let Ok((mut xform, world_xform, init_xform)) = q_xform.get_single_mut() else {
         return;
@@ -240,6 +304,17 @@ fn on_translate(
         let drag_vector = hit_point - origin_ws;
         let projection_length = drag_vector.dot(axis_ws);
         let target_ws = origin_ws + axis_ws * projection_length;
+
+        xform.translation = target_ws;
+    } else if let Ok(plane_normal) = q_xlation_plane
+        .get(event.target)
+        .map(|normal| world_xform.affine().transform_vector3(**normal).normalize())
+    {
+        let ray = cam.viewport_to_world(cam_xform, target_ss).unwrap();
+        let Some(hit_dist) = ray.intersect_plane(origin_ws, plane_normal) else {
+            return;
+        };
+        let target_ws = ray.origin + ray.direction * hit_dist;
 
         xform.translation = target_ws;
     }
