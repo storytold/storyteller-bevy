@@ -206,19 +206,13 @@ pub(super) fn spawn_translation_gizmo(
 fn on_translate(
     event: Listener<Pointer<Drag>>,
     mut q_root: Query<(&mut Transform, &InitialTransform), With<TransformGizmoRoot>>,
-    q_gizmo: Query<&GlobalTransform, (With<TransformGizmo>, Without<MainCamera>)>,
     q_camera: Query<(&Camera, &GlobalTransform), With<MainCamera>>,
-    q_xlation_widget: Query<&TranslationWidget>,
+    q_gizmo: Query<&GlobalTransform, (With<TransformGizmo>, Without<MainCamera>)>,
+    q_widget: Query<&TranslationWidget>,
 ) {
-    let Ok((mut xform, init_xform)) = q_root.get_single_mut() else {
-        return;
-    };
-    let Ok(gizmo_xform) = q_gizmo.get_single() else {
-        return;
-    };
-    let Ok((cam, cam_xform)) = q_camera.get_single() else {
-        return;
-    };
+    let (mut xform, init_xform) = q_root.single_mut();
+    let gizmo_xform = q_gizmo.single();
+    let (cam, cam_xform) = q_camera.single();
 
     // Find the initial origin point in screen-space and add the total screen-space drag distance
     let origin_ws = init_xform.translation();
@@ -230,7 +224,7 @@ fn on_translate(
 
     use TranslationWidget::*;
 
-    match q_xlation_widget.get(event.target) {
+    match q_widget.get(event.target) {
         Ok(Axis(axis)) => {
             // Transform the translation axis into world-space
             let axis_ws = gizmo_xform.affine().transform_vector3(*axis).normalize();
