@@ -5,14 +5,16 @@ use crate::{interaction::TransformSpace, MainCamera};
 
 use super::{
     on_drag_end, on_drag_start, on_gizmo_element_hover, on_gizmo_element_unhover, GizmoMats,
-    GizmoMeshes, InitialTransform, TransformGizmoBundle, TransformGizmoRoot, GIZMO_RENDER_LAYER,
+    GizmoMeshes, InitialTransform, TransformGizmo, TransformGizmoBundle, TransformGizmoRoot,
+    GIZMO_RENDER_LAYER,
 };
 
-#[derive(Component, Deref)]
-struct TranslationAxis(Vec3);
-
-#[derive(Component, Deref)]
-struct TranslationPlane(Vec3);
+#[derive(Component)]
+enum TranslationWidget {
+    Axis(Vec3),
+    Plane(Vec3),
+    ScreenSpace,
+}
 
 #[inline]
 pub(super) fn spawn_translation_gizmo(
@@ -37,6 +39,7 @@ pub(super) fn spawn_translation_gizmo(
                     cmd.spawn((
                         NotShadowCaster,
                         RenderLayers::layer(GIZMO_RENDER_LAYER),
+                        TranslationWidget::ScreenSpace,
                         MaterialMeshBundle {
                             mesh: meshes.translate_ss.clone(),
                             material: mats.translate_ss.clone(),
@@ -46,7 +49,7 @@ pub(super) fn spawn_translation_gizmo(
                         On::<Pointer<Over>>::run(on_gizmo_element_hover),
                         On::<Pointer<Out>>::run(on_gizmo_element_unhover),
                         On::<Pointer<DragStart>>::run(on_drag_start),
-                        On::<Pointer<Drag>>::run(on_translate_screenspace),
+                        On::<Pointer<Drag>>::run(on_translate),
                         On::<Pointer<DragEnd>>::target_commands_mut(on_drag_end),
                     ));
 
@@ -54,7 +57,7 @@ pub(super) fn spawn_translation_gizmo(
                     cmd.spawn((
                         NotShadowCaster,
                         RenderLayers::layer(GIZMO_RENDER_LAYER),
-                        TranslationAxis(Vec3::X),
+                        TranslationWidget::Axis(Vec3::X),
                         MaterialMeshBundle {
                             mesh: meshes.translate_line.clone(),
                             material: mats.translate_x.clone(),
@@ -74,7 +77,7 @@ pub(super) fn spawn_translation_gizmo(
                     cmd.spawn((
                         NotShadowCaster,
                         RenderLayers::layer(GIZMO_RENDER_LAYER),
-                        TranslationAxis(Vec3::X),
+                        TranslationWidget::Axis(Vec3::X),
                         MaterialMeshBundle {
                             mesh: meshes.translate_arrow.clone(),
                             material: mats.translate_x.clone(),
@@ -96,7 +99,7 @@ pub(super) fn spawn_translation_gizmo(
                     cmd.spawn((
                         NotShadowCaster,
                         RenderLayers::layer(GIZMO_RENDER_LAYER),
-                        TranslationAxis(Vec3::Y),
+                        TranslationWidget::Axis(Vec3::Y),
                         MaterialMeshBundle {
                             mesh: meshes.translate_line.clone(),
                             material: mats.translate_y.clone(),
@@ -116,7 +119,7 @@ pub(super) fn spawn_translation_gizmo(
                     cmd.spawn((
                         NotShadowCaster,
                         RenderLayers::layer(GIZMO_RENDER_LAYER),
-                        TranslationAxis(Vec3::Y),
+                        TranslationWidget::Axis(Vec3::Y),
                         MaterialMeshBundle {
                             mesh: meshes.translate_arrow.clone(),
                             material: mats.translate_y.clone(),
@@ -138,7 +141,7 @@ pub(super) fn spawn_translation_gizmo(
                     cmd.spawn((
                         NotShadowCaster,
                         RenderLayers::layer(GIZMO_RENDER_LAYER),
-                        TranslationAxis(Vec3::Z),
+                        TranslationWidget::Axis(Vec3::Z),
                         MaterialMeshBundle {
                             mesh: meshes.translate_line.clone(),
                             material: mats.translate_z.clone(),
@@ -158,7 +161,7 @@ pub(super) fn spawn_translation_gizmo(
                     cmd.spawn((
                         NotShadowCaster,
                         RenderLayers::layer(GIZMO_RENDER_LAYER),
-                        TranslationAxis(Vec3::Z),
+                        TranslationWidget::Axis(Vec3::Z),
                         MaterialMeshBundle {
                             mesh: meshes.translate_arrow.clone(),
                             material: mats.translate_z.clone(),
@@ -180,7 +183,7 @@ pub(super) fn spawn_translation_gizmo(
                     cmd.spawn((
                         NotShadowCaster,
                         RenderLayers::layer(GIZMO_RENDER_LAYER),
-                        TranslationPlane(Vec3::X),
+                        TranslationWidget::Plane(Vec3::X),
                         MaterialMeshBundle {
                             mesh: meshes.translate_plane.clone(),
                             material: mats.translate_yz.clone(),
@@ -201,7 +204,7 @@ pub(super) fn spawn_translation_gizmo(
                     cmd.spawn((
                         NotShadowCaster,
                         RenderLayers::layer(GIZMO_RENDER_LAYER),
-                        TranslationPlane(Vec3::Y),
+                        TranslationWidget::Plane(Vec3::Y),
                         MaterialMeshBundle {
                             mesh: meshes.translate_plane.clone(),
                             material: mats.translate_xz.clone(),
@@ -222,7 +225,7 @@ pub(super) fn spawn_translation_gizmo(
                     cmd.spawn((
                         NotShadowCaster,
                         RenderLayers::layer(GIZMO_RENDER_LAYER),
-                        TranslationPlane(Vec3::Z),
+                        TranslationWidget::Plane(Vec3::Z),
                         MaterialMeshBundle {
                             mesh: meshes.translate_plane.clone(),
                             material: mats.translate_xy.clone(),
@@ -243,79 +246,69 @@ pub(super) fn spawn_translation_gizmo(
         });
 }
 
-fn on_translate_screenspace(
-    event: Listener<Pointer<Drag>>,
-    mut q_xform: Query<(&mut Transform, &InitialTransform), With<TransformGizmoRoot>>,
-    q_cam_xform: Query<(&Camera, &GlobalTransform), With<MainCamera>>,
-) {
-    let Ok((mut xform, init_xform)) = q_xform.get_single_mut() else {
-        return;
-    };
-    let Ok((cam, cam_xform)) = q_cam_xform.get_single() else {
-        return;
-    };
-
-    let origin_ws = init_xform.translation();
-    let origin_ss = cam.world_to_viewport(cam_xform, origin_ws).unwrap();
-
-    let target_ss = origin_ss + event.distance;
-    let ray = cam.viewport_to_world(cam_xform, target_ss).unwrap();
-    let hit_dist = ray.intersect_plane(origin_ws, cam_xform.back()).unwrap();
-    let target_ws = ray.origin + ray.direction * hit_dist;
-
-    xform.translation = target_ws;
-}
-
 fn on_translate(
     event: Listener<Pointer<Drag>>,
-    mut q_xform: Query<
-        (&mut Transform, &GlobalTransform, &InitialTransform),
-        (With<TransformGizmoRoot>, Without<MainCamera>),
-    >,
-    q_cam_xform: Query<(&Camera, &GlobalTransform), With<MainCamera>>,
-    q_xlation_axis: Query<&TranslationAxis>,
-    q_xlation_plane: Query<&TranslationPlane>,
+    mut q_root: Query<(&mut Transform, &InitialTransform), With<TransformGizmoRoot>>,
+    q_gizmo: Query<&GlobalTransform, (With<TransformGizmo>, Without<MainCamera>)>,
+    q_camera: Query<(&Camera, &GlobalTransform), With<MainCamera>>,
+    q_xlation_widget: Query<&TranslationWidget>,
 ) {
-    let Ok((mut xform, world_xform, init_xform)) = q_xform.get_single_mut() else {
+    let Ok((mut xform, init_xform)) = q_root.get_single_mut() else {
         return;
     };
-    let Ok((cam, cam_xform)) = q_cam_xform.get_single() else {
+    let Ok(gizmo_xform) = q_gizmo.get_single() else {
+        return;
+    };
+    let Ok((cam, cam_xform)) = q_camera.get_single() else {
         return;
     };
 
+    // Find the initial origin point in screen-space and add the total screen-space drag distance
     let origin_ws = init_xform.translation();
     let origin_ss = cam.world_to_viewport(cam_xform, origin_ws).unwrap();
     let target_ss = origin_ss + event.distance;
 
-    if let Ok(axis_ws) = q_xlation_axis
-        .get(event.target)
-        .map(|axis| world_xform.affine().transform_vector3(**axis).normalize())
-    {
-        let (axis_tan, axis_binorm) = axis_ws.any_orthonormal_pair();
-        let ray = cam.viewport_to_world(cam_xform, target_ss).unwrap();
-        let Some(hit_dist) = ray
-            .intersect_plane(origin_ws, axis_tan)
-            .or_else(|| ray.intersect_plane(origin_ws, axis_binorm))
-        else {
-            return;
-        };
+    // Create a camera-to-world ray that passes through the screen-space target point
+    let ray = cam.viewport_to_world(cam_xform, target_ss).unwrap();
 
-        let hit_point = ray.origin + ray.direction * hit_dist;
-        let drag_vector = hit_point - origin_ws;
-        let projection_length = drag_vector.dot(axis_ws);
-        let target_ws = origin_ws + axis_ws * projection_length;
+    use TranslationWidget::*;
 
-        xform.translation = target_ws;
-    } else if let Ok(plane_normal) = q_xlation_plane
-        .get(event.target)
-        .map(|normal| world_xform.affine().transform_vector3(**normal).normalize())
-    {
-        let ray = cam.viewport_to_world(cam_xform, target_ss).unwrap();
-        let Some(hit_dist) = ray.intersect_plane(origin_ws, plane_normal) else {
-            return;
-        };
-        let target_ws = ray.origin + ray.direction * hit_dist;
+    match q_xlation_widget.get(event.target) {
+        Ok(Axis(axis)) => {
+            // Transform the translation axis into world-space
+            let axis_ws = gizmo_xform.affine().transform_vector3(*axis).normalize();
 
-        xform.translation = target_ws;
+            // Find the plane vector that's orthogonal to the translation axis
+            // and more perpendicular to the view direction
+            let axis_tan = axis_ws.cross(cam_xform.back());
+            let plane_vector = axis_ws.cross(axis_tan);
+
+            // Find the intersection of the camera-to-world ray against that plane
+            let hit_dist = ray.intersect_plane(origin_ws, plane_vector).unwrap();
+            let hit_point = ray.origin + ray.direction * hit_dist;
+
+            // Project the vector from origin -> hit point onto the translation
+            // axis to constrain the translation
+            let drag_vector = hit_point - origin_ws;
+            let projection_length = drag_vector.dot(axis_ws);
+            let target_ws = origin_ws + axis_ws * projection_length;
+
+            xform.translation = target_ws;
+        }
+        Ok(plane) => {
+            // Find the world-space normal of the plane we're translating on
+            let plane_normal = match plane {
+                ScreenSpace => cam_xform.back(),
+                Plane(normal) => gizmo_xform.affine().transform_vector3(*normal),
+                _ => unreachable!(),
+            };
+
+            // Find the intersection of the camera-to-world ray against that plane
+            let hit_dist = ray.intersect_plane(origin_ws, plane_normal).unwrap();
+            let target_ws = ray.origin + ray.direction * hit_dist;
+
+            xform.translation = target_ws;
+        }
+        _ => {}
     }
 }
