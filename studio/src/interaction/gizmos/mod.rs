@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use crate::MainCamera;
+use crate::{camera_controller::CameraMotionSystem, MainCamera};
 
 use self::{
     camera::{spawn_gizmo_camera, GizmoCamera},
@@ -45,6 +45,7 @@ impl Plugin for GizmoPlugin {
                                 .or_else(resource_changed::<TransformMode>()),
                         ),
                 ),
+                normalize_gizmo_scale.after(CameraMotionSystem),
             ),
         );
     }
@@ -68,21 +69,54 @@ fn spawn_gizmo(
     mut cmd: Commands,
     r_selection: Res<Selection>,
     r_xform_mode: Res<TransformMode>,
+    q_xform: Query<&GlobalTransform>,
+    q_cam_xform: Query<&Transform, With<MainCamera>>,
     r_meshes: Res<GizmoMeshes>,
     r_mats: Res<GizmoMats>,
-    q_xform: Query<&GlobalTransform>,
 ) {
     let ent = **r_selection;
     let Ok(xform) = q_xform.get(ent) else {
         return;
     };
 
+    let Ok(cam_xform) = q_cam_xform.get_single() else {
+        return;
+    };
+    let dist = Vec3::distance(cam_xform.translation, xform.translation());
+    let normalizing_scale = dist / 15.;
+
     match r_xform_mode.ttype {
         TransformType::TRANSLATE => {
-            spawn_translation_gizmo(&mut cmd, ent, xform, r_xform_mode.space, &r_meshes, &r_mats);
+            spawn_translation_gizmo(
+                &mut cmd,
+                ent,
+                xform,
+                r_xform_mode.space,
+                normalizing_scale,
+                &r_meshes,
+                &r_mats,
+            );
         }
         _ => {
             // TODO
         }
     }
+}
+
+fn normalize_gizmo_scale(
+    q_cam_xform: Query<&Transform, With<MainCamera>>,
+    mut q_gizmo: Query<
+        (&mut Transform, &GlobalTransform, &NaturalScale),
+        (With<TransformGizmo>, Without<MainCamera>),
+    >,
+) {
+    let Ok(cam_xform) = q_cam_xform.get_single() else {
+        return;
+    };
+    let Ok((mut xform, world_xform, nat_scale)) = q_gizmo.get_single_mut() else {
+        return;
+    };
+
+    let dist = Vec3::distance(cam_xform.translation, world_xform.translation());
+    xform.scale = **nat_scale * (dist / 15.);
 }

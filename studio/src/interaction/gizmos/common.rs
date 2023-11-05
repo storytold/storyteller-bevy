@@ -14,7 +14,11 @@ pub(super) struct TransformGizmoBundle {
     name: Name,
     marker: TransformGizmo,
     spatial: SpatialBundle,
+    scale: NaturalScale,
 }
+
+#[derive(Component, Deref)]
+pub(super) struct NaturalScale(Vec3);
 
 #[derive(Component, Deref, DerefMut)]
 pub(super) struct InitialTransform(GlobalTransform);
@@ -46,13 +50,20 @@ impl TransformGizmo {
 }
 
 impl TransformGizmoBundle {
-    pub fn new(parent_xform: &GlobalTransform, space: TransformSpace) -> Self {
-        let basis = TransformGizmo::compute_basis(parent_xform, space);
+    pub fn new(
+        parent_xform: &GlobalTransform,
+        space: TransformSpace,
+        normalizing_scale: f32,
+    ) -> Self {
+        let mut basis = TransformGizmo::compute_basis(parent_xform, space);
+        let nat_scale = basis.scale;
+        basis.scale *= normalizing_scale;
 
         Self {
             name: Name::new("TransformGizmo"),
             marker: TransformGizmo,
             spatial: SpatialBundle::from_transform(basis),
+            scale: NaturalScale(nat_scale),
         }
     }
 }
