@@ -38,9 +38,14 @@ pub(super) fn spawn_translation_gizmo(
                 On::<Pointer<DragEnd>>::target_commands_mut(on_drag_end),
             ))
             .with_children(|cmd| {
-                let rot_x = Quat::from_mat3(&Mat3::from_cols(Vec3::NEG_Y, Vec3::X, Vec3::Z));
-                let rot_y = Quat::IDENTITY;
-                let rot_z = Quat::from_mat3(&Mat3::from_cols(Vec3::X, Vec3::Z, Vec3::NEG_Y));
+                /// (sin|cos)(pi / 4)
+                const CIRC_45: f32 = 0.70710677;
+                /// Mat3 ((0 -1 0) (1 0 0) (0 0 1))
+                const ROT_X: Quat = Quat::from_xyzw(0., 0., CIRC_45, -CIRC_45);
+                /// Mat3 ((1 0 0) (0 1 0) (0 0 1))
+                const ROT_Y: Quat = Quat::IDENTITY;
+                /// Mat3 ((1 0 0) (0 0 1) (0 -1 0))
+                const ROT_Z: Quat = Quat::from_xyzw(CIRC_45, 0., 0., CIRC_45);
 
                 // Center sphere
                 cmd.spawn((
@@ -64,9 +69,9 @@ pub(super) fn spawn_translation_gizmo(
                         mesh: meshes.translate_line.clone(),
                         material: mats.translate_x.clone(),
                         transform: Transform {
-                            rotation: rot_x,
+                            rotation: ROT_X,
                             translation: vec3(0.6, 0., 0.),
-                            scale: Vec3::splat(1.),
+                            ..default()
                         },
                         ..default()
                     },
@@ -79,9 +84,9 @@ pub(super) fn spawn_translation_gizmo(
                         mesh: meshes.translate_arrow.clone(),
                         material: mats.translate_x.clone(),
                         transform: Transform {
-                            rotation: rot_x,
+                            rotation: ROT_X,
                             translation: vec3(1., 0., 0.),
-                            scale: Vec3::splat(1.),
+                            ..default()
                         },
                         ..default()
                     },
@@ -96,9 +101,9 @@ pub(super) fn spawn_translation_gizmo(
                         mesh: meshes.translate_line.clone(),
                         material: mats.translate_y.clone(),
                         transform: Transform {
-                            rotation: rot_y,
+                            rotation: ROT_Y,
                             translation: vec3(0., 0.6, 0.),
-                            scale: Vec3::splat(1.),
+                            ..default()
                         },
                         ..default()
                     },
@@ -111,9 +116,9 @@ pub(super) fn spawn_translation_gizmo(
                         mesh: meshes.translate_arrow.clone(),
                         material: mats.translate_y.clone(),
                         transform: Transform {
-                            rotation: rot_y,
+                            rotation: ROT_Y,
                             translation: vec3(0., 1., 0.),
-                            scale: Vec3::splat(1.),
+                            ..default()
                         },
                         ..default()
                     },
@@ -128,9 +133,9 @@ pub(super) fn spawn_translation_gizmo(
                         mesh: meshes.translate_line.clone(),
                         material: mats.translate_z.clone(),
                         transform: Transform {
-                            rotation: rot_z,
+                            rotation: ROT_Z,
                             translation: vec3(0., 0., 0.6),
-                            scale: Vec3::splat(1.),
+                            ..default()
                         },
                         ..default()
                     },
@@ -143,9 +148,9 @@ pub(super) fn spawn_translation_gizmo(
                         mesh: meshes.translate_arrow.clone(),
                         material: mats.translate_z.clone(),
                         transform: Transform {
-                            rotation: rot_z,
+                            rotation: ROT_Z,
                             translation: vec3(0., 0., 1.),
-                            scale: Vec3::splat(1.),
+                            ..default()
                         },
                         ..default()
                     },
@@ -160,9 +165,9 @@ pub(super) fn spawn_translation_gizmo(
                         mesh: meshes.translate_plane.clone(),
                         material: mats.translate_yz.clone(),
                         transform: Transform {
-                            rotation: rot_x,
-                            translation: vec3(0., 0.707, 0.707),
-                            scale: Vec3::splat(1.),
+                            rotation: ROT_X,
+                            translation: vec3(0., CIRC_45, CIRC_45),
+                            ..default()
                         },
                         ..default()
                     },
@@ -176,9 +181,9 @@ pub(super) fn spawn_translation_gizmo(
                         mesh: meshes.translate_plane.clone(),
                         material: mats.translate_xz.clone(),
                         transform: Transform {
-                            rotation: rot_y,
-                            translation: vec3(0.707, 0., 0.707),
-                            scale: Vec3::splat(1.),
+                            rotation: ROT_Y,
+                            translation: vec3(CIRC_45, 0., CIRC_45),
+                            ..default()
                         },
                         ..default()
                     },
@@ -192,9 +197,9 @@ pub(super) fn spawn_translation_gizmo(
                         mesh: meshes.translate_plane.clone(),
                         material: mats.translate_xy.clone(),
                         transform: Transform {
-                            rotation: rot_z,
-                            translation: vec3(0.707, 0.707, 0.),
-                            scale: Vec3::splat(1.),
+                            rotation: ROT_Z,
+                            translation: vec3(CIRC_45, CIRC_45, 0.),
+                            ..default()
                         },
                         ..default()
                     },
