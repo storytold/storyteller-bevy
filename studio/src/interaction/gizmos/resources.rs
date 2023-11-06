@@ -9,6 +9,9 @@ pub(super) struct GizmoMeshes {
     pub translate_arrow: Handle<Mesh>,
     pub translate_plane: Handle<Mesh>,
     pub translate_ss: Handle<Mesh>,
+    pub rotate_ring: Handle<Mesh>,
+    pub rotate_ball: Handle<Mesh>,
+    pub rotate_ss: Handle<Mesh>,
 }
 
 #[derive(Resource, Reflect, Debug, Default)]
@@ -21,6 +24,11 @@ pub(super) struct GizmoMats {
     pub translate_xz: Handle<StandardMaterial>,
     pub translate_xy: Handle<StandardMaterial>,
     pub translate_ss: Handle<StandardMaterial>,
+    pub rotate_x: Handle<StandardMaterial>,
+    pub rotate_y: Handle<StandardMaterial>,
+    pub rotate_z: Handle<StandardMaterial>,
+    pub rotate_trackball: Handle<StandardMaterial>,
+    pub rotate_ss: Handle<StandardMaterial>,
 }
 
 pub(super) fn init_resources(
@@ -48,11 +56,34 @@ pub(super) fn init_resources(
         .unwrap(),
     );
 
+    let rotate_ring = ra_meshes.add(Mesh::from(shape::Torus {
+        radius: 1.,
+        ring_radius: 0.04,
+        subdivisions_segments: 40,
+        subdivisions_sides: 6,
+    }));
+    let rotate_ball = ra_meshes.add(
+        Mesh::try_from(shape::Icosphere {
+            radius: 0.96,
+            subdivisions: 4,
+        })
+        .unwrap(),
+    );
+    let rotate_ss = ra_meshes.add(Mesh::from(shape::Torus {
+        radius: 1.2,
+        ring_radius: 0.03,
+        subdivisions_segments: 40,
+        subdivisions_sides: 6,
+    }));
+
     cmd.insert_resource(GizmoMeshes {
         translate_line,
         translate_arrow,
         translate_plane,
         translate_ss,
+        rotate_ring,
+        rotate_ball,
+        rotate_ss,
     });
 
     let translate_x = ra_mats.add(StandardMaterial {
@@ -94,6 +125,33 @@ pub(super) fn init_resources(
         ..default()
     });
 
+    let rotate_x = ra_mats.add(StandardMaterial {
+        base_color: design_system::Color::RED,
+        unlit: true,
+        ..default()
+    });
+    let rotate_y = ra_mats.add(StandardMaterial {
+        base_color: design_system::Color::GREEN,
+        unlit: true,
+        ..default()
+    });
+    let rotate_z = ra_mats.add(StandardMaterial {
+        base_color: design_system::Color::BLUE,
+        unlit: true,
+        ..default()
+    });
+    let rotate_trackball = ra_mats.add(StandardMaterial {
+        base_color: Color::NONE,
+        emissive: Color::WHITE,
+        alpha_mode: AlphaMode::Add,
+        ..default()
+    });
+    let rotate_ss = ra_mats.add(StandardMaterial {
+        base_color: Color::WHITE,
+        unlit: true,
+        ..default()
+    });
+
     cmd.insert_resource(GizmoMats {
         translate_x,
         translate_y,
@@ -102,5 +160,10 @@ pub(super) fn init_resources(
         translate_xz,
         translate_xy,
         translate_ss,
+        rotate_x,
+        rotate_y,
+        rotate_z,
+        rotate_trackball,
+        rotate_ss,
     });
 }

@@ -38,14 +38,7 @@ pub(super) fn spawn_translation_gizmo(
                 On::<Pointer<DragEnd>>::target_commands_mut(on_drag_end),
             ))
             .with_children(|cmd| {
-                /// (sin|cos)(pi / 4)
-                const CIRC_45: f32 = 0.70710677;
-                /// Mat3 ((0 -1 0) (1 0 0) (0 0 1))
-                const ROT_X: Quat = Quat::from_xyzw(0., 0., CIRC_45, -CIRC_45);
-                /// Mat3 ((1 0 0) (0 1 0) (0 0 1))
-                const ROT_Y: Quat = Quat::IDENTITY;
-                /// Mat3 ((1 0 0) (0 0 1) (0 -1 0))
-                const ROT_Z: Quat = Quat::from_xyzw(CIRC_45, 0., 0., CIRC_45);
+                use super::{CIRC_45, ROT_X, ROT_Y, ROT_Z};
 
                 // Center sphere
                 cmd.spawn((
@@ -235,7 +228,7 @@ fn on_translate(
             let axis_ws = gizmo_xform.affine().transform_vector3(*axis).normalize();
 
             // Find the plane vector that's orthogonal to the translation axis
-            // and more perpendicular to the view direction
+            // and closest to parallel with the view direction
             let axis_tan = axis_ws.cross(cam_xform.back());
             let plane_vector = axis_ws.cross(axis_tan);
 

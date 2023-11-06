@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, transform::TransformSystem};
 
 use crate::{camera_controller::CameraMotionSystem, MainCamera};
 
@@ -6,6 +6,7 @@ use self::{
     camera::{spawn_gizmo_camera, GizmoCamera},
     common::*,
     resources::{init_resources, GizmoMats, GizmoMeshes},
+    rotation::{spawn_rotation_gizmo, update_ss_ring_rotation},
     translation::spawn_translation_gizmo,
 };
 
@@ -14,9 +15,19 @@ use super::{Selection, TransformMode, TransformType};
 mod camera;
 mod common;
 mod resources;
+mod rotation;
 mod translation;
 
 const GIZMO_RENDER_LAYER: u8 = 1;
+
+/// (sin|cos)(pi / 4)
+const CIRC_45: f32 = 0.70710677;
+/// Mat3 ((0 -1 0) (1 0 0) (0 0 1))
+const ROT_X: Quat = Quat::from_xyzw(0., 0., CIRC_45, -CIRC_45);
+/// Mat3 ((1 0 0) (0 1 0) (0 0 1))
+const ROT_Y: Quat = Quat::IDENTITY;
+/// Mat3 ((1 0 0) (0 0 1) (0 -1 0))
+const ROT_Z: Quat = Quat::from_xyzw(CIRC_45, 0., 0., CIRC_45);
 
 pub struct GizmoPlugin;
 
@@ -47,6 +58,10 @@ impl Plugin for GizmoPlugin {
                 ),
                 normalize_gizmo_scale.after(CameraMotionSystem),
             ),
+        );
+        app.add_systems(
+            PostUpdate,
+            update_ss_ring_rotation.after(TransformSystem::TransformPropagate),
         );
     }
 }
@@ -85,9 +100,22 @@ fn spawn_gizmo(
     let dist = Vec3::distance(cam_xform.translation, xform.translation());
     let normalizing_scale = dist / 15.;
 
+    // TODO: Look into using the new one-shot systems feature here
+    //       https://bevyengine.org/news/bevy-0-12/#one-shot-systems
     match r_xform_mode.ttype {
         TransformType::TRANSLATE => {
             spawn_translation_gizmo(
+                &mut cmd,
+                ent,
+                xform,
+                r_xform_mode.space,
+                normalizing_scale,
+                &r_meshes,
+                &r_mats,
+            );
+        }
+        TransformType::ROTATE => {
+            spawn_rotation_gizmo(
                 &mut cmd,
                 ent,
                 xform,

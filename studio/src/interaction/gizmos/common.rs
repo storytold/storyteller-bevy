@@ -21,7 +21,7 @@ pub(super) struct TransformGizmoBundle {
 pub(super) struct NaturalScale(Vec3);
 
 #[derive(Component, Deref, DerefMut)]
-pub(super) struct InitialTransform(GlobalTransform);
+pub(super) struct InitialTransform(pub GlobalTransform);
 
 impl TransformGizmo {
     pub fn compute_basis(owner_xform: &GlobalTransform, space: TransformSpace) -> Transform {
