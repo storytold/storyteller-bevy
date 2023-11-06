@@ -45,7 +45,7 @@ impl fmt::Debug for ViewportSize {
     }
 }
 
-// #[cfg(target_arch = "wasm32")]
+#[cfg(target_arch = "wasm32")]
 pub mod wasm {
     use bevy::prelude::*;
     use wasm_bindgen::prelude::*;

@@ -24,7 +24,7 @@ mod skybox;
 mod ui;
 mod viewport;
 
-// #[cfg(target_arch = "wasm32")]
+#[cfg(target_arch = "wasm32")]
 mod wasm;
 
 #[derive(Component)]
