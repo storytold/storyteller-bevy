@@ -4,6 +4,7 @@ use crate::{camera_controller::CameraMotionSystem, MainCamera};
 
 use self::{
     camera::{spawn_gizmo_camera, GizmoCamera},
+    combo::spawn_combo_translation_rotation_gizmo,
     common::*,
     resources::{init_resources, GizmoMats, GizmoMeshes},
     rotation::{spawn_rotation_gizmo, update_ss_ring_rotation},
@@ -13,6 +14,7 @@ use self::{
 use super::{Selection, TransformMode, TransformType};
 
 mod camera;
+mod combo;
 mod common;
 mod resources;
 mod rotation;
@@ -114,6 +116,17 @@ fn spawn_gizmo(
         }
         TransformType::ROTATE => {
             spawn_rotation_gizmo(
+                &mut cmd,
+                ent,
+                xform,
+                r_xform_mode.space,
+                normalizing_scale,
+                &r_meshes,
+                &r_mats,
+            );
+        }
+        ttype if ttype.contains(TransformType::TRANSLATE | TransformType::ROTATE) => {
+            spawn_combo_translation_rotation_gizmo(
                 &mut cmd,
                 ent,
                 xform,
