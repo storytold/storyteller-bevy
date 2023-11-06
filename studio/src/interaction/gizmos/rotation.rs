@@ -1,5 +1,4 @@
 use bevy::{
-    ecs::system::EntityCommands,
     math::{vec3, Affine3A},
     pbr::NotShadowCaster,
     prelude::*,
@@ -7,11 +6,14 @@ use bevy::{
 };
 use bevy_mod_picking::prelude::*;
 
-use crate::{interaction::TransformSpace, MainCamera};
+use crate::{
+    interaction::{TransformMode, TransformSpace},
+    MainCamera,
+};
 
 use super::{
-    common::InitialTransform, on_gizmo_element_hover, on_gizmo_element_unhover, GizmoMats,
-    GizmoMeshes, TransformGizmoBundle, TransformGizmoRoot, GIZMO_RENDER_LAYER,
+    common::RebuildGizmo, on_gizmo_element_hover, on_gizmo_element_unhover, GizmoMats, GizmoMeshes,
+    InitialTransform, TransformGizmo, TransformGizmoBundle, TransformGizmoRoot, GIZMO_RENDER_LAYER,
 };
 
 #[derive(Component)]
@@ -21,11 +23,11 @@ pub(super) enum RotationWidget {
     Trackball,
 }
 
-#[derive(Component)]
-pub(super) struct ScreenSpaceRotationRing;
-
 #[derive(Component, Deref)]
-struct InitialHitPoint(Vec3);
+pub(super) struct InitialHitPoint(pub Vec3);
+
+#[derive(Component, Deref, DerefMut)]
+pub(super) struct LastHitPoint(pub Vec3);
 
 #[inline]
 pub(super) fn spawn_rotation_gizmo(
@@ -42,9 +44,9 @@ pub(super) fn spawn_rotation_gizmo(
         .with_children(|cmd| {
             cmd.spawn((
                 TransformGizmoBundle::new(xform, space, normalizing_scale),
-                On::<Pointer<DragStart>>::run(on_drag_start),
+                On::<Pointer<DragStart>>::run(on_rotation_start),
                 On::<Pointer<Drag>>::run(on_rotate),
-                On::<Pointer<DragEnd>>::target_commands_mut(on_drag_end),
+                On::<Pointer<DragEnd>>::run(on_rotation_end),
             ))
             .with_children(|cmd| {
                 use super::{ROT_X, ROT_Y, ROT_Z};
@@ -179,23 +181,144 @@ fn on_trackball_unhover(
     mat.base_color.set_a(0.);
 }
 
-fn on_drag_start(
+pub(super) fn on_rotation_start(
     event: Listener<Pointer<DragStart>>,
     mut cmd: Commands,
     q_xform: Query<(Entity, &GlobalTransform), With<TransformGizmoRoot>>,
 ) {
-    if let Ok((ent, &xform)) = q_xform.get_single() {
+    if let Ok((ent, &world_xform)) = q_xform.get_single() {
+        let hit_point = event.hit.position.unwrap();
+
         cmd.entity(ent).insert((
-            InitialTransform(xform),
-            InitialHitPoint(event.hit.position.unwrap()),
+            InitialTransform(world_xform),
+            InitialHitPoint(hit_point),
+            LastHitPoint(hit_point),
         ));
     }
 }
 
-// TODO
-fn on_rotate() {}
+pub(super) fn on_rotation_end(
+    event: Listener<Pointer<DragEnd>>,
+    mut cmd: Commands,
+    r_xform_mode: Res<TransformMode>,
+    mut ev_rebuild_gizmo: EventWriter<RebuildGizmo>,
+) {
+    cmd.entity(event.target)
+        .remove::<InitialTransform>()
+        .remove::<InitialHitPoint>()
+        .remove::<LastHitPoint>();
 
-fn on_drag_end(_: &ListenerInput<Pointer<DragEnd>>, cmd: &mut EntityCommands<'_, '_, '_>) {
-    cmd.remove::<InitialTransform>();
-    cmd.remove::<InitialHitPoint>();
+    if matches!(r_xform_mode.space, TransformSpace::World) {
+        ev_rebuild_gizmo.send(RebuildGizmo);
+    }
+}
+
+pub(super) fn on_rotate(
+    event: Listener<Pointer<Drag>>,
+    mut q_root: Query<
+        (
+            &mut Transform,
+            Option<&Parent>,
+            &InitialTransform,
+            &InitialHitPoint,
+            &mut LastHitPoint,
+        ),
+        With<TransformGizmoRoot>,
+    >,
+    q_camera: Query<(&Camera, &GlobalTransform), With<MainCamera>>,
+    q_gizmo: Query<&GlobalTransform, (With<TransformGizmo>, Without<MainCamera>)>,
+    q_world_xforms: Query<&GlobalTransform, (With<Children>, Without<MainCamera>)>,
+    q_widget: Query<&RotationWidget>,
+) {
+    // Components from the gizmo root (the entity being transformed)
+    let (mut xform, parent, init_xform, init_point, mut last_point) = q_root.single_mut();
+
+    let gizmo_xform = q_gizmo.single();
+    let (cam, cam_xform) = q_camera.single();
+
+    // `Transform::rotate_axis` takes an axis vector relative to the transform's
+    // _parent_. We'll use the gizmo root's parent's global transform (if it
+    // exists) to move the world-space axis of rotation into the parent space
+    // when applying the rotation.
+    let identity_xform = GlobalTransform::default();
+    let root_parent_xform = parent
+        .and_then(|parent| q_world_xforms.get(parent.get()).ok())
+        .unwrap_or(&identity_xform);
+
+    // We compute the rotation by finding a triangle (in world-space) where:
+    //   p0    = the gizmo/object origin
+    //   p1,p2 = the intersections of a camera-to-world raycast, where p1 is the
+    //           previous pointer location and p2 is the current.
+    let p1 = **last_point;
+    let p0 = init_xform.translation();
+
+    // Find the screen-space p2 by adding the total drag distance to the pointer
+    // location recorded on `DragStart`
+    let p_init_ss = cam.world_to_viewport(cam_xform, **init_point).unwrap();
+    let p2_ss = p_init_ss + event.distance;
+
+    // Create a camera-to-world ray that passes through that point. In trackball
+    // mode, we'll trace this against the surface of the trackball sphere to
+    // find the p1/p2 points. In all other modes, we'll trace against a plane
+    // whose origin is p0 and whose normal is the axis of the "ring" that's
+    // being dragged.
+    let ray = cam.viewport_to_world(cam_xform, p2_ss).unwrap();
+
+    use RotationWidget::*;
+
+    match q_widget.get(event.target) {
+        Ok(Trackball) => {
+            // TODO
+        }
+        Ok(axis) => {
+            // Find the world-space axis of rotation
+            let axis_ws = match axis {
+                ScreenSpace => (p0 - cam_xform.translation()).normalize(),
+                Axis(normal) => gizmo_xform.affine().transform_vector3(*normal).normalize(),
+                _ => unreachable!(),
+            };
+
+            // Find the world-space p2, if possible
+            let Some(hit_dist) = ray.intersect_plane(p0, axis_ws) else {
+                // This could fail if the axis of rotation is nearly
+                // perpendicular to the view direction
+                return;
+            };
+            let p2 = ray.origin + ray.direction * hit_dist;
+
+            // Find the angle @ p0
+            let a = p1 - p0;
+            let b = p2 - p0;
+            let theta = (a.dot(b) / (a.length() * b.length())).acos();
+            if theta.is_nan() {
+                return;
+            }
+
+            // Find the _direction_ of the rotation by comparing the canonical
+            // axis of rotation with (p1-p0) x (p2-p0).
+            //
+            // In theory, we could just use that cross-product directly as our
+            // axis of rotation, but floating-point errors at very small theta
+            // values make that unfeasible in practice, so instead we just flip
+            // the canonical axis when appropriate.
+            let diff = axis_ws - a.cross(b).normalize();
+            let axis_ws = if diff.length() > 1. {
+                -axis_ws
+            } else {
+                axis_ws
+            };
+
+            // Transform the world-space axis into the parent space
+            let axis_parent_space = root_parent_xform
+                .affine()
+                .inverse()
+                .transform_vector3(axis_ws)
+                .normalize();
+
+            // Apply the rotation, and update `last_point`
+            xform.rotate_axis(axis_parent_space, theta);
+            **last_point = p2;
+        }
+        _ => {}
+    }
 }

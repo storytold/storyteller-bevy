@@ -1,16 +1,20 @@
-use bevy::{math::vec3, pbr::NotShadowCaster, prelude::*, render::view::RenderLayers};
-use bevy_mod_picking::prelude::{Drag, DragEnd, DragStart, Listener, On, Out, Over, Pointer};
+use bevy::{
+    ecs::system::EntityCommands, math::vec3, pbr::NotShadowCaster, prelude::*,
+    render::view::RenderLayers,
+};
+use bevy_mod_picking::prelude::{
+    Drag, DragEnd, DragStart, Listener, ListenerInput, On, Out, Over, Pointer,
+};
 
 use crate::{interaction::TransformSpace, MainCamera};
 
 use super::{
-    on_drag_end, on_drag_start, on_gizmo_element_hover, on_gizmo_element_unhover, GizmoMats,
-    GizmoMeshes, InitialTransform, TransformGizmo, TransformGizmoBundle, TransformGizmoRoot,
-    GIZMO_RENDER_LAYER,
+    on_gizmo_element_hover, on_gizmo_element_unhover, GizmoMats, GizmoMeshes, InitialTransform,
+    TransformGizmo, TransformGizmoBundle, TransformGizmoRoot, GIZMO_RENDER_LAYER,
 };
 
 #[derive(Component)]
-enum TranslationWidget {
+pub(super) enum TranslationWidget {
     Axis(Vec3),
     Plane(Vec3),
     ScreenSpace,
@@ -33,9 +37,9 @@ pub(super) fn spawn_translation_gizmo(
                 TransformGizmoBundle::new(xform, space, normalizing_scale),
                 On::<Pointer<Over>>::run(on_gizmo_element_hover),
                 On::<Pointer<Out>>::run(on_gizmo_element_unhover),
-                On::<Pointer<DragStart>>::run(on_drag_start),
+                On::<Pointer<DragStart>>::run(on_translation_start),
                 On::<Pointer<Drag>>::run(on_translate),
-                On::<Pointer<DragEnd>>::target_commands_mut(on_drag_end),
+                On::<Pointer<DragEnd>>::target_commands_mut(on_translation_end),
             ))
             .with_children(|cmd| {
                 use super::{CIRC_45, ROT_X, ROT_Y, ROT_Z};
@@ -201,7 +205,24 @@ pub(super) fn spawn_translation_gizmo(
         });
 }
 
-fn on_translate(
+pub(super) fn on_translation_start(
+    _: Listener<Pointer<DragStart>>,
+    mut cmd: Commands,
+    q_xform: Query<(Entity, &GlobalTransform), With<TransformGizmoRoot>>,
+) {
+    if let Ok((ent, &world_xform)) = q_xform.get_single() {
+        cmd.entity(ent).insert(InitialTransform(world_xform));
+    };
+}
+
+pub(super) fn on_translation_end(
+    _: &ListenerInput<Pointer<DragEnd>>,
+    cmd: &mut EntityCommands<'_, '_, '_>,
+) {
+    cmd.remove::<InitialTransform>();
+}
+
+pub(super) fn on_translate(
     event: Listener<Pointer<Drag>>,
     mut q_root: Query<(&mut Transform, &InitialTransform), With<TransformGizmoRoot>>,
     q_camera: Query<(&Camera, &GlobalTransform), With<MainCamera>>,

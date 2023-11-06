@@ -33,6 +33,7 @@ pub struct GizmoPlugin;
 
 impl Plugin for GizmoPlugin {
     fn build(&self, app: &mut App) {
+        app.add_event::<RebuildGizmo>();
         app.add_systems(Startup, init_resources);
         app.add_systems(
             PreUpdate,
@@ -46,15 +47,12 @@ impl Plugin for GizmoPlugin {
             (
                 despawn_existing_gizmo.run_if(
                     resource_changed_or_removed::<Selection>()
-                        .or_else(resource_changed::<TransformMode>()),
+                        .or_else(resource_changed::<TransformMode>())
+                        .or_else(on_event::<RebuildGizmo>()),
                 ),
                 spawn_gizmo.after(despawn_existing_gizmo).run_if(
                     resource_exists::<Selection>()
-                        .and_then(not(any_with_component::<TransformGizmoRoot>()))
-                        .and_then(
-                            resource_changed::<Selection>()
-                                .or_else(resource_changed::<TransformMode>()),
-                        ),
+                        .and_then(not(any_with_component::<TransformGizmoRoot>())),
                 ),
                 normalize_gizmo_scale.after(CameraMotionSystem),
             ),

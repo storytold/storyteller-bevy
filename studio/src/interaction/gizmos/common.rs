@@ -1,4 +1,4 @@
-use bevy::{ecs::system::EntityCommands, math::vec3, prelude::*};
+use bevy::{math::vec3, prelude::*};
 use bevy_mod_picking::prelude::*;
 
 use crate::{interaction::TransformSpace, math::IsNonUniform};
@@ -8,6 +8,9 @@ pub(super) struct TransformGizmoRoot;
 
 #[derive(Component)]
 pub(super) struct TransformGizmo;
+
+#[derive(Event)]
+pub(super) struct RebuildGizmo;
 
 #[derive(Bundle)]
 pub(super) struct TransformGizmoBundle {
@@ -20,7 +23,7 @@ pub(super) struct TransformGizmoBundle {
 #[derive(Component, Deref)]
 pub(super) struct NaturalScale(Vec3);
 
-#[derive(Component, Deref, DerefMut)]
+#[derive(Component, Deref)]
 pub(super) struct InitialTransform(pub GlobalTransform);
 
 impl TransformGizmo {
@@ -66,23 +69,6 @@ impl TransformGizmoBundle {
             scale: NaturalScale(nat_scale),
         }
     }
-}
-
-pub(super) fn on_drag_start(
-    _: Listener<Pointer<DragStart>>,
-    mut cmd: Commands,
-    q_xform: Query<(Entity, &GlobalTransform), With<TransformGizmoRoot>>,
-) {
-    if let Ok((ent, &xform)) = q_xform.get_single() {
-        cmd.entity(ent).insert(InitialTransform(xform));
-    };
-}
-
-pub(super) fn on_drag_end(
-    _: &ListenerInput<Pointer<DragEnd>>,
-    cmd: &mut EntityCommands<'_, '_, '_>,
-) {
-    cmd.remove::<InitialTransform>();
 }
 
 pub(super) fn on_gizmo_element_hover(
