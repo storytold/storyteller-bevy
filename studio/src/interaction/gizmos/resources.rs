@@ -39,10 +39,7 @@ pub(super) fn init_resources(
         length: 0.4,
         resolution: 12,
     }));
-    let translate_plane = ra_meshes.add(Mesh::from(shape::Plane {
-        size: 0.25,
-        subdivisions: 0,
-    }));
+    let translate_plane = ra_meshes.add(Mesh::from(geo::Plane2Sided { size: 0.25 }));
     let translate_ss = ra_meshes.add(
         Mesh::try_from(shape::Icosphere {
             radius: 0.2,
@@ -66,7 +63,6 @@ pub(super) fn init_resources(
     let translate_yz = ra_mats.add(StandardMaterial {
         base_color: design_system::Color::RED,
         unlit: true,
-        cull_mode: None,
         ..default()
     });
 
@@ -78,7 +74,6 @@ pub(super) fn init_resources(
     let translate_xz = ra_mats.add(StandardMaterial {
         base_color: design_system::Color::GREEN,
         unlit: true,
-        cull_mode: None,
         ..default()
     });
 
@@ -90,7 +85,6 @@ pub(super) fn init_resources(
     let translate_xy = ra_mats.add(StandardMaterial {
         base_color: design_system::Color::BLUE,
         unlit: true,
-        cull_mode: None,
         ..default()
     });
 
