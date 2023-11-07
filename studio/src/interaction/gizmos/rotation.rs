@@ -259,9 +259,9 @@ pub(super) fn on_rotate(
 
     // Create a camera-to-world ray that passes through that point. In trackball
     // mode, we'll trace this against the surface of the trackball sphere to
-    // find the p1/p2 points. In all other modes, we'll trace against a plane
-    // whose origin is p0 and whose normal is the axis of the "ring" that's
-    // being dragged.
+    // find the world-space point. In all other modes, we'll trace against a
+    // plane whose origin is p0 and whose normal is the axis of the "ring"
+    // that's being dragged.
     let ray = cam.viewport_to_world(cam_xform, p2_ss).unwrap();
 
     use RotationWidget::*;
