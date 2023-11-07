@@ -1,5 +1,5 @@
 use bevy::{
-    math::{vec3, Affine3A},
+    math::{Affine3A, Mat3A, Vec3A},
     pbr::NotShadowCaster,
     prelude::*,
     render::view::RenderLayers,
@@ -8,6 +8,7 @@ use bevy_mod_picking::prelude::*;
 
 use crate::{
     interaction::{TransformMode, TransformSpace},
+    math::MatrixExtras,
     MainCamera,
 };
 
@@ -136,28 +137,18 @@ pub(super) fn update_ss_ring_rotation(
     for (mut world_xform, widget) in q_ring.iter_mut() {
         if matches!(*widget, RotationWidget::ScreenSpace) {
             // Find basis vector to rotate the flat side of the ring toward the camera
-            let origin = world_xform.translation();
-            let normal = (cam_xform.translation() - origin).normalize();
+            let origin: Vec3A = world_xform.translation().into();
+            let normal = (Vec3A::from(cam_xform.translation()) - origin).normalize();
             let (tangent, binormal) = normal.any_orthonormal_pair();
-            let rotation = Mat3::from_cols(tangent, normal, binormal);
+            let rotation = Mat3A::from_cols(tangent, normal, binormal);
 
             // Since we're overriding the local transform propagation, we need
             // to manually re-apply the normalization scale
-            let mat3 = world_xform.affine().matrix3;
-            let scale = vec3(
-                mat3.x_axis.length() * f32::signum(mat3.determinant()),
-                mat3.y_axis.length(),
-                mat3.z_axis.length(),
-            );
-            let scale = Mat3::from_cols(
-                vec3(scale.x, 0., 0.),
-                vec3(0., scale.y, 0.),
-                vec3(0., 0., scale.z),
-            );
+            let scale = world_xform.affine().matrix3.decompose_scale();
 
             *world_xform = GlobalTransform::from(Affine3A {
-                matrix3: (rotation * scale).into(),
-                translation: origin.into(),
+                matrix3: rotation * scale,
+                translation: origin,
             });
         }
     }

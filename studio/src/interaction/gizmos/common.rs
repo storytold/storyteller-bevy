@@ -1,12 +1,9 @@
-use bevy::{
-    math::{vec3, Affine3A},
-    prelude::*,
-};
+use bevy::{math::Affine3A, prelude::*};
 use bevy_mod_picking::prelude::*;
 
 use crate::{
     interaction::TransformSpace,
-    math::{IsNonUniform, MatrixExtras},
+    math::{IsNonUniform, MatrixExtras, VecExtras},
 };
 
 #[derive(Component)]
@@ -48,16 +45,16 @@ impl TransformGizmoBundle {
 
         let (scale, rotation) = matrix3.decompose_scale_rotation();
         let inv_scale = scale.inverse();
-        let nat_scale = vec3(inv_scale.x_axis.x, inv_scale.y_axis.y, inv_scale.z_axis.z);
+        let nat_scale = NaturalScale(Vec3::from_scale_mat(inv_scale));
 
         match space {
             TransformSpace::Local => {
                 let global_transform = GlobalTransform::from(Affine3A {
-                    matrix3: rotation.into(),
+                    matrix3: rotation,
                     translation,
                 });
 
-                let transform = Transform::from_scale(nat_scale * normalizing_scale);
+                let transform = Transform::from_scale(*nat_scale * normalizing_scale);
 
                 Self {
                     name,
@@ -67,7 +64,7 @@ impl TransformGizmoBundle {
                         transform,
                         ..default()
                     },
-                    scale: NaturalScale(nat_scale),
+                    scale: nat_scale,
                 }
             }
             TransformSpace::World => {
@@ -83,7 +80,7 @@ impl TransformGizmoBundle {
                 let local_matrix = if nat_scale.is_non_uniform() {
                     inv_scale
                 } else {
-                    matrix3.inverse().into()
+                    matrix3.inverse()
                 };
 
                 let global_transform = GlobalTransform::from(Affine3A {
@@ -91,7 +88,7 @@ impl TransformGizmoBundle {
                     translation,
                 });
 
-                let mat4 = Mat4::from_mat3(local_matrix * normalizing_scale);
+                let mat4 = Mat4::from_mat3a(local_matrix * normalizing_scale);
                 let transform = Transform::from_matrix(mat4);
 
                 Self {
@@ -102,7 +99,7 @@ impl TransformGizmoBundle {
                         transform,
                         ..default()
                     },
-                    scale: NaturalScale(nat_scale),
+                    scale: nat_scale,
                 }
             }
         }
