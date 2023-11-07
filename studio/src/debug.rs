@@ -1,3 +1,5 @@
+use std::fmt;
+
 use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_mod_picking::debug::DebugPickingMode;
@@ -80,4 +82,22 @@ fn draw_world_axes(mut gizmos: Gizmos, q: Query<&CameraController>) {
     draw_axis(Vec3::X, Color::RED);
     draw_axis(Vec3::Y, Color::GREEN);
     draw_axis(Vec3::Z, Color::BLUE);
+}
+
+#[rustfmt::skip]
+#[allow(dead_code)]
+pub fn write_mat3(w: &mut impl fmt::Write, m: &Mat3) -> fmt::Result {
+    writeln!(w, "  {:+.3} {:+.3} {:+.3}", m.x_axis.x, m.x_axis.y, m.x_axis.z)?;
+	writeln!(w, "  {:+.3} {:+.3} {:+.3}", m.y_axis.x, m.y_axis.y, m.y_axis.z)?;
+	writeln!(w, "  {:+.3} {:+.3} {:+.3}", m.z_axis.x, m.z_axis.y, m.z_axis.z)?;
+	Ok(())
+}
+
+#[allow(dead_code)]
+pub fn print_mat3(m: &Mat3, label: impl fmt::Display) -> fmt::Result {
+    let mut s = String::new();
+    write_mat3(&mut s, m)?;
+    info!("\n{label}\n{}", s.replace('+', " "));
+
+    Ok(())
 }

@@ -4,10 +4,12 @@ mod float_comparison;
 pub mod geo;
 mod internal;
 pub mod interp;
+pub mod matrix;
 
 pub use float_comparison::*;
 pub use geo::*;
 pub use interp::*;
+pub use matrix::*;
 
 pub trait IsNonUniform {
     fn is_non_uniform(&self) -> bool;

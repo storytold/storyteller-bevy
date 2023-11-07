@@ -1,7 +1,13 @@
-use bevy::{math::vec3, prelude::*};
+use bevy::{
+    math::{vec3, Affine3A},
+    prelude::*,
+};
 use bevy_mod_picking::prelude::*;
 
-use crate::{interaction::TransformSpace, math::IsNonUniform};
+use crate::{
+    interaction::TransformSpace,
+    math::{IsNonUniform, MatrixExtras},
+};
 
 #[derive(Component)]
 pub(super) struct TransformGizmoRoot;
@@ -20,37 +26,11 @@ pub(super) struct TransformGizmoBundle {
     scale: NaturalScale,
 }
 
-#[derive(Component, Deref)]
-pub(super) struct NaturalScale(Vec3);
+#[derive(Component, Deref, Reflect)]
+pub(super) struct NaturalScale(pub Vec3);
 
 #[derive(Component, Deref)]
 pub(super) struct InitialTransform(pub GlobalTransform);
-
-impl TransformGizmo {
-    pub fn compute_basis(owner_xform: &GlobalTransform, space: TransformSpace) -> Transform {
-        let (inv_scale, inv_rotation, _) = owner_xform
-            .affine()
-            .inverse()
-            .to_scale_rotation_translation();
-
-        match space {
-            TransformSpace::Local => {
-                let inv_scale = if inv_scale.is_non_uniform() {
-                    let s = inv_rotation * inv_scale;
-                    vec3(s.x.abs(), s.y.abs(), s.z.abs())
-                } else {
-                    inv_scale
-                };
-                Transform::from_scale(inv_scale)
-            }
-            TransformSpace::World => Transform {
-                rotation: inv_rotation,
-                scale: inv_scale,
-                ..default()
-            },
-        }
-    }
-}
 
 impl TransformGizmoBundle {
     pub fn new(
@@ -58,15 +38,73 @@ impl TransformGizmoBundle {
         space: TransformSpace,
         normalizing_scale: f32,
     ) -> Self {
-        let mut basis = TransformGizmo::compute_basis(parent_xform, space);
-        let nat_scale = basis.scale;
-        basis.scale *= normalizing_scale;
+        let name = Name::new("TransformGizmo");
+        let marker = TransformGizmo;
 
-        Self {
-            name: Name::new("TransformGizmo"),
-            marker: TransformGizmo,
-            spatial: SpatialBundle::from_transform(basis),
-            scale: NaturalScale(nat_scale),
+        let Affine3A {
+            matrix3,
+            translation,
+        } = parent_xform.affine();
+
+        let (scale, rotation) = matrix3.decompose_scale_rotation();
+        let inv_scale = scale.inverse();
+        let nat_scale = vec3(inv_scale.x_axis.x, inv_scale.y_axis.y, inv_scale.z_axis.z);
+
+        match space {
+            TransformSpace::Local => {
+                let global_transform = GlobalTransform::from(Affine3A {
+                    matrix3: rotation.into(),
+                    translation,
+                });
+
+                let transform = Transform::from_scale(nat_scale * normalizing_scale);
+
+                Self {
+                    name,
+                    marker,
+                    spatial: SpatialBundle {
+                        global_transform,
+                        transform,
+                        ..default()
+                    },
+                    scale: NaturalScale(nat_scale),
+                }
+            }
+            TransformSpace::World => {
+                // FIXME: I'm struggling to figure out how to eliminate the
+                //        "shear" from a fully inverted local transform when the
+                //        object is non-uniformly scaled. As a workaround, we'll
+                //        force these objects to operate in local-space mode.
+                // TODO: If this turns into a long-term solution, update the UI
+                //       to reflect that world-space transformation is not
+                //       possible for this object (e.g., by disabling the
+                //       world-space toggle button, maybe with an explanatory
+                //       tooltip).
+                let local_matrix = if nat_scale.is_non_uniform() {
+                    inv_scale
+                } else {
+                    matrix3.inverse().into()
+                };
+
+                let global_transform = GlobalTransform::from(Affine3A {
+                    matrix3,
+                    translation,
+                });
+
+                let mat4 = Mat4::from_mat3(local_matrix * normalizing_scale);
+                let transform = Transform::from_matrix(mat4);
+
+                Self {
+                    name,
+                    marker,
+                    spatial: SpatialBundle {
+                        global_transform,
+                        transform,
+                        ..default()
+                    },
+                    scale: NaturalScale(nat_scale),
+                }
+            }
         }
     }
 }
