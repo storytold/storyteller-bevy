@@ -254,7 +254,9 @@ pub(super) fn on_translate(
             let plane_vector = axis_ws.cross(axis_tan);
 
             // Find the intersection of the camera-to-world ray against that plane
-            let hit_dist = ray.intersect_plane(origin_ws, plane_vector).unwrap();
+            let Some(hit_dist) = ray.intersect_plane(origin_ws, plane_vector) else {
+                return;
+            };
             let hit_point = ray.origin + ray.direction * hit_dist;
 
             // Project the vector from origin -> hit point onto the translation
@@ -274,7 +276,9 @@ pub(super) fn on_translate(
             };
 
             // Find the intersection of the camera-to-world ray against that plane
-            let hit_dist = ray.intersect_plane(origin_ws, plane_normal).unwrap();
+            let Some(hit_dist) = ray.intersect_plane(origin_ws, plane_normal) else {
+                return;
+            };
             let target_ws = ray.origin + ray.direction * hit_dist;
 
             xform.translation = target_ws;
