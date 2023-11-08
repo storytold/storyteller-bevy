@@ -1,6 +1,11 @@
 import { on } from "@storyteller/framework";
 import * as studio from "@storyteller/studio";
-import { TransformSpace, TransformType, ViewportSize } from "@storyteller/studio";
+import {
+	type EntitySelectEvent,
+	TransformSpace,
+	TransformType,
+	ViewportSize,
+} from "@storyteller/studio";
 import { match } from "@storyteller/utility";
 import { LitElement, html, unsafeCSS } from "lit";
 import { customElement, state } from "lit/decorators.js";
@@ -59,6 +64,11 @@ export class AppElement extends LitElement {
 			cancelable: true,
 			composed: true,
 		}));
+	}
+
+	@on("window:entity-select")
+	onEntitySelectionChange({ detail: entity }: EntitySelectEvent): void {
+		console.log("Entity selection changed:", entity);
 	}
 
 	toggleHelp(): void {

@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_mod_outline::{
     AutoGenerateOutlineNormalsPlugin, OutlineBundle, OutlinePlugin, OutlineVolume,
 };
@@ -38,6 +38,7 @@ fn update_selection(
     q_parents: Query<&Parent>,
     q_selectable: Query<&Selectable>,
     q_selected: Query<Entity, With<Selected>>,
+    q_window: Query<&Window, With<PrimaryWindow>>,
 ) {
     if let Some(event) = ev_select.iter().last() {
         // Clear any existing `Selected` components
@@ -62,8 +63,14 @@ fn update_selection(
         if let Some(ent) = ent_selected {
             cmd.insert_resource(Selection(ent));
             cmd.entity(ent).insert(Selected);
+
+            #[cfg(feature = "wasm")]
+            wasm::notify_selection(Some(ent), q_window.single());
         } else {
             cmd.remove_resource::<Selection>();
+
+            #[cfg(feature = "wasm")]
+            wasm::notify_selection(None, q_window.single());
         }
     } else if ev_input.iter().any(|action| {
         matches!(
@@ -76,6 +83,9 @@ fn update_selection(
         for ent in q_selected.iter() {
             cmd.entity(ent).remove::<Selected>();
         }
+
+        #[cfg(feature = "wasm")]
+        wasm::notify_selection(None, q_window.single());
     }
 }
 
@@ -103,5 +113,64 @@ fn draw_selection_outline(
                 });
             }
         }
+    }
+}
+
+#[cfg(feature = "wasm")]
+mod wasm {
+    use bevy::{
+        prelude::{error, Entity},
+        window::Window,
+    };
+    use wasm_bindgen::prelude::*;
+    use web_sys::{CustomEvent, CustomEventInit};
+
+    #[wasm_bindgen(typescript_custom_section)]
+    const EVENT_DECLARATION: &str = r#"
+/**
+ * An event indicating that an entity has been selected or that the selection
+ * has been cleared.
+ */
+export interface EntitySelectEvent extends CustomEvent {
+    /** The selected entity ID. If `null`, the selection has been cleared. */
+    detail: BigInt | null;
+}
+
+declare global {
+    export interface HTMLElementEventMap {
+        "entity-select": EntitySelectEvent;
+    }
+}
+    "#;
+
+    pub(super) fn notify_selection(ent: Option<Entity>, win: &Window) {
+        let canvas_selector = win.canvas.as_ref().unwrap();
+        let window = web_sys::window().unwrap();
+        let document = window.document().unwrap();
+
+        match document.query_selector(canvas_selector) {
+            Ok(Some(canvas)) => {
+                let detail = match ent {
+                    Some(ent) => JsValue::from(ent.to_bits()),
+                    None => JsValue::NULL,
+                };
+                let event = CustomEvent::new_with_event_init_dict(
+                    "entity-select",
+                    CustomEventInit::new()
+                        .bubbles(true)
+                        .cancelable(true)
+                        .detail(&detail),
+                )
+                .unwrap();
+
+                canvas.dispatch_event(&event).unwrap();
+            }
+            Ok(None) => {
+                error!("Failed to find canvas with selector '{canvas_selector}'!");
+            }
+            Err(err) => {
+                error!("{err:?}");
+            }
+        };
     }
 }

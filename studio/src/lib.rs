@@ -45,6 +45,7 @@ pub fn init(viewport_size: ViewportSize) {
             primary_window: Some(Window {
                 resolution: viewport_size.into(),
                 title: "Storyteller Studio".into(),
+                canvas: Some("#studio_canvas".into()),
                 ..default()
             }),
             ..default()
