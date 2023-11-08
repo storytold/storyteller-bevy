@@ -12,7 +12,7 @@ impl Plugin for TransformationPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(TransformMode::default());
         app.add_plugins(GizmoPlugin);
-        #[cfg(target_arch = "wasm32")]
+        #[cfg(feature = "wasm")]
         app.add_systems(PreUpdate, wasm::update_transform_mode);
     }
 }
@@ -83,7 +83,7 @@ impl fmt::Debug for TransformType {
     }
 }
 
-#[cfg(target_arch = "wasm32")]
+#[cfg(feature = "wasm")]
 mod wasm {
     use bevy::prelude::*;
     use wasm_bindgen::prelude::*;

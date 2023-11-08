@@ -24,7 +24,7 @@ mod skybox;
 mod ui;
 mod viewport;
 
-#[cfg(target_arch = "wasm32")]
+#[cfg(feature = "wasm")]
 mod wasm;
 
 #[derive(Component)]
@@ -32,12 +32,12 @@ pub(crate) struct MainCamera;
 
 #[wasm_bindgen]
 pub fn init(viewport_size: ViewportSize) {
-    #[cfg(target_arch = "wasm32")]
+    #[cfg(feature = "wasm")]
     console_error_panic_hook::set_once();
 
     let mut app = App::new();
 
-    #[cfg(target_arch = "wasm32")]
+    #[cfg(feature = "wasm")]
     app.add_plugins(viewport::wasm::ViewportPlugin);
 
     app.add_plugins((
