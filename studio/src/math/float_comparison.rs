@@ -1,6 +1,6 @@
 //! Helper traits for floating-point equality checks with configurable tolerance.
 
-use bevy::prelude::Vec3;
+use bevy::{math::DVec3, prelude::Vec3};
 
 use super::internal::Zero;
 
@@ -50,6 +50,23 @@ impl Zero for Vec3 {
     #[inline]
     fn zero() -> Self {
         Vec3::ZERO
+    }
+}
+
+impl NearlyEq<DVec3, f64> for DVec3 {
+    const DEFAULT_TOLERANCE: f64 = <f64 as NearlyEq<f64>>::DEFAULT_TOLERANCE;
+
+    fn nearly_eq_within(self, rhs: DVec3, tolerance: f64) -> bool {
+        self.x.nearly_eq_within(rhs.x, tolerance)
+            && self.y.nearly_eq_within(rhs.y, tolerance)
+            && self.z.nearly_eq_within(rhs.z, tolerance)
+    }
+}
+
+impl Zero for DVec3 {
+    #[inline]
+    fn zero() -> Self {
+        DVec3::ZERO
     }
 }
 

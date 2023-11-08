@@ -3549,6 +3549,7 @@ dependencies = [
  "bevy-inspector-egui",
  "bevy_mod_outline",
  "bevy_mod_picking",
+ "bevy_mod_raycast",
  "bevy_rapier3d",
  "bitflags 2.4.0",
  "console_error_panic_hook",

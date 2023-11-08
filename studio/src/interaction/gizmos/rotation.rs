@@ -1,14 +1,15 @@
 use bevy::{
-    math::{Affine3A, Mat3A, Vec3A},
+    math::{vec3, Affine3A, DVec3, Mat3A, Vec3A},
     pbr::NotShadowCaster,
     prelude::*,
     render::view::RenderLayers,
 };
 use bevy_mod_picking::prelude::*;
+use bevy_mod_raycast::prelude::{Raycast, RaycastSettings};
 
 use crate::{
     interaction::{TransformMode, TransformSpace},
-    math::MatrixExtras,
+    math::{MatrixExtras, NearlyZero},
     MainCamera,
 };
 
@@ -29,6 +30,12 @@ pub(super) struct InitialHitPoint(pub Vec3);
 
 #[derive(Component, Deref, DerefMut)]
 pub(super) struct LastHitPoint(pub Vec3);
+
+#[derive(Component)]
+pub(super) struct LastRotation {
+    pub axis: Vec3,
+    pub theta: f32,
+}
 
 #[inline]
 pub(super) fn spawn_rotation_gizmo(
@@ -177,6 +184,8 @@ pub(super) fn on_rotation_start(
     mut cmd: Commands,
     q_xform: Query<(Entity, &GlobalTransform), With<TransformGizmoRoot>>,
 ) {
+    info!("Rotation start");
+
     if let Ok((ent, &world_xform)) = q_xform.get_single() {
         let hit_point = event.hit.position.unwrap();
 
@@ -184,6 +193,10 @@ pub(super) fn on_rotation_start(
             InitialTransform(world_xform),
             InitialHitPoint(hit_point),
             LastHitPoint(hit_point),
+            LastRotation {
+                axis: Vec3::ZERO,
+                theta: 0.,
+            },
         ));
     }
 }
@@ -194,10 +207,13 @@ pub(super) fn on_rotation_end(
     r_xform_mode: Res<TransformMode>,
     mut ev_rebuild_gizmo: EventWriter<RebuildGizmo>,
 ) {
+    info!("Rotation end");
+
     cmd.entity(event.target)
         .remove::<InitialTransform>()
         .remove::<InitialHitPoint>()
-        .remove::<LastHitPoint>();
+        .remove::<LastHitPoint>()
+        .remove::<LastRotation>();
 
     if matches!(r_xform_mode.space, TransformSpace::World) {
         ev_rebuild_gizmo.send(RebuildGizmo);
@@ -206,6 +222,7 @@ pub(super) fn on_rotation_end(
 
 pub(super) fn on_rotate(
     event: Listener<Pointer<Drag>>,
+    mut raycast: Raycast,
     mut q_root: Query<
         (
             &mut Transform,
@@ -213,6 +230,7 @@ pub(super) fn on_rotate(
             &InitialTransform,
             &InitialHitPoint,
             &mut LastHitPoint,
+            &mut LastRotation,
         ),
         With<TransformGizmoRoot>,
     >,
@@ -222,7 +240,8 @@ pub(super) fn on_rotate(
     q_widget: Query<&RotationWidget>,
 ) {
     // Components from the gizmo root (the entity being transformed)
-    let (mut xform, parent, init_xform, init_point, mut last_point) = q_root.single_mut();
+    let (mut xform, parent, init_xform, init_point, mut last_point, mut last_rotation) =
+        q_root.single_mut();
 
     let gizmo_xform = q_gizmo.single();
     let (cam, cam_xform) = q_camera.single();
@@ -259,7 +278,82 @@ pub(super) fn on_rotate(
 
     match q_widget.get(event.target) {
         Ok(Trackball) => {
-            // TODO
+            // Raycast against the trackball sphere to find p2
+            let filter = |ent: Entity| ent == event.target;
+            let early_exit_test = |ent: Entity| ent != event.target;
+            let settings = RaycastSettings {
+                filter: &filter,
+                early_exit_test: &early_exit_test,
+                ..default()
+            };
+            let hits = raycast.cast_ray(ray.into(), &settings);
+
+            // If the pointer is no longer in the vicinity of the sphere, we'll
+            // invoke this closure to extrapolate additional rotation from the
+            // last recorded axis and angle
+            let mut extrapolate = || {
+                use std::f32::consts::PI;
+
+                let axis_parent_space = last_rotation.axis;
+                if axis_parent_space.nearly_zero() {
+                    return;
+                }
+
+                let view_plane_normal = (cam_xform.translation() - p1).normalize();
+                let hit_dist = ray.intersect_plane(p1, view_plane_normal).unwrap();
+                let p2 = ray.origin + ray.direction * hit_dist;
+                let drag_dist = (p2 - p1).length();
+                // TODO: Sensitivity could use some tuning
+                let theta = last_rotation.theta + drag_dist * PI * 0.5;
+
+                let mut init_xform_local = init_xform.reparented_to(root_parent_xform);
+                init_xform_local.rotate_axis(axis_parent_space, theta);
+
+                *xform = init_xform_local;
+            };
+
+            if hits.is_empty() {
+                return extrapolate();
+            }
+            let (_, hit) = &hits[0];
+
+            // Use 64-bit precision for all of these vectors to derive an
+            // accurate axis of rotation even at very small theta values
+            let p0 = DVec3::from(p0);
+            let p1 = DVec3::from(**init_point);
+            let p2 = DVec3::from(hit.position());
+
+            let a = (p1 - p0).normalize_or_zero();
+            let b = (p2 - p0).normalize_or_zero();
+            if a.nearly_zero() || b.nearly_zero() {
+                return extrapolate();
+            }
+
+            // Find the angle @ p0
+            let theta = a.dot(b).acos() as f32;
+
+            // Derive the axis of rotation by finding the vector perpendicular
+            // to (p1-p0) and (p2-p0)
+            let axis_ws = a.cross(b).normalize_or_zero();
+            if axis_ws.nearly_zero() {
+                return extrapolate();
+            }
+
+            // Transform the world-space axis into the parent space
+            let axis_parent_space = root_parent_xform
+                .affine()
+                .inverse()
+                .transform_vector3(vec3(axis_ws.x as f32, axis_ws.y as f32, axis_ws.z as f32))
+                .normalize();
+
+            // Apply the rotation and update our local state
+            let mut init_xform_local = init_xform.reparented_to(root_parent_xform);
+            init_xform_local.rotate_axis(axis_parent_space, theta);
+
+            *xform = init_xform_local;
+            **last_point = vec3(p2.x as f32, p2.y as f32, p2.z as f32);
+            last_rotation.axis = axis_parent_space;
+            last_rotation.theta = theta;
         }
         Ok(axis) => {
             // Find the world-space axis of rotation
@@ -306,7 +400,7 @@ pub(super) fn on_rotate(
                 .transform_vector3(axis_ws)
                 .normalize();
 
-            // Apply the rotation, and update `last_point`
+            // Apply the rotation and update our local state
             xform.rotate_axis(axis_parent_space, theta);
             **last_point = p2;
         }
