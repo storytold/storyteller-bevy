@@ -13,6 +13,7 @@ import {
 import { match } from "@storyteller/utility";
 import { LitElement, html, unsafeCSS } from "lit";
 import { customElement, state } from "lit/decorators.js";
+import { classMap } from "lit/directives/class-map.js";
 
 import "./button.element";
 import "./help.element";
@@ -28,7 +29,9 @@ export class AppElement extends LitElement {
 
 	@state() transformSpace = TransformSpace.Local;
 	@state() transformType = TransformType.Translate;
+
 	@state() sceneObjects: SceneObject[] = [];
+	@state() selection?: BigInt | null;
 
 	#studioCanvas?: HTMLCanvasElement | null;
 
@@ -75,6 +78,7 @@ export class AppElement extends LitElement {
 	onEntitySelectionChange({ detail: entity }: EntitySelectEvent): void {
 		const sceneObject = this.sceneObjects.find(({ id }) => id === entity);
 		console.log("Entity selection changed:", sceneObject);
+		this.selection = entity;
 	}
 
 	@on("window:entity-spawn")
@@ -208,9 +212,14 @@ export class AppElement extends LitElement {
 			bottom: 16px;
 			overflow-y: auto;
 		">
-			${this.sceneObjects.map(({ name }) => html`
-			<li style="font-family: sans-serif; color: #FFF; font-weight: bold;">
-				${name}
+			${this.sceneObjects.map(obj => html`
+			<li class=${classMap({ selected: obj.id === this.selection })}
+				style="
+					font-family: sans-serif;
+					color: #FFF;
+					font-weight: bold;
+				">
+				${obj.name}
 			</li>`)}
 		</ul>
 
