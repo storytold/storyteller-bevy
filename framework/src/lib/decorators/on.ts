@@ -29,7 +29,7 @@ export function on(eventSelector: string) {
 		Object.defineProperty(proto, "connectedCallback", {
 			value: function (this: HTMLElement) {
 				target ??= this;
-				target.addEventListener(eventName, handler);
+				target.addEventListener(eventName, handler.bind(this));
 				connectedCb.call(this);
 			},
 			configurable: true,
@@ -39,7 +39,7 @@ export function on(eventSelector: string) {
 		Object.defineProperty(proto, "disconnectedCallback", {
 			value: function (this: HTMLElement) {
 				target ??= this;
-				target.removeEventListener(eventName, handler);
+				target.removeEventListener(eventName, handler.bind(this));
 				disconnectedCb.call(this);
 			},
 			configurable: true,

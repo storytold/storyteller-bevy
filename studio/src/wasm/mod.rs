@@ -18,7 +18,7 @@ pub(crate) fn dispatch_to_js(
 ) -> Result<(), String> {
     let canvas = try_get_canvas(window)?;
 
-    let detail = value.as_js();
+    let detail = value.as_js()?;
     let event = CustomEvent::new_with_event_init_dict(
         event_type,
         CustomEventInit::new()

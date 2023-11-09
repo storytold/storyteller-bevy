@@ -1,15 +1,114 @@
-use bevy::prelude::Entity;
-use wasm_bindgen::JsValue;
+use bevy::prelude::{Entity, GlobalTransform, Quat, Transform, Vec3};
+use serde::ser::Serialize;
+use serde_wasm_bindgen::Serializer;
+use wasm_bindgen::prelude::*;
+
+pub type JsonValue = serde_json::Value;
+
+#[wasm_bindgen(typescript_custom_section)]
+const BEVY_TYPES: &str = r#"
+export interface BevyObject<Tag extends string, const T> {
+    type: Tag;
+    value: T;
+};
+
+export type Vec3 = BevyObject<"Vec3", [number, number, number]>;
+export type Quat = BevyObject<"Quat", [number, number, number, number]>;
+
+export interface ITransform {
+    translation: Vec3;
+    rotation: Quat;
+    scale: Vec3;
+}
+export type Transform = BevyObject<"Transform", ITransform>;
+export type GlobalTransform = BevyObject<"GlobalTransform", ITransform>;
+"#;
+
+const SERIALIZER: Serializer = Serializer::new()
+    .serialize_missing_as_null(true)
+    .serialize_maps_as_objects(true)
+    .serialize_large_number_types_as_bigints(true);
 
 pub trait AsJsValue {
-    fn as_js(&self) -> JsValue;
+    fn as_js(&self) -> Result<JsValue, String>;
 }
 
-// TODO: Try a blanket impl<T> AsJsValue for T where T: serde::Serialize
+pub trait AsJson {
+    fn as_json(&self) -> JsonValue;
+}
+
+impl AsJson for Vec3 {
+    fn as_json(&self) -> JsonValue {
+        serde_json::json! {{
+            "type": "Vec3",
+            "value": [self.x, self.y, self.z],
+        }}
+    }
+}
+
+impl AsJson for Quat {
+    fn as_json(&self) -> JsonValue {
+        serde_json::json! {{
+            "type": "Quat",
+            "value": [self.x, self.y, self.z, self.w],
+        }}
+    }
+}
+
+impl AsJson for Transform {
+    fn as_json(&self) -> JsonValue {
+        serde_json::json! {{
+            "type": "Transform",
+            "value": {
+                "translation": self.translation.as_json(),
+                "rotation": self.rotation.as_json(),
+                "scale": self.scale.as_json(),
+            },
+        }}
+    }
+}
+
+impl AsJson for GlobalTransform {
+    fn as_json(&self) -> JsonValue {
+        let (scale, rotation, translation) = self.to_scale_rotation_translation();
+
+        serde_json::json! {{
+            "type": "GlobalTransform",
+            "value": {
+                "translation": translation,
+                "rotation": rotation,
+                "scale": scale,
+            },
+        }}
+    }
+}
+
+impl<T> AsJsValue for T
+where
+    T: AsJson,
+{
+    fn as_js(&self) -> Result<JsValue, String> {
+        self.as_json()
+            .serialize(&SERIALIZER)
+            .map_err(|err| format!("{err}"))
+    }
+}
+
+impl AsJsValue for JsonValue {
+    fn as_js(&self) -> Result<JsValue, String> {
+        self.serialize(&SERIALIZER).map_err(|err| format!("{err}"))
+    }
+}
+
+impl AsJsValue for Vec<JsonValue> {
+    fn as_js(&self) -> Result<JsValue, String> {
+        self.serialize(&SERIALIZER).map_err(|err| format!("{err}"))
+    }
+}
 
 impl AsJsValue for Entity {
-    fn as_js(&self) -> JsValue {
-        self.to_bits().into()
+    fn as_js(&self) -> Result<JsValue, String> {
+        Ok(self.to_bits().into())
     }
 }
 
@@ -17,10 +116,10 @@ impl<T> AsJsValue for Option<T>
 where
     T: AsJsValue,
 {
-    fn as_js(&self) -> JsValue {
+    fn as_js(&self) -> Result<JsValue, String> {
         match self.as_ref() {
-            Some(value) => value.as_js(),
-            None => JsValue::NULL,
+            Some(value) => Ok(value.as_js()?),
+            None => Ok(JsValue::NULL),
         }
     }
 }

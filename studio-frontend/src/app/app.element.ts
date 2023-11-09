@@ -1,7 +1,11 @@
 import { on } from "@storyteller/framework";
 import * as studio from "@storyteller/studio";
 import {
+	type EntityDespawnEvent,
+	type EntityMultiSpawnEvent,
 	type EntitySelectEvent,
+	type EntitySpawnEvent,
+	type SceneObject,
 	TransformSpace,
 	TransformType,
 	ViewportSize,
@@ -24,6 +28,7 @@ export class AppElement extends LitElement {
 
 	@state() transformSpace = TransformSpace.Local;
 	@state() transformType = TransformType.Translate;
+	@state() sceneObjects: SceneObject[] = [];
 
 	#studioCanvas?: HTMLCanvasElement | null;
 
@@ -68,7 +73,28 @@ export class AppElement extends LitElement {
 
 	@on("window:entity-select")
 	onEntitySelectionChange({ detail: entity }: EntitySelectEvent): void {
-		console.log("Entity selection changed:", entity);
+		const sceneObject = this.sceneObjects.find(({ id }) => id === entity);
+		console.log("Entity selection changed:", sceneObject);
+	}
+
+	@on("window:entity-spawn")
+	onEntitySpawned({ detail: value }: EntitySpawnEvent): void {
+		console.log("Entity spawned:", value);
+		const updated = this.sceneObjects.concat(value).sort(sortByName);
+		this.sceneObjects = updated;
+	}
+
+	@on("window:entity-multi-spawn")
+	onEntitiesSpawned({ detail: values }: EntityMultiSpawnEvent): void {
+		console.log("Entities spawned:", values);
+		const updated = this.sceneObjects.concat(values).sort(sortByName);
+		this.sceneObjects = updated;
+	}
+
+	@on("window:entity-despawn")
+	onEntityDespawned({ detail: entity }: EntityDespawnEvent): void {
+		console.log("Entity despawned:", entity);
+		this.sceneObjects = this.sceneObjects.filter(({ id }) => id !== entity);
 	}
 
 	toggleHelp(): void {
@@ -175,6 +201,19 @@ export class AppElement extends LitElement {
 			</div>
 		</div>
 
+		<ul style="
+			position: absolute;
+			left: 16px;
+			top: 16px;
+			bottom: 16px;
+			overflow-y: auto;
+		">
+			${this.sceneObjects.map(({ name }) => html`
+			<li style="font-family: sans-serif; color: #FFF; font-weight: bold;">
+				${name}
+			</li>`)}
+		</ul>
+
 		<sts-button class="btn-help"
 			icon="circle-info"
 			@click=${this.toggleHelp}
@@ -186,4 +225,8 @@ export class AppElement extends LitElement {
 			<sts-help class="help"></sts-help>
 		` : null}
 	`;
+}
+
+function sortByName(a: SceneObject, b: SceneObject): number {
+	return a.name.localeCompare(b.name);
 }

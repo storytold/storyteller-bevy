@@ -39,6 +39,9 @@ impl Plugin for ScenePlugin {
                 ),
             )
             .add_systems(PostUpdate, move_plane_with_camera.after(CameraMotionSystem));
+
+        #[cfg(feature = "wasm")]
+        app.add_systems(PostUpdate, wasm::notify_entity_spawn_changes.pipe(error));
     }
 }
 
@@ -99,6 +102,7 @@ fn initialize(
     // TODO: get Blender to export enough metadata to automate light placements
     cmd.spawn((
         Name::new("Ceiling Light"),
+        Selectable,
         PointLightBundle {
             point_light: PointLight {
                 color: Color::hex("FFE5B4").unwrap(),
@@ -115,6 +119,7 @@ fn initialize(
     // Monitor glow
     cmd.spawn((
         Name::new("Monitor Glow"),
+        Selectable,
         PointLightBundle {
             point_light: PointLight {
                 color: Color::WHITE,
@@ -275,5 +280,135 @@ impl Material for ProceduralGridMaterial {
 
     fn alpha_mode(&self) -> AlphaMode {
         AlphaMode::Blend
+    }
+}
+
+#[cfg(feature = "wasm")]
+mod wasm {
+    use bevy::{prelude::*, utils::HashSet, window::PrimaryWindow};
+    use wasm_bindgen::prelude::*;
+
+    use crate::{
+        interaction::Selectable,
+        wasm::{self, AsJson, JsonValue},
+    };
+
+    #[wasm_bindgen(typescript_custom_section)]
+    const TYPE_DECLARATIONS: &str = r#"
+export interface SceneObject {
+    /** The entity ID. */
+    id: BigInt;
+    /** A user-friendly name for displaying in the UI */
+    name: string;
+    /** The local-space transform */
+    transform: Transform;
+    /** The world-space transform */
+    globalTransform: GlobalTransform;
+}
+
+/**
+ * An event indicating that a new entity has spawned.
+ */
+export interface EntitySpawnEvent extends CustomEvent {
+    type: "entity-spawn";
+    detail: SceneObject;
+}
+
+/**
+ * An event indicating that an entity has been de-spawned.
+ */
+export interface EntityDespawnEvent extends CustomEvent {
+    type: "entity-despawn";
+    /** The entity ID */
+    detail: BigInt;
+}
+
+/**
+ * An event indicating that multiple entities have spawned.
+ */
+export interface EntityMultiSpawnEvent extends CustomEvent {
+    type: "entity-multi-spawn";
+    detail: SceneObject[];
+}
+
+declare global {
+    export interface HTMLElementEventMap {
+        "entity-spawn": EntitySpawnEvent;
+        "entity-despawn": EntityDespawnEvent;
+        "entity-multi-spawn": EntityMultiSpawnEvent;
+    }
+}
+    "#;
+
+    pub(super) fn notify_entity_spawn_changes(
+        mut l_notified: Local<HashSet<Entity>>,
+        q_window: Query<&Window, With<PrimaryWindow>>,
+        q_entities: Query<(Entity, &Name, &Transform, &GlobalTransform), With<Selectable>>,
+    ) -> Result<(), String> {
+        let new_spawns: Vec<_> = q_entities
+            .iter()
+            .filter(|(ent, _, _, _)| !l_notified.contains(ent))
+            .collect();
+
+        let win = q_window.single();
+
+        match new_spawns.len() {
+            0 => {}
+            1 => {
+                let (id, name, xform, world_xform) = new_spawns[0];
+                let scene_object = serialize_scene_object(id, name, xform, world_xform);
+
+                wasm::dispatch_to_js(win, "entity-spawn", &scene_object)?;
+                l_notified.insert(id);
+            }
+            _ => {
+                let objects = new_spawns
+                    .iter()
+                    .map(|(id, name, xform, world_xform)| {
+                        serialize_scene_object(*id, name, xform, world_xform)
+                    })
+                    .collect::<Vec<_>>();
+
+                wasm::dispatch_to_js(win, "entity-multi-spawn", &objects)?;
+                l_notified.extend(new_spawns.into_iter().map(|(ent, _, _, _)| ent));
+            }
+        }
+
+        let despawns = l_notified
+            .iter()
+            .filter_map(|ent| {
+                if !q_entities.contains(*ent) {
+                    Some(*ent)
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<_>>();
+
+        for ent in despawns.into_iter() {
+            wasm::dispatch_to_js(win, "entity-despawn", &ent)?;
+            l_notified.remove(&ent);
+        }
+
+        Ok(())
+    }
+
+    fn serialize_scene_object(
+        id: Entity,
+        name: &Name,
+        xform: &Transform,
+        world_xform: &GlobalTransform,
+    ) -> JsonValue {
+        let id = id.to_bits() as i128;
+        let name = &**name;
+        let xform = xform.as_json();
+        let world_xform = world_xform.as_json();
+
+        serde_json::json! {{
+            "id": id,
+            "name": name,
+            "transform": xform,
+            "globalTransform": world_xform,
+        }}
     }
 }
