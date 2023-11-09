@@ -1,4 +1,4 @@
-use bevy::{prelude::*, window::PrimaryWindow};
+use bevy::prelude::*;
 use bevy_mod_outline::{
     AutoGenerateOutlineNormalsPlugin, OutlineBundle, OutlinePlugin, OutlineVolume,
 };
@@ -15,6 +15,14 @@ impl Plugin for SelectionPlugin {
                 PostUpdate,
                 draw_selection_outline.run_if(resource_changed_or_removed::<Selection>()),
             );
+
+        #[cfg(feature = "wasm")]
+        app.add_systems(
+            PostUpdate,
+            wasm::notify_entity_selection_change
+                .pipe(error)
+                .run_if(resource_changed_or_removed::<Selection>()),
+        );
     }
 }
 
@@ -38,7 +46,6 @@ fn update_selection(
     q_parents: Query<&Parent>,
     q_selectable: Query<&Selectable>,
     q_selected: Query<Entity, With<Selected>>,
-    q_window: Query<&Window, With<PrimaryWindow>>,
 ) {
     if let Some(event) = ev_select.iter().last() {
         // Clear any existing `Selected` components
@@ -63,14 +70,8 @@ fn update_selection(
         if let Some(ent) = ent_selected {
             cmd.insert_resource(Selection(ent));
             cmd.entity(ent).insert(Selected);
-
-            #[cfg(feature = "wasm")]
-            wasm::notify_selection(Some(ent), q_window.single());
         } else {
             cmd.remove_resource::<Selection>();
-
-            #[cfg(feature = "wasm")]
-            wasm::notify_selection(None, q_window.single());
         }
     } else if ev_input.iter().any(|action| {
         matches!(
@@ -83,9 +84,6 @@ fn update_selection(
         for ent in q_selected.iter() {
             cmd.entity(ent).remove::<Selected>();
         }
-
-        #[cfg(feature = "wasm")]
-        wasm::notify_selection(None, q_window.single());
     }
 }
 
@@ -119,11 +117,13 @@ fn draw_selection_outline(
 #[cfg(feature = "wasm")]
 mod wasm {
     use bevy::{
-        prelude::{error, Entity},
-        window::Window,
+        prelude::{Query, Res, With},
+        window::{PrimaryWindow, Window},
     };
     use wasm_bindgen::prelude::*;
-    use web_sys::{CustomEvent, CustomEventInit};
+
+    use super::Selection;
+    use crate::wasm;
 
     #[wasm_bindgen(typescript_custom_section)]
     const EVENT_DECLARATION: &str = r#"
@@ -143,34 +143,11 @@ declare global {
 }
     "#;
 
-    pub(super) fn notify_selection(ent: Option<Entity>, win: &Window) {
-        let canvas_selector = win.canvas.as_ref().unwrap();
-        let window = web_sys::window().unwrap();
-        let document = window.document().unwrap();
-
-        match document.query_selector(canvas_selector) {
-            Ok(Some(canvas)) => {
-                let detail = match ent {
-                    Some(ent) => JsValue::from(ent.to_bits()),
-                    None => JsValue::NULL,
-                };
-                let event = CustomEvent::new_with_event_init_dict(
-                    "entity-select",
-                    CustomEventInit::new()
-                        .bubbles(true)
-                        .cancelable(true)
-                        .detail(&detail),
-                )
-                .unwrap();
-
-                canvas.dispatch_event(&event).unwrap();
-            }
-            Ok(None) => {
-                error!("Failed to find canvas with selector '{canvas_selector}'!");
-            }
-            Err(err) => {
-                error!("{err:?}");
-            }
-        };
+    pub(super) fn notify_entity_selection_change(
+        r_selection: Option<Res<Selection>>,
+        q_window: Query<&Window, With<PrimaryWindow>>,
+    ) -> Result<(), String> {
+        let entity = r_selection.map(|selection| **selection);
+        wasm::dispatch_to_js(q_window.single(), "entity-select", &entity)
     }
 }
