@@ -5,7 +5,6 @@ import {
 	type EntityMultiSpawnEvent,
 	type EntitySelectEvent,
 	type EntitySpawnEvent,
-	type SceneObject,
 	TransformSpace,
 	TransformType,
 	ViewportSize,
@@ -21,6 +20,10 @@ import "./icon.element";
 
 import styles from "./app.element.scss?inline";
 
+interface SceneObject extends Omit<studio.SceneObject, "children"> {
+	children: SceneObject[];
+}
+
 @customElement("app-root")
 export class AppElement extends LitElement {
 	static override styles = unsafeCSS(styles);
@@ -31,8 +34,10 @@ export class AppElement extends LitElement {
 	@state() transformType = TransformType.Translate;
 
 	@state() sceneObjects: SceneObject[] = [];
-	@state() selection?: BigInt | null;
+	@state() selection?: string | null;
 
+	#sceneObjects: studio.SceneObject[] = [];
+	#entityMap = new Map<string, SceneObject>();
 	#studioCanvas?: HTMLCanvasElement | null;
 
 	override connectedCallback(): void {
@@ -84,21 +89,22 @@ export class AppElement extends LitElement {
 	@on("window:entity-spawn")
 	onEntitySpawned({ detail: value }: EntitySpawnEvent): void {
 		console.log("Entity spawned:", value);
-		const updated = this.sceneObjects.concat(value).sort(sortByName);
-		this.sceneObjects = updated;
+		this.#sceneObjects = this.#sceneObjects.concat(value).sort(sortByName);
+		this.#updateHierarchy();
 	}
 
 	@on("window:entity-multi-spawn")
 	onEntitiesSpawned({ detail: values }: EntityMultiSpawnEvent): void {
 		console.log("Entities spawned:", values);
-		const updated = this.sceneObjects.concat(values).sort(sortByName);
-		this.sceneObjects = updated;
+		this.#sceneObjects = this.#sceneObjects.concat(values).sort(sortByName);
+		this.#updateHierarchy();
 	}
 
 	@on("window:entity-despawn")
 	onEntityDespawned({ detail: entity }: EntityDespawnEvent): void {
 		console.log("Entity despawned:", entity);
-		this.sceneObjects = this.sceneObjects.filter(({ id }) => id !== entity);
+		this.#sceneObjects = this.#sceneObjects.filter(({ id }) => id !== entity);
+		this.#updateHierarchy();
 	}
 
 	toggleHelp(): void {
@@ -137,6 +143,34 @@ export class AppElement extends LitElement {
 		}
 
 		studio.setTransformType(this.transformType);
+	}
+
+	// TODO: Get some help from someone who knows what an algorithm is
+	#updateHierarchy(): void {
+		this.#entityMap.clear();
+
+		for (let obj of this.#sceneObjects)
+			this.#entityMap.set(obj.id, { ...obj, children: [] });
+
+		for (let obj of this.#entityMap.values()) {
+			if (obj.parent != null) {
+				const parent = this.#entityMap.get(obj.parent);
+				if (!parent)
+					throw new Error(`Missing parent: ${obj.parent}`);
+
+				parent.children.push(obj);
+			}
+		}
+
+		for (let obj of this.#entityMap.values())
+			obj.children.sort(sortByName);
+
+		this.sceneObjects = Array
+			.from(this.#entityMap.values())
+			.filter(obj => obj.parent == null)
+			.sort(sortByName);
+
+		console.log("Hierarchy:", this.sceneObjects);
 	}
 
 	#initStudio(): HTMLCanvasElement | null {
@@ -210,7 +244,9 @@ export class AppElement extends LitElement {
 			left: 16px;
 			top: 16px;
 			bottom: 16px;
+			padding-inline-end: 20px;
 			overflow-y: auto;
+			pointer-events: auto;
 		">
 			${this.sceneObjects.map(obj => html`
 			<li class=${classMap({ selected: obj.id === this.selection })}
@@ -236,6 +272,6 @@ export class AppElement extends LitElement {
 	`;
 }
 
-function sortByName(a: SceneObject, b: SceneObject): number {
+function sortByName(a: { name: string }, b: { name: string }): number {
 	return a.name.localeCompare(b.name);
 }

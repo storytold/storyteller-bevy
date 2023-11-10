@@ -51,6 +51,9 @@ struct WorldGridPlane;
 #[derive(Resource, Deref, DerefMut)]
 struct NewGltf(pub Handle<Gltf>);
 
+#[derive(Component)]
+struct Inspectable;
+
 fn initialize(
     mut cmd: Commands,
     assets: Res<AssetServer>,
@@ -64,6 +67,7 @@ fn initialize(
     cmd.insert_resource(NewGltf(assets.load("gltf/sample-room.gltf")));
     cmd.spawn((
         Name::new("Scene"),
+        Inspectable,
         SceneBundle {
             scene: assets.load("gltf/sample-room.gltf#Scene0"),
             ..default()
@@ -103,6 +107,7 @@ fn initialize(
     cmd.spawn((
         Name::new("Ceiling Light"),
         Selectable,
+        Inspectable,
         PointLightBundle {
             point_light: PointLight {
                 color: Color::hex("FFE5B4").unwrap(),
@@ -120,6 +125,7 @@ fn initialize(
     cmd.spawn((
         Name::new("Monitor Glow"),
         Selectable,
+        Inspectable,
         PointLightBundle {
             point_light: PointLight {
                 color: Color::WHITE,
@@ -201,12 +207,16 @@ fn mark_scene_objects(
     ra_gltfs: Res<Assets<Gltf>>,
     ra_gltf_nodes: Res<Assets<gltf::GltfNode>>,
     ra_gltf_meshes: Res<Assets<gltf::GltfMesh>>,
-    q_parents: Query<(Entity, &Name, &Children), Without<Selectable>>,
+    q_parents: Query<(Entity, &Name, Option<&Children>), Without<Selectable>>,
     q_primitives: Query<&Handle<Mesh>>,
 ) {
     let gltf = ra_gltfs.get(&r_gltf).unwrap();
 
     for (ent_parent, name, children) in q_parents.iter() {
+        if gltf.named_nodes.contains_key(&**name) {
+            cmd.entity(ent_parent).insert(Inspectable);
+        }
+
         // See if this name matches any of the meshes or nodes in our glTF scene
         let Some(gltf_mesh) = gltf
             .named_meshes
@@ -232,21 +242,24 @@ fn mark_scene_objects(
             .collect::<HashSet<_>>();
 
         // Collect all of the mesh handles in this entity's children
-        let prims_from_ecs = children
-            .iter()
-            .filter_map(|ent_child| {
-                q_primitives
-                    .get(*ent_child)
-                    .ok()
-                    .and_then(|handle| r_assets.get_handle_path(handle))
-            })
-            .collect::<HashSet<_>>();
+        let prims_from_ecs = match children {
+            Some(children) => children
+                .iter()
+                .filter_map(|ent_child| {
+                    q_primitives
+                        .get(*ent_child)
+                        .ok()
+                        .and_then(|handle| r_assets.get_handle_path(handle))
+                })
+                .collect::<HashSet<_>>(),
+            None => HashSet::new(),
+        };
 
         // If the sets match, this is the entity that represents the glTF mesh
-        if prims_from_gltf == prims_from_ecs {
+        if !prims_from_gltf.is_empty() && prims_from_gltf == prims_from_ecs {
             cmd.entity(ent_parent).insert(Selectable);
 
-            for &ent_child in children.iter() {
+            for &ent_child in children.unwrap().iter() {
                 if q_primitives.contains(ent_child) {
                     cmd.entity(ent_child).insert(PickableBundle::default());
                 }
@@ -285,21 +298,27 @@ impl Material for ProceduralGridMaterial {
 
 #[cfg(feature = "wasm")]
 mod wasm {
+    use std::collections::VecDeque;
+
     use bevy::{prelude::*, utils::HashSet, window::PrimaryWindow};
+    use serde::Serialize;
     use wasm_bindgen::prelude::*;
 
-    use crate::{
-        interaction::Selectable,
-        wasm::{self, AsJson, JsonValue},
-    };
+    use crate::wasm::{self, AsJson};
+
+    use super::Inspectable;
 
     #[wasm_bindgen(typescript_custom_section)]
     const TYPE_DECLARATIONS: &str = r#"
 export interface SceneObject {
     /** The entity ID. */
-    id: BigInt;
+    id: string;
     /** A user-friendly name for displaying in the UI */
     name: string;
+    /** The IDs of this object's children in the hierarchy */
+    children: string[];
+    /** The ID of this object's parent in the hierarchy, if it has one */
+    parent: string | null;
     /** The local-space transform */
     transform: Transform;
     /** The world-space transform */
@@ -320,7 +339,7 @@ export interface EntitySpawnEvent extends CustomEvent {
 export interface EntityDespawnEvent extends CustomEvent {
     type: "entity-despawn";
     /** The entity ID */
-    detail: BigInt;
+    detail: string;
 }
 
 /**
@@ -340,75 +359,198 @@ declare global {
 }
     "#;
 
+    #[derive(Serialize)]
+    pub(super) struct SceneObject {
+        id: String,
+        name: String,
+        children: Vec<String>,
+        parent: Option<String>,
+        transform: serde_json::Value,
+        #[serde(rename(serialize = "globalTransform"))]
+        global_transform: serde_json::Value,
+    }
+
+    struct SceneObjectBuilder<'a> {
+        id: Entity,
+        name: Option<String>,
+        children: Option<Vec<Entity>>,
+        parent: Option<Entity>,
+        transform: Option<&'a Transform>,
+        global_transform: Option<&'a GlobalTransform>,
+    }
+
+    impl<'a> SceneObjectBuilder<'a> {
+        fn new(id: Entity) -> Self {
+            Self {
+                id,
+                name: None,
+                children: None,
+                parent: None,
+                transform: None,
+                global_transform: None,
+            }
+        }
+        fn finish(self) -> SceneObject {
+            SceneObject {
+                id: format!("{:?}", self.id),
+                name: self.name.unwrap(),
+                children: self
+                    .children
+                    .map(|children| children.iter().map(|ent| format!("{ent:?}")).collect())
+                    .unwrap_or_default(),
+                parent: self.parent.map(|ent| format!("{ent:?}")),
+                transform: self.transform.unwrap().as_json(),
+                global_transform: self.global_transform.unwrap().as_json(),
+            }
+        }
+        fn with_name(mut self, name: String) -> Self {
+            self.name = Some(name);
+            self
+        }
+        fn with_children(mut self, children: Vec<Entity>) -> Self {
+            self.children = Some(children);
+            self
+        }
+        fn with_parent(mut self, parent: Entity) -> Self {
+            self.parent = Some(parent);
+            self
+        }
+        fn with_transform(mut self, transform: &'a Transform) -> Self {
+            self.transform = Some(transform);
+            self
+        }
+        fn with_global_transform(mut self, global_transform: &'a GlobalTransform) -> Self {
+            self.global_transform = Some(global_transform);
+            self
+        }
+    }
+
+    impl<'a> SceneObject {
+        fn build(id: Entity) -> SceneObjectBuilder<'a> {
+            SceneObjectBuilder::new(id)
+        }
+    }
+
     pub(super) fn notify_entity_spawn_changes(
         mut l_notified: Local<HashSet<Entity>>,
+        // Note: We use locals for these data structures purely to reuse
+        // existing allocations across multiple invocations of this system
+        mut l_new_objects: Local<Vec<SceneObject>>,
+        mut l_despawned_entities: Local<Vec<Entity>>,
+        mut l_missing_parents: Local<VecDeque<Entity>>,
         q_window: Query<&Window, With<PrimaryWindow>>,
-        q_entities: Query<(Entity, &Name, &Transform, &GlobalTransform), With<Selectable>>,
+        q_inspectables: Query<(Entity, &Transform, &GlobalTransform), With<Inspectable>>,
+        q_others: Query<(Entity, &Transform, &GlobalTransform), Without<Inspectable>>,
+        q_names: Query<&Name>,
+        q_parents: Query<&Children>,
+        q_children: Query<&Parent>,
     ) -> Result<(), String> {
-        let new_spawns: Vec<_> = q_entities
-            .iter()
-            .filter(|(ent, _, _, _)| !l_notified.contains(ent))
-            .collect();
+        l_missing_parents.clear();
 
-        let win = q_window.single();
+        l_new_objects.clear();
+        l_new_objects.extend(
+            q_inspectables
+                .iter()
+                .filter_map(|(ent, xform, world_xform)| {
+                    build_scene_object(
+                        &mut l_notified,
+                        &mut l_missing_parents,
+                        ent,
+                        xform,
+                        world_xform,
+                        &q_inspectables,
+                        &q_names,
+                        &q_parents,
+                        &q_children,
+                    )
+                }),
+        );
 
-        match new_spawns.len() {
-            0 => {}
-            1 => {
-                let (id, name, xform, world_xform) = new_spawns[0];
-                let scene_object = serialize_scene_object(id, name, xform, world_xform);
+        while let Some(parent) = l_missing_parents.pop_front() {
+            let Ok((ent, xform, world_xform)) = q_others.get(parent) else {
+                error!("Failed to find missing parent: {parent:?}");
+                l_notified.insert(parent);
 
-                wasm::dispatch_to_js(win, "entity-spawn", &scene_object)?;
-                l_notified.insert(id);
-            }
-            _ => {
-                let objects = new_spawns
-                    .iter()
-                    .map(|(id, name, xform, world_xform)| {
-                        serialize_scene_object(*id, name, xform, world_xform)
-                    })
-                    .collect::<Vec<_>>();
+                continue;
+            };
 
-                wasm::dispatch_to_js(win, "entity-multi-spawn", &objects)?;
-                l_notified.extend(new_spawns.into_iter().map(|(ent, _, _, _)| ent));
+            if let Some(object) = build_scene_object(
+                &mut l_notified,
+                &mut l_missing_parents,
+                ent,
+                xform,
+                world_xform,
+                &q_inspectables,
+                &q_names,
+                &q_parents,
+                &q_children,
+            ) {
+                l_new_objects.push(object);
             }
         }
 
-        let despawns = l_notified
-            .iter()
-            .filter_map(|ent| {
-                if !q_entities.contains(*ent) {
-                    Some(*ent)
-                } else {
-                    None
-                }
-            })
-            .collect::<Vec<_>>();
+        l_despawned_entities.clear();
+        l_despawned_entities.extend(
+            l_notified
+                .iter()
+                .filter(|ent| !q_inspectables.contains(**ent) && !q_others.contains(**ent))
+                .cloned(),
+        );
 
-        for ent in despawns.into_iter() {
-            wasm::dispatch_to_js(win, "entity-despawn", &ent)?;
-            l_notified.remove(&ent);
+        let win = q_window.single();
+
+        for ent in l_despawned_entities.iter() {
+            // TODO: Make this take an array like the multi-spawn event
+            wasm::dispatch_to_js(win, "entity-despawn", ent)?;
+            l_notified.remove(ent);
+        }
+
+        if !l_new_objects.is_empty() {
+            // TODO: Remove the single-spawn event
+            wasm::dispatch_to_js(win, "entity-multi-spawn", &*l_new_objects)?;
         }
 
         Ok(())
     }
 
-    fn serialize_scene_object(
-        id: Entity,
-        name: &Name,
+    fn build_scene_object(
+        notified: &mut HashSet<Entity>,
+        missing_parents: &mut VecDeque<Entity>,
+        ent: Entity,
         xform: &Transform,
         world_xform: &GlobalTransform,
-    ) -> JsonValue {
-        let id = id.to_bits() as i128;
-        let name = &**name;
-        let xform = xform.as_json();
-        let world_xform = world_xform.as_json();
+        q_inspectables: &Query<(Entity, &Transform, &GlobalTransform), With<Inspectable>>,
+        q_names: &Query<&Name>,
+        q_parents: &Query<&Children>,
+        q_children: &Query<&Parent>,
+    ) -> Option<SceneObject> {
+        if notified.contains(&ent) {
+            return None;
+        }
 
-        serde_json::json! {{
-            "id": id,
-            "name": name,
-            "transform": xform,
-            "globalTransform": world_xform,
-        }}
+        notified.insert(ent);
+
+        let mut result = SceneObject::build(ent)
+            .with_transform(xform)
+            .with_global_transform(world_xform);
+
+        if let Ok(children) = q_parents.get(ent) {
+            result = result.with_children(children.iter().cloned().collect());
+        }
+        if let Ok(parent) = q_children.get(ent) {
+            let parent_ent = **parent;
+            result = result.with_parent(parent_ent);
+
+            if !notified.contains(&parent_ent) && !q_inspectables.contains(parent_ent) {
+                missing_parents.push_back(parent_ent);
+            }
+        }
+
+        result = result.with_name(match q_names.get(ent) {
+            Ok(name) => name.into(),
+            Err(_) => format!("{ent:?}"),
+        });
+
+        Some(result.finish())
     }
 }

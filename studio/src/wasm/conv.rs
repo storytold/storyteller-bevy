@@ -24,7 +24,7 @@ export type Transform = BevyObject<"Transform", ITransform>;
 export type GlobalTransform = BevyObject<"GlobalTransform", ITransform>;
 "#;
 
-const SERIALIZER: Serializer = Serializer::new()
+pub(crate) const SERIALIZER: Serializer = Serializer::new()
     .serialize_missing_as_null(true)
     .serialize_maps_as_objects(true)
     .serialize_large_number_types_as_bigints(true);
@@ -94,13 +94,16 @@ where
     }
 }
 
-impl AsJsValue for JsonValue {
+impl<T> AsJsValue for Vec<T>
+where
+    T: Serialize,
+{
     fn as_js(&self) -> Result<JsValue, String> {
         self.serialize(&SERIALIZER).map_err(|err| format!("{err}"))
     }
 }
 
-impl AsJsValue for Vec<JsonValue> {
+impl AsJsValue for JsonValue {
     fn as_js(&self) -> Result<JsValue, String> {
         self.serialize(&SERIALIZER).map_err(|err| format!("{err}"))
     }
@@ -108,7 +111,13 @@ impl AsJsValue for Vec<JsonValue> {
 
 impl AsJsValue for Entity {
     fn as_js(&self) -> Result<JsValue, String> {
-        Ok(self.to_bits().into())
+        Ok(format!("{self:?}").into())
+    }
+}
+
+impl AsJsValue for String {
+    fn as_js(&self) -> Result<JsValue, String> {
+        Ok(self.into())
     }
 }
 

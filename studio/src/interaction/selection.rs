@@ -133,7 +133,7 @@ mod wasm {
  */
 export interface EntitySelectEvent extends CustomEvent {
     /** The selected entity ID. If `null`, the selection has been cleared. */
-    detail: BigInt | null;
+    detail: string | null;
 }
 
 declare global {
@@ -147,7 +147,7 @@ declare global {
         r_selection: Option<Res<Selection>>,
         q_window: Query<&Window, With<PrimaryWindow>>,
     ) -> Result<(), String> {
-        let entity = r_selection.map(|selection| **selection);
+        let entity = r_selection.map(|selection| format!("{:?}", **selection));
         wasm::dispatch_to_js(q_window.single(), "entity-select", &entity)
     }
 }
