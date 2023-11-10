@@ -75,9 +75,9 @@ impl AsJson for GlobalTransform {
         serde_json::json! {{
             "type": "GlobalTransform",
             "value": {
-                "translation": translation,
-                "rotation": rotation,
-                "scale": scale,
+                "translation": translation.as_json(),
+                "rotation": rotation.as_json(),
+                "scale": scale.as_json(),
             },
         }}
     }
