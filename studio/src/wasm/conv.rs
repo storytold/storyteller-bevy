@@ -7,7 +7,7 @@ pub type JsonValue = serde_json::Value;
 
 #[wasm_bindgen(typescript_custom_section)]
 const BEVY_TYPES: &str = r#"
-export interface BevyObject<Tag extends string, const T> {
+export interface BevyObject<Tag extends string, T> {
     type: Tag;
     value: T;
 };
