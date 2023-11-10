@@ -1,10 +1,10 @@
 import { LitElement, html, nothing, unsafeCSS } from "lit";
 import { customElement, property } from "lit/decorators.js";
+import { classMap } from "lit/directives/class-map.js";
 
 import "./icon.element";
 
 import styles from "./tree.element.scss?inline";
-import { classMap } from "lit/directives/class-map.js";
 
 export interface Tree {
 	id?: string;
