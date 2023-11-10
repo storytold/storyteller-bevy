@@ -207,7 +207,7 @@ fn mark_scene_objects(
     ra_gltfs: Res<Assets<Gltf>>,
     ra_gltf_nodes: Res<Assets<gltf::GltfNode>>,
     ra_gltf_meshes: Res<Assets<gltf::GltfMesh>>,
-    q_parents: Query<(Entity, &Name, Option<&Children>), Without<Selectable>>,
+    q_parents: Query<(Entity, &Name, &Children), Without<Selectable>>,
     q_primitives: Query<&Handle<Mesh>>,
 ) {
     let gltf = ra_gltfs.get(&r_gltf).unwrap();
@@ -234,6 +234,9 @@ fn mark_scene_objects(
             continue;
         };
 
+        // FIXME: These hashsets don't actually contain anything. Ever. -_-
+        //        This has "worked" this whole time because {} == {}
+
         // Collect all of the mesh handles in the glTF mesh
         let prims_from_gltf = gltf_mesh
             .primitives
@@ -242,24 +245,22 @@ fn mark_scene_objects(
             .collect::<HashSet<_>>();
 
         // Collect all of the mesh handles in this entity's children
-        let prims_from_ecs = match children {
-            Some(children) => children
-                .iter()
-                .filter_map(|ent_child| {
-                    q_primitives
-                        .get(*ent_child)
-                        .ok()
-                        .and_then(|handle| r_assets.get_handle_path(handle))
-                })
-                .collect::<HashSet<_>>(),
-            None => HashSet::new(),
-        };
+        let prims_from_ecs = children
+            .iter()
+            .filter_map(|ent_child| {
+                q_primitives
+                    .get(*ent_child)
+                    .ok()
+                    .and_then(|handle| r_assets.get_handle_path(handle))
+            })
+            .collect::<HashSet<_>>();
+
 
         // If the sets match, this is the entity that represents the glTF mesh
-        if !prims_from_gltf.is_empty() && prims_from_gltf == prims_from_ecs {
+        if prims_from_gltf == prims_from_ecs {
             cmd.entity(ent_parent).insert(Selectable);
 
-            for &ent_child in children.unwrap().iter() {
+            for &ent_child in children.iter() {
                 if q_primitives.contains(ent_child) {
                     cmd.entity(ent_child).insert(PickableBundle::default());
                 }

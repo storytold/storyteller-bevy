@@ -32,7 +32,7 @@ pub struct Selectable;
 #[derive(Component, Clone, Copy)]
 pub struct Selected;
 
-#[derive(Resource, Deref, DerefMut)]
+#[derive(Resource, Deref, DerefMut, Debug)]
 pub struct Selection(Entity);
 
 fn update_selection(
@@ -147,7 +147,7 @@ declare global {
         r_selection: Option<Res<Selection>>,
         q_window: Query<&Window, With<PrimaryWindow>>,
     ) -> Result<(), String> {
-        let entity = r_selection.map(|selection| format!("{:?}", **selection));
+        let entity = r_selection.map(|selection| **selection);
         wasm::dispatch_to_js(q_window.single(), "entity-select", &entity)
     }
 }

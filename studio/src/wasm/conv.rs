@@ -111,13 +111,13 @@ impl AsJsValue for JsonValue {
 
 impl AsJsValue for Entity {
     fn as_js(&self) -> Result<JsValue, String> {
-        Ok(format!("{self:?}").into())
+        Ok(JsValue::from_str(&format!("{self:?}")))
     }
 }
 
 impl AsJsValue for String {
     fn as_js(&self) -> Result<JsValue, String> {
-        Ok(self.into())
+        Ok(JsValue::from_str(self))
     }
 }
 
