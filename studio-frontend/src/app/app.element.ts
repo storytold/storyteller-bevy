@@ -17,6 +17,7 @@ import { classMap } from "lit/directives/class-map.js";
 import "./button.element";
 import "./help.element";
 import "./icon.element";
+import "./tree.element";
 
 import styles from "./app.element.scss?inline";
 
@@ -81,7 +82,7 @@ export class AppElement extends LitElement {
 
 	@on("window:entity-select")
 	onEntitySelectionChange({ detail: entity }: EntitySelectEvent): void {
-		const sceneObject = this.sceneObjects.find(({ id }) => id === entity);
+		const sceneObject = this.#entityMap.get(entity!);
 		console.log("Entity selection changed:", sceneObject);
 		this.selection = entity;
 	}
@@ -239,25 +240,15 @@ export class AppElement extends LitElement {
 			</div>
 		</div>
 
-		<ul style="
-			position: absolute;
-			left: 16px;
-			top: 16px;
-			bottom: 16px;
-			padding-inline-end: 20px;
-			overflow-y: auto;
-			pointer-events: auto;
-		">
+		<div class="hierarchy">
 			${this.sceneObjects.map(obj => html`
-			<li class=${classMap({ selected: obj.id === this.selection })}
-				style="
-					font-family: sans-serif;
-					color: #FFF;
-					font-weight: bold;
-				">
-				${obj.name}
-			</li>`)}
-		</ul>
+				<sts-tree class="scene-object"
+					id=${obj.id}
+					.name=${obj.name}
+					.treeChildren=${obj.children}
+				></sts-tree>
+			`)}
+		</div>
 
 		<sts-button class="btn-help"
 			icon="circle-info"

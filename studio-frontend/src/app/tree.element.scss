@@ -1,0 +1,64 @@
+:host, .children {
+	display: flex;
+	flex-direction: column;
+}
+
+header {
+	display: flex;
+	padding-block: 5px;
+
+	font: {
+		family: "Fira Sans", sans-serif;
+		size: 14px;
+		weight: 400;
+	}
+	line-height: 1;
+	white-space: nowrap;
+
+	pointer-events: auto;
+	cursor: default;
+	user-select: none;
+
+	color: #FFFC;
+
+	&.selected {
+		font-weight: 500;
+		color: #FFF;
+	}
+}
+
+.button {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex: 0 0 auto;
+	width: 16px;
+	height: 24px;
+	margin-block: -5px;
+	padding-inline-start: 4px;
+
+	appearance: none;
+	background: transparent;
+	border: none;
+	font: inherit;
+
+	color: #FFFC;
+
+	&:hover {
+		color: #FFF;
+	}
+}
+
+.icon.expanded {
+	transform: rotate(90deg);
+}
+
+.name {
+	padding-inline-start: 5px;
+}
+
+.children {
+	margin-inline-start: 7px;
+	padding-inline-start: 9px;
+	border-inline-start: 1px solid #FFF2;
+}

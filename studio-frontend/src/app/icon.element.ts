@@ -10,6 +10,7 @@ import fasGlobe from "@fortawesome/fontawesome-pro/svgs/regular/globe.svg?raw";
 import fasUpDownLeftRight from "@fortawesome/fontawesome-pro/svgs/regular/arrows-up-down-left-right.svg?raw";
 import fasRotate from "@fortawesome/fontawesome-pro/svgs/regular/arrows-rotate.svg?raw";
 import fasScale from "@fortawesome/fontawesome-pro/svgs/regular/arrow-up-right-and-arrow-down-left-from-center.svg?raw";
+import fasCaretRight from "@fortawesome/fontawesome-pro/svgs/solid/caret-right.svg?raw";
 
 import styles from "./icon.element.scss?inline";
 
@@ -37,6 +38,7 @@ function renderSvg(iconId: string) {
 
 	const svgSrc = match (iconId, {
 		"circle-info": () => fasCircleInfo,
+		"caret-right": () => fasCaretRight,
 		"cube": () => fasCube,
 		"globe": () => fasGlobe,
 		"up-down-left-right": () => fasUpDownLeftRight,
