@@ -8,15 +8,14 @@ import copyAssets from "./copy-assets.mjs";
 import handleError from "./handle-error.mjs";
 import run from "./run.mjs";
 
-const __dirname = url.fileURLToPath(new URL(".", import.meta.url));
-
 async function main() {
-	const workspaceRoot = path.resolve(__dirname, "../..");
-
-	/** @type import("node:child_process").StdioOptions */
-	const stdio = ["ignore", "inherit", "inherit"];
-
 	try {
+		const __dirname = url.fileURLToPath(new URL(".", import.meta.url));
+		const workspaceRoot = path.resolve(__dirname, "../..");
+
+		/** @type import("node:child_process").StdioOptions */
+		const stdio = ["ignore", "inherit", "inherit"];
+
 		const outDir = path.join(workspaceRoot, "dist/studio");
 
 		if (fs.existsSync(outDir))
