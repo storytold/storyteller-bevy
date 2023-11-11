@@ -4,12 +4,13 @@ import fs from "node:fs";
 import path from "node:path";
 import url from "node:url";
 
-async function main() {
+export default async function main() {
 	const __dirname = url.fileURLToPath(new URL(".", import.meta.url));
 	const assetsSrc = path.resolve(__dirname, "../assets");
 	const assetsDest = path.resolve(__dirname, "../../dist/studio/public/assets");
 
-	console.log(`\nCopying assets from ${assetsSrc} to ${assetsDest}`);
+	console.log("");
+	console.log(`Copying assets from "${assetsSrc}" to "${assetsDest}"`);
 
 	let count = 0;
 	const start = performance.now();
@@ -76,5 +77,3 @@ function handleError(err) {
 			process.exit(1);
 	}
 }
-
-main();

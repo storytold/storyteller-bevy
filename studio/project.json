@@ -23,13 +23,8 @@
       "executor": "nx:run-commands",
       "inputs": ["assets"],
       "options": {
-        "commands": [
-          "wasm-pack build --out-dir ../dist/studio/ -- --features wasm",
-          "node scripts/copy-assets.mjs"
-        ],
-        "cwd": "studio",
-        "envFile": "studio/.env",
-        "parallel": false
+        "command": "node scripts/build-web.mjs",
+        "cwd": "studio"
       }
     },
     "dev": {

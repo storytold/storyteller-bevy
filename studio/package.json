@@ -1,0 +1,16 @@
+{
+	"name": "@storyteller/studio",
+	"version": "0.1.0",
+	"files": [
+		"studio_bg.wasm",
+		"studio.js",
+		"studio_bg.js",
+		"studio.d.ts"
+	],
+	"module": "studio.js",
+	"types": "studio.d.ts",
+	"sideEffects": [
+		"./studio.js",
+		"./snippets/*"
+	]
+}
