@@ -6,11 +6,12 @@ import url from "node:url";
 
 export default async function main() {
 	const __dirname = url.fileURLToPath(new URL(".", import.meta.url));
-	const assetsSrc = path.resolve(__dirname, "../assets");
-	const assetsDest = path.resolve(__dirname, "../../dist/studio/public/assets");
+
+	const source = path.resolve(__dirname, "../assets");
+	const dest = path.resolve(__dirname, "../../dist/studio/public/assets");
 
 	console.log("");
-	console.log(`Copying assets from "${assetsSrc}" to "${assetsDest}"`);
+	console.log(`Copying assets from "${source}" to "${dest}"`);
 
 	let count = 0;
 	const start = performance.now();
@@ -18,13 +19,13 @@ export default async function main() {
 	try {
 		/** @type string[] */
 		let ignore = [];
-		const cpIgnorePath = path.join(assetsSrc, ".cp-ignore");
+		const cpIgnorePath = path.join(source, ".cp-ignore");
 		if (fs.existsSync(cpIgnorePath))
 			ignore = (await fs.promises.readFile(cpIgnorePath, "utf-8"))
 				.split(/\r?\n/)
 				.map(line => `assets/${line}`);
 
-		const files = await glob("assets/**/*", {
+		const files = await glob(`assets/**/*`, {
 			ignore,
 			absolute: true,
 			nodir: true,
@@ -32,14 +33,29 @@ export default async function main() {
 		count = files.length;
 
 		await Promise.all(files.map(async src => {
-			const relSrc = path.relative(assetsSrc, src);
-			const dest = path.resolve(assetsDest, relSrc);
-			const destDir = path.dirname(dest);
+			const relSrc = path.relative(source, src);
+			// FIXME: Remove this once this PR lands:
+			//        https://github.com/bevyengine/bevy/pull/10527
+			const destFile = path.extname(src) === ".meta"
+				? path.join(
+					path.resolve(dest, ".."),         // Root, e.g. `dist/studio/public`
+					path.basename(path.dirname(src)), // The subdirectory, e.g. "shaders"
+					path.basename(src),               // The filename, e.g. "procedural_grid.wgsl.meta"
+				)
+				: path.resolve(dest, relSrc);
+
+			const destDir = path.dirname(destFile);
 
 			if (!fs.existsSync(destDir))
 				await fs.promises.mkdir(destDir, { recursive: true });
 
-			await fs.promises.copyFile(src, dest);
+			if (fs.existsSync(destFile)) {
+				console.log(`${
+					chalk.bold.yellow.inverse(" WARN ")
+				} Overwriting existing output file: "${destFile}"`);
+			}
+
+			await fs.promises.copyFile(src, destFile);
 		}));
 	}
 	catch (err) {
