@@ -1,12 +1,9 @@
 [workspace]
 resolver = "2"
-members = [
-    "./bevy_mod_outline",
-    "./studio"
-]
+members = ["./studio"]
 
 [workspace.dependencies.bevy]
-version = "0.11.3"
+version = "0.12.0"
 features = ["tonemapping_luts"]
 
 [profile.dev-custom]
