@@ -6,4 +6,7 @@
 	"rust-analyzer.cargo.features": [
 		"wasm"
 	],
+	"files.associations": {
+		"*.meta": "ron"
+	}
 }

@@ -41,15 +41,24 @@ pub fn init(viewport_size: ViewportSize) {
     app.add_plugins(viewport::wasm::ViewportPlugin);
 
     app.add_plugins((
-        DefaultPlugins.set(WindowPlugin {
-            primary_window: Some(Window {
-                resolution: viewport_size.into(),
-                title: "Storyteller Studio".into(),
-                canvas: Some("#studio_canvas".into()),
+        DefaultPlugins
+            // TODO: To generate asset .meta files (to prevent 404 errors on the
+            //       web), it's currently necessary to uncomment the following
+            //       block and run the app with this command:
+            //     > cargo run -p studio --features bevy/asset_processor,bevy/tonemapping_luts
+            // .set(AssetPlugin {
+            //     mode: AssetMode::Processed,
+            //     ..default()
+            // })
+            .set(WindowPlugin {
+                primary_window: Some(Window {
+                    resolution: viewport_size.into(),
+                    title: "Storyteller Studio".into(),
+                    canvas: Some("#studio_canvas".into()),
+                    ..default()
+                }),
                 ..default()
             }),
-            ..default()
-        }),
         DefaultPickingPlugins,
         DebugPlugin,
         InteractionPlugin,
