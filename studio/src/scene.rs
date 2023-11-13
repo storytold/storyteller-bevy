@@ -9,7 +9,7 @@ use bevy::{
     math::vec3,
     pbr::NotShadowCaster,
     prelude::*,
-    reflect::{TypePath, TypeUuid},
+    reflect::TypePath,
     render::render_resource::{AsBindGroup, ShaderRef},
     utils::HashSet,
 };
