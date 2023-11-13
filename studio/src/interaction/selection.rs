@@ -20,7 +20,7 @@ impl Plugin for SelectionPlugin {
         app.add_systems(
             PostUpdate,
             wasm::notify_entity_selection_change
-                .pipe(error)
+                .map(bevy::utils::error)
                 .run_if(resource_changed_or_removed::<Selection>()),
         );
     }
