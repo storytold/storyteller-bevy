@@ -1,4 +1,4 @@
-#import bevy_pbr::mesh_vertex_output MeshVertexOutput
+#import bevy_pbr::forward_io::VertexOutput
 
 fn inv_lerp(a: f32, b: f32, v: f32) -> f32 {
     if (a == b) { return 1.0; }
@@ -32,7 +32,7 @@ fn grid_lines(pos: vec4<f32>, depth: f32, scale: f32, depth_min: f32, depth_max:
 }
 
 @fragment
-fn fragment(in: MeshVertexOutput) -> @location(0) vec4<f32> {
+fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
     let depth = in.position.z;
     let pos = in.world_position;
 
