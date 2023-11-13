@@ -52,9 +52,20 @@ fn skybox_assets_loaded(
         return false;
     };
 
-    assets.get_load_state(skybox_assets.cubemap.clone_weak()) == LoadState::Loaded
-        && assets.get_load_state(skybox_assets.env_diffuse.clone_weak()) == LoadState::Loaded
-        && assets.get_load_state(skybox_assets.env_specular.clone_weak()) == LoadState::Loaded
+    let load_states = (
+        assets.get_load_state(skybox_assets.cubemap.clone_weak()),
+        assets.get_load_state(skybox_assets.env_diffuse.clone_weak()),
+        assets.get_load_state(skybox_assets.env_specular.clone_weak()),
+    );
+
+    matches!(
+        load_states,
+        (
+            Some(LoadState::Loaded),
+            Some(LoadState::Loaded),
+            Some(LoadState::Loaded),
+        )
+    )
 }
 
 fn spawn_skybox(

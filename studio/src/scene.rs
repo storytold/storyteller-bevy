@@ -177,26 +177,21 @@ fn initialize(
 }
 
 fn gltf_loaded(assets: Res<AssetServer>, gltf: Res<NewGltf>) -> bool {
-    assets.get_load_state(&**gltf) == LoadState::Loaded
+    matches!(assets.get_load_state(&**gltf), Some(LoadState::Loaded))
 }
 
 fn gltf_scene_spawned(
-    r_assets: Res<AssetServer>,
     r_gltf: Res<NewGltf>,
     ra_gltfs: Res<Assets<Gltf>>,
     q_scenes: Query<&Handle<Scene>, (With<Name>, With<Children>)>,
 ) -> bool {
-    let gltf = ra_gltfs.get(&r_gltf).unwrap();
-    let Some(gltf_scene_path) = gltf
-        .default_scene
-        .as_ref()
-        .and_then(|handle| r_assets.get_handle_path(handle))
-    else {
+    let gltf = ra_gltfs.get(&**r_gltf).unwrap();
+    let Some(gltf_scene_path) = gltf.default_scene.as_ref().and_then(|handle| handle.path()) else {
         return false;
     };
 
     q_scenes.iter().any(|handle| {
-        let Some(path) = r_assets.get_handle_path(handle) else {
+        let Some(path) = handle.path() else {
             return false;
         };
         path == gltf_scene_path
@@ -206,14 +201,13 @@ fn gltf_scene_spawned(
 fn mark_scene_objects(
     mut cmd: Commands,
     r_gltf: Res<NewGltf>,
-    r_assets: Res<AssetServer>,
     ra_gltfs: Res<Assets<Gltf>>,
     ra_gltf_nodes: Res<Assets<gltf::GltfNode>>,
     ra_gltf_meshes: Res<Assets<gltf::GltfMesh>>,
     q_parents: Query<(Entity, &Name, &Children), Without<Selectable>>,
     q_primitives: Query<&Handle<Mesh>>,
 ) {
-    let gltf = ra_gltfs.get(&r_gltf).unwrap();
+    let gltf = ra_gltfs.get(&**r_gltf).unwrap();
 
     for (ent_parent, name, children) in q_parents.iter() {
         if gltf.named_nodes.contains_key(&**name) {
@@ -244,7 +238,7 @@ fn mark_scene_objects(
         let prims_from_gltf = gltf_mesh
             .primitives
             .iter()
-            .filter_map(|prim| r_assets.get_handle_path(&prim.mesh))
+            .filter_map(|prim| prim.mesh.path())
             .collect::<HashSet<_>>();
 
         // Collect all of the mesh handles in this entity's children
@@ -254,10 +248,9 @@ fn mark_scene_objects(
                 q_primitives
                     .get(*ent_child)
                     .ok()
-                    .and_then(|handle| r_assets.get_handle_path(handle))
+                    .and_then(|handle| handle.path())
             })
             .collect::<HashSet<_>>();
-
 
         // If the sets match, this is the entity that represents the glTF mesh
         if prims_from_gltf == prims_from_ecs {
@@ -286,8 +279,7 @@ fn move_plane_with_camera(
     }
 }
 
-#[derive(AsBindGroup, Clone, TypePath, TypeUuid)]
-#[uuid = "CE331A13-F247-4F5B-A75E-670B2BD5776A"]
+#[derive(Asset, AsBindGroup, TypePath, Clone)]
 struct ProceduralGridMaterial {}
 
 impl Material for ProceduralGridMaterial {
