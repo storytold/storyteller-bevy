@@ -85,7 +85,7 @@ fn camera_control_kinematic(
     let mut any_started = false;
     let mut any_stopped = false;
 
-    for action in input.iter().filter(|action| {
+    for action in input.read().filter(|action| {
         !matches!(
             action,
             InputAction(_, Action::Camera(CameraMotion::Translate(_)))
@@ -123,7 +123,7 @@ fn process_physical_inputs(
     q_camera: Query<(Entity, &Velocity), With<CameraController>>,
     mut q_interp: Query<&mut InterpVelocity>,
 ) {
-    for action in input.iter() {
+    for action in input.read() {
         let &InputAction(_, Action::Camera(CameraMotion::Translate(delta))) = action else {
             continue;
         };
@@ -162,7 +162,7 @@ fn process_focus_inputs(
     mut q_interp_pos: Query<&mut InterpPosition>,
     q_selected_xform: Query<&GlobalTransform, With<Selected>>,
 ) {
-    if input.iter().any(|action| {
+    if input.read().any(|action| {
         matches!(
             action,
             InputAction(Lifecycle::Stop, Action::Selection(Selection::Focus))

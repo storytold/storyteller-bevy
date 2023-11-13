@@ -78,7 +78,7 @@ pub mod wasm {
         mut events: EventReader<ViewportResizeEvent>,
         mut window: Query<&mut Window>,
     ) {
-        if let Some(event) = events.into_iter().last() {
+        if let Some(event) = events.read().last() {
             let ViewportSize { width, height } = event.0;
             window.single_mut().resolution.set(width, height);
         }

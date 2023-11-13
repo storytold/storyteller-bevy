@@ -252,7 +252,7 @@ fn translate_fps_camera_events(
     }
 
     // Wheel zoom
-    for &MouseWheel { y, .. } in mouse_wheel.iter() {
+    for &MouseWheel { y, .. } in mouse_wheel.read() {
         // info!("wheel: ({x}, {y}) [{unit:?}]");
         // let rem_x = (100. / x).abs() % 1.;
         // let rem_y = (100. / y).abs() % 1.;
@@ -288,6 +288,6 @@ fn translate_fps_camera_events(
 #[inline]
 fn read_mouse_delta(mut mouse_motion: EventReader<MouseMotion>) -> Vec2 {
     mouse_motion
-        .into_iter()
+        .read()
         .fold(Vec2::ZERO, |accum, current| accum + current.delta)
 }

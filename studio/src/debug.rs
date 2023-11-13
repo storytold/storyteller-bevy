@@ -41,7 +41,7 @@ impl Plugin for DebugPlugin {
 
 fn toggle_debug_mode(mut input: EventReader<InputAction>, mut r_debug: ResMut<DebugMode>) {
     if input
-        .iter()
+        .read()
         .any(|action| matches!(action, InputAction(Lifecycle::Stop, Action::ToggleDebug)))
     {
         **r_debug = !**r_debug;
