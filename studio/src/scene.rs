@@ -38,13 +38,32 @@ impl Plugin for ScenePlugin {
                         .and_then(gltf_scene_spawned),
                 ),
             )
-            .add_systems(PostUpdate, move_plane_with_camera.after(CameraMotionSystem));
+            .add_systems(PostUpdate, move_plane_with_camera.after(CameraMotionSystem))
+            .add_systems(Update, log_scene_assets);
 
         #[cfg(feature = "wasm")]
         app.add_systems(
             PostUpdate,
             wasm::notify_entity_spawn_changes.map(bevy::utils::error),
         );
+    }
+}
+
+fn log_scene_assets(
+    mut l_logged: Local<HashSet<Entity>>,
+    q_meshes: Query<(Entity, &Name, &Handle<Mesh>, &Handle<StandardMaterial>)>,
+) {
+    for (ent, name, mesh, mat) in q_meshes.iter() {
+        if l_logged.contains(&ent) {
+            continue;
+        }
+
+        if mesh.is_strong() && mat.is_strong() {
+            info!("[{ent:?}] {name}");
+            info!("    mesh: {:?}", mesh.path());
+            info!("    material: {:?}", mat.path());
+            l_logged.insert(ent);
+        }
     }
 }
 
