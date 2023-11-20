@@ -1,5 +1,4 @@
 use bevy::{
-    asset::LoadState,
     core_pipeline::{
         bloom::{BloomCompositeMode, BloomPrefilterSettings, BloomSettings},
         fxaa::Fxaa,
@@ -31,15 +30,20 @@ impl Plugin for ScenePlugin {
             .add_plugins(MaterialPlugin::<ProceduralGridMaterial>::default())
             .add_systems(Startup, initialize)
             .add_systems(
-                Update,
-                mark_scene_objects.run_if(
-                    resource_exists::<NewGltf>()
-                        .and_then(gltf_loaded)
-                        .and_then(gltf_scene_spawned),
-                ),
+                PreUpdate,
+                spawn_new_gltf_scene.run_if(resource_exists::<NewGltf>().and_then(gltf_loaded)),
             )
+            // .add_systems(
+            //     Update,
+            //     mark_scene_objects.run_if(
+            //         resource_exists::<NewGltf>()
+            //             .and_then(gltf_loaded)
+            //             .and_then(gltf_scene_spawned),
+            //     ),
+            // )
             .add_systems(PostUpdate, move_plane_with_camera.after(CameraMotionSystem))
-            .add_systems(Update, log_scene_assets);
+            .add_systems(Update, log_asset_events);
+        // .add_systems(Update, (log_asset_events, log_scene_assets));
 
         #[cfg(feature = "wasm")]
         app.add_systems(
@@ -67,6 +71,44 @@ fn log_scene_assets(
     }
 }
 
+fn log_asset_events(
+    r_assets: Res<AssetServer>,
+    mut er_scene_events: EventReader<AssetEvent<Scene>>,
+    mut er_mesh_events: EventReader<AssetEvent<Mesh>>,
+    mut er_mat_events: EventReader<AssetEvent<StandardMaterial>>,
+) {
+    for event in er_scene_events.read() {
+        let desc = describe_asset_event(event, &r_assets);
+        info!("AssetEvent<Scene>::{desc}");
+    }
+    for event in er_mesh_events.read() {
+        let desc = describe_asset_event(event, &r_assets);
+        info!("AssetEvent<Mesh>::{desc}");
+    }
+    for event in er_mat_events.read() {
+        let desc = describe_asset_event(event, &r_assets);
+        info!("AssetEvent<StandardMaterial>::{desc}");
+    }
+}
+
+fn describe_asset_event<A: Asset>(event: &AssetEvent<A>, server: &AssetServer) -> String {
+    use AssetEvent::*;
+
+    let (kind, id) = match event {
+        Added { id } => ("Added", id),
+        Modified { id } => ("Modified", id),
+        Removed { id } => ("Removed", id),
+        LoadedWithDependencies { id } => ("LoadedWithDependencies", id),
+    };
+
+    let ident = server
+        .get_path(*id)
+        .map(|path| path.to_string())
+        .unwrap_or_else(|| format!("{id:?}"));
+
+    format!("{kind}({ident})")
+}
+
 #[derive(Component)]
 struct WorldGridPlane;
 
@@ -87,14 +129,14 @@ fn initialize(
 
     // glTF scene
     cmd.insert_resource(NewGltf(assets.load("gltf/sample-room.gltf")));
-    cmd.spawn((
-        Name::new("Scene"),
-        Inspectable,
-        SceneBundle {
-            scene: assets.load("gltf/sample-room.gltf#Scene0"),
-            ..default()
-        },
-    ));
+    // cmd.spawn((
+    //     Name::new("Scene"),
+    //     Inspectable,
+    //     SceneBundle {
+    //         scene: assets.load("gltf/sample-room.gltf#Scene0"),
+    //         ..default()
+    //     },
+    // ));
 
     // Camera, graphics settings
     let focus = vec3(0.35011, 0.5, -0.99576);
@@ -195,9 +237,46 @@ fn initialize(
     });
 }
 
-fn gltf_loaded(assets: Res<AssetServer>, gltf: Res<NewGltf>) -> bool {
-    matches!(assets.get_load_state(&**gltf), Some(LoadState::Loaded))
+fn gltf_loaded(
+    r_gltf: Res<NewGltf>,
+    ra_gltfs: Res<Assets<Gltf>>,
+    mut er_scene_events: EventReader<AssetEvent<Scene>>,
+) -> bool {
+    er_scene_events.read().any(|event| match event {
+        AssetEvent::LoadedWithDependencies { id } => {
+            let gltf = ra_gltfs.get(&**r_gltf).unwrap();
+            let Some(default_scene) = &gltf.default_scene else {
+                return false;
+            };
+
+            *id == default_scene.id()
+        }
+        _ => false,
+    })
 }
+
+fn spawn_new_gltf_scene(mut cmd: Commands, ra_gltfs: Res<Assets<Gltf>>, r_gltf: Res<NewGltf>) {
+    let gltf = ra_gltfs.get(&**r_gltf).unwrap();
+    let Some(scene) = &gltf.default_scene else {
+        return;
+    };
+
+    info!("------------------------------------------------------------------");
+    info!("SPAWNING SCENE");
+    info!("------------------------------------------------------------------");
+    cmd.spawn((
+        Name::new("Scene"),
+        Inspectable,
+        SceneBundle {
+            scene: scene.clone(),
+            ..default()
+        },
+    ));
+}
+
+// fn gltf_loaded(assets: Res<AssetServer>, gltf: Res<NewGltf>) -> bool {
+//     matches!(assets.get_load_state(&**gltf), Some(LoadState::Loaded))
+// }
 
 fn gltf_scene_spawned(
     r_gltf: Res<NewGltf>,
@@ -226,6 +305,8 @@ fn mark_scene_objects(
     q_parents: Query<(Entity, &Name, &Children), Without<Selectable>>,
     q_primitives: Query<&Handle<Mesh>>,
 ) {
+    info!("mark_scene_objects");
+
     let gltf = ra_gltfs.get(&**r_gltf).unwrap();
 
     for (ent_parent, name, children) in q_parents.iter() {
