@@ -36070,9 +36070,9 @@
 		},
 		{
 			"emissiveFactor":[
-				15.000001907348633,
-				5.272983983101312,
-				2.2938938375496605
+				1,
+				0.3515322208404541,
+				0.1529262363910675
 			],
 			"extensions":{
 				"KHR_materials_emissive_strength":{
@@ -37310,9 +37310,9 @@
 		{
 			"doubleSided":true,
 			"emissiveFactor":[
-				1.3444040715694427,
-				1.3444040715694427,
-				1.3444040715694427
+				1,
+				1,
+				1
 			],
 			"extensions":{
 				"KHR_materials_emissive_strength":{
