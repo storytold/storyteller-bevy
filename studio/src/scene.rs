@@ -6,7 +6,7 @@ use bevy::{
     },
     gltf::{self, Gltf},
     math::vec3,
-    pbr::NotShadowCaster,
+    pbr::{NotShadowCaster, ShadowFilteringMethod},
     prelude::*,
     reflect::TypePath,
     render::render_resource::{AsBindGroup, ShaderRef},
@@ -92,6 +92,7 @@ fn initialize(
             ..default()
         },
         CameraControllerBundle::new(focus, camera_xform.translation),
+        ShadowFilteringMethod::Hardware2x2,
         BloomSettings {
             composite_mode: BloomCompositeMode::EnergyConserving,
             intensity: 0.25,
