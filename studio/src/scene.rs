@@ -31,12 +31,19 @@ impl Plugin for ScenePlugin {
             .add_systems(Startup, initialize)
             .add_systems(
                 PreUpdate,
-                spawn_new_gltf_scene.run_if(resource_exists::<NewGltf>().and_then(new_gltf_loaded)),
+                spawn_new_gltf_scene.run_if(
+                    resource_exists::<NewGltf>()
+                        .and_then(new_gltf_loaded)
+                        .and_then(run_once()),
+                ),
             )
             .add_systems(
                 Update,
-                mark_scene_objects
-                    .run_if(resource_exists::<NewGltf>().and_then(gltf_scene_spawned)),
+                mark_scene_objects.run_if(
+                    resource_exists::<NewGltf>()
+                        .and_then(new_gltf_loaded)
+                        .and_then(gltf_scene_spawned),
+                ),
             )
             .add_systems(PostUpdate, move_plane_with_camera.after(CameraMotionSystem));
 
@@ -168,13 +175,22 @@ fn initialize(
     });
 }
 
-/// NOTE: This will only return true during the update cycle when the asset load event fires
+#[derive(Default)]
+struct LoadState(Handle<Gltf>, bool);
+
 fn new_gltf_loaded(
     r_gltf: Res<NewGltf>,
     ra_gltfs: Res<Assets<Gltf>>,
     mut er_scene_events: EventReader<AssetEvent<Scene>>,
+    mut l_loaded: Local<LoadState>,
 ) -> bool {
-    er_scene_events.read().any(|event| match event {
+    if l_loaded.0.path() != r_gltf.path() {
+        *l_loaded = LoadState(r_gltf.clone(), false);
+    } else if l_loaded.1 {
+        return true;
+    }
+
+    l_loaded.1 = er_scene_events.read().any(|event| match event {
         AssetEvent::LoadedWithDependencies { id } => {
             let gltf = ra_gltfs.get(&**r_gltf).unwrap();
             let Some(default_scene) = &gltf.default_scene else {
@@ -184,7 +200,9 @@ fn new_gltf_loaded(
             *id == default_scene.id()
         }
         _ => false,
-    })
+    });
+
+    l_loaded.1
 }
 
 fn spawn_new_gltf_scene(mut cmd: Commands, ra_gltfs: Res<Assets<Gltf>>, r_gltf: Res<NewGltf>) {
@@ -208,10 +226,7 @@ fn gltf_scene_spawned(
     ra_gltfs: Res<Assets<Gltf>>,
     q_scenes: Query<&Handle<Scene>, (With<Name>, With<Children>)>,
 ) -> bool {
-    let Some(gltf) = ra_gltfs.get(&**r_gltf) else {
-        warn!("No glTF asset found for handle: {:?}", **r_gltf);
-        return false;
-    };
+    let gltf = ra_gltfs.get(&**r_gltf).unwrap();
 
     let Some(gltf_scene_path) = gltf.default_scene.as_ref().and_then(|handle| handle.path()) else {
         warn!("No default scene found for glTF: {:#?}", gltf);
