@@ -7,7 +7,7 @@ use debug::DebugPlugin;
 use input::StudioInputPlugin;
 use interaction::InteractionPlugin;
 use math::InterpolationPlugin;
-use scene::ScenePlugin;
+use scene::{LoadObjectEvent, ScenePlugin};
 use skybox::SkyboxPlugin;
 use ui::UiLayerPlugin;
 use viewport::ViewportSize;
@@ -70,4 +70,44 @@ pub fn init(viewport_size: ViewportSize) {
         UiLayerPlugin,
     ))
     .run();
+}
+
+#[cfg(feature = "wasm")]
+#[wasm_bindgen(js_name = startViewer)]
+pub fn start_viewer(
+    object_id: &str,
+    canvas_selector: &str,
+    canvas_alt: &str,
+    viewport_size: ViewportSize,
+) {
+    console_error_panic_hook::set_once();
+
+    let object_id = object_id.to_string();
+
+    App::new()
+        .add_plugins((
+            viewport::wasm::ViewportPlugin,
+            DefaultPlugins.set(WindowPlugin {
+                primary_window: Some(Window {
+                    resolution: viewport_size.into(),
+                    title: canvas_alt.into(),
+                    canvas: Some(canvas_selector.into()),
+                    ..default()
+                }),
+                ..default()
+            }),
+            DefaultPickingPlugins,
+            DebugPlugin,
+            InteractionPlugin,
+            StudioInputPlugin,
+            InterpolationPlugin,
+            CameraControllerPlugin,
+            ScenePlugin,
+            SkyboxPlugin,
+            UiLayerPlugin,
+        ))
+        .add_systems(Startup, move |mut ew: EventWriter<LoadObjectEvent>| {
+            ew.send(LoadObjectEvent(object_id.clone()));
+        })
+        .run();
 }

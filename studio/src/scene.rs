@@ -10,7 +10,7 @@ use bevy::{
     prelude::*,
     reflect::TypePath,
     render::render_resource::{AsBindGroup, ShaderRef},
-    utils::HashSet,
+    utils::{HashMap, HashSet},
 };
 use bevy_mod_picking::PickableBundle;
 
@@ -27,14 +27,18 @@ impl Plugin for ScenePlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(ClearColor(Color::hsl(0.0, 0.0, 0.25)))
             .insert_resource(Msaa::Off)
+            .add_event::<LoadObjectEvent>()
             .add_plugins(MaterialPlugin::<ProceduralGridMaterial>::default())
             .add_systems(Startup, initialize)
             .add_systems(
                 PreUpdate,
-                spawn_new_gltf_scene.run_if(
-                    resource_exists::<NewGltf>()
-                        .and_then(new_gltf_loaded)
-                        .and_then(run_once()),
+                (
+                    load_requested_object,
+                    spawn_new_gltf_scene.run_if(
+                        resource_exists::<NewGltf>()
+                            .and_then(new_gltf_loaded)
+                            .and_then(run_once()),
+                    ),
                 ),
             )
             .add_systems(
@@ -64,9 +68,15 @@ struct NewGltf(pub Handle<Gltf>);
 #[derive(Component)]
 struct Inspectable;
 
+#[derive(Resource, Deref, DerefMut)]
+pub struct ObjectLibrary(pub HashMap<String, Handle<Gltf>>);
+
+#[derive(Event, Deref)]
+pub struct LoadObjectEvent(pub String);
+
 fn initialize(
     mut cmd: Commands,
-    assets: Res<AssetServer>,
+    // assets: Res<AssetServer>,
     mut ra_meshes: ResMut<Assets<Mesh>>,
     mut ra_mat_proc_grid: ResMut<Assets<ProceduralGridMaterial>>,
 ) {
@@ -74,7 +84,7 @@ fn initialize(
     cmd.insert_resource(SkyboxId("test_scene".into()));
 
     // glTF scene
-    cmd.insert_resource(NewGltf(assets.load("gltf/sample-room.gltf")));
+    // cmd.insert_resource(NewGltf(assets.load("gltf/sample-room.gltf")));
 
     // Camera, graphics settings
     let focus = vec3(0.35011, 0.5, -0.99576);
@@ -322,6 +332,17 @@ fn move_plane_with_camera(
 
         xform.translation.x = focus.x;
         xform.translation.z = focus.z;
+    }
+}
+
+fn load_requested_object(
+    mut cmd: Commands,
+    assets: Res<AssetServer>,
+    mut er: EventReader<LoadObjectEvent>,
+) {
+    if let Some(id) = er.read().last() {
+        let name = &**id;
+        cmd.insert_resource(NewGltf(assets.load(format!("gltf/{name}.gltf"))));
     }
 }
 

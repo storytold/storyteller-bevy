@@ -178,7 +178,13 @@ export class AppElement extends LitElement {
 		const width = window.innerWidth;
 		const height = window.innerHeight;
 		try {
-			studio.init(new ViewportSize(width, height));
+			// studio.init(new ViewportSize(width, height));
+			studio.startViewer(
+				"room",
+				"#studio_canvas",
+				"Storyteller Studio",
+				new ViewportSize(width, height),
+			);
 		} catch (err) {
 			if (!(err as Error).message?.startsWith("Using exceptions for control flow"))
 				throw err;
