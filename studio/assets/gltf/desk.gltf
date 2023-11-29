@@ -230,6 +230,7 @@
 			}
 		},
 		{
+			"doubleSided":true,
 			"name":"Flower-color1",
 			"normalTexture":{
 				"index":7
@@ -1236,7 +1237,9 @@
 			}
 		},
 		{
-			"alphaMode":"BLEND",
+			"alphaCutoff":0.5,
+			"alphaMode":"MASK",
+			"doubleSided":true,
 			"name":"initialShadingGroup.003",
 			"normalTexture":{
 				"index":20
