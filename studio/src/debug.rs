@@ -7,10 +7,17 @@ use bevy_mod_picking::debug::DebugPickingMode;
 use crate::{
     camera_controller::{CameraController, CameraMotionSystem},
     input::{Action, InputAction, Lifecycle},
+    MainCamera,
 };
 
 #[derive(Resource, Deref, DerefMut)]
 pub struct DebugMode(bool);
+
+#[derive(Component, Clone, Copy, Debug)]
+pub struct DebugPoint {
+    pub point: Vec3,
+    pub color: Color,
+}
 
 pub struct DebugPlugin;
 impl Plugin for DebugPlugin {
@@ -31,7 +38,7 @@ impl Plugin for DebugPlugin {
                     toggle_debug_mode,
                     update_debug_picking_mode.run_if(resource_changed::<DebugMode>()),
                     update_gizmo_line_thickness,
-                    draw_world_axes
+                    (draw_world_axes, draw_debug_points)
                         .after(CameraMotionSystem)
                         .run_if(is_debug_mode),
                 ),
@@ -82,6 +89,23 @@ fn draw_world_axes(mut gizmos: Gizmos, q: Query<&CameraController>) {
     draw_axis(Vec3::X, Color::RED);
     draw_axis(Vec3::Y, Color::GREEN);
     draw_axis(Vec3::Z, Color::BLUE);
+}
+
+fn draw_debug_points(
+    mut gizmos: Gizmos,
+    q_debug_points: Query<&DebugPoint>,
+    q_cam_xform: Query<&GlobalTransform, With<MainCamera>>,
+) {
+    let Ok(cam_xform) = q_cam_xform.get_single() else {
+        return;
+    };
+    for &DebugPoint { point, color } in q_debug_points.iter() {
+        let dist = cam_xform.translation().distance(point);
+        gizmos.cuboid(
+            Transform::from_translation(point).with_scale(Vec3::splat(dist / 300.)),
+            color,
+        );
+    }
 }
 
 #[rustfmt::skip]

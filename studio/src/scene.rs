@@ -5,18 +5,23 @@ use bevy::{
         tonemapping::Tonemapping,
     },
     gltf::{self, Gltf},
-    math::vec3,
+    math::vec2,
     pbr::{NotShadowCaster, ShadowFilteringMethod},
     prelude::*,
     reflect::TypePath,
-    render::render_resource::{AsBindGroup, ShaderRef},
+    render::{
+        primitives::Aabb,
+        render_resource::{AsBindGroup, ShaderRef},
+    },
     utils::{HashMap, HashSet},
 };
 use bevy_mod_picking::PickableBundle;
 
 use crate::{
     camera_controller::{CameraController, CameraControllerBundle, CameraMotionSystem},
+    debug::DebugPoint,
     interaction::Selectable,
+    math::Extrema,
     skybox::SkyboxId,
     MainCamera,
 };
@@ -87,7 +92,7 @@ fn initialize(
     // cmd.insert_resource(NewGltf(assets.load("gltf/sample-room.gltf")));
 
     // Camera, graphics settings
-    let focus = vec3(0.35011, 0.5, -0.99576);
+    let focus = Vec3::ZERO;
     let camera_xform = Transform::from_xyz(-2.5, 4.5, 5.0).looking_at(focus, Vec3::Y);
     cmd.spawn((
         Name::new("Main Camera"),
@@ -116,9 +121,9 @@ fn initialize(
     ));
 
     // Main light
-    // TODO: get Blender to export enough metadata to automate light placements
+    // TODO: Figure out a scene-agnostic lighting setup
     cmd.spawn((
-        Name::new("Ceiling Light"),
+        Name::new("Light"),
         Selectable,
         Inspectable,
         PointLightBundle {
@@ -130,24 +135,6 @@ fn initialize(
                 ..default()
             },
             transform: Transform::from_xyz(0.35263, 2.4348, 0.19601),
-            ..default()
-        },
-    ));
-
-    // Monitor glow
-    cmd.spawn((
-        Name::new("Monitor Glow"),
-        Selectable,
-        Inspectable,
-        PointLightBundle {
-            point_light: PointLight {
-                color: Color::WHITE,
-                intensity: 6.,
-                radius: 0.25,
-                shadows_enabled: false,
-                ..default()
-            },
-            transform: Transform::from_xyz(0.42615, 1.0706, -2.0705),
             ..default()
         },
     ));
@@ -252,6 +239,8 @@ fn gltf_scene_spawned(
     })
 }
 
+// TODO: This is basically an ad-hoc state transition handler with extra steps.
+//       Refactor this whole `NewGltf` kludge into an actual Bevy state type
 fn mark_scene_objects(
     mut cmd: Commands,
     r_gltf: Res<NewGltf>,
@@ -260,11 +249,14 @@ fn mark_scene_objects(
     ra_gltf_meshes: Res<Assets<gltf::GltfMesh>>,
     q_parents: Query<(Entity, &Name, &Children), Without<Selectable>>,
     q_primitives: Query<&Handle<Mesh>>,
+    // FIXME: This belongs in a different system; see TODO note above
+    q_aabbs: Query<(Entity, &Aabb, &Transform, &Parent), Without<CameraController>>,
+    q_parent_xforms: Query<(&Transform, Option<&Parent>), Without<CameraController>>,
+    mut q_camera: Query<(&mut CameraController, &mut Transform, &Projection)>,
 ) {
-    info!("mark_scene_objects");
-
     let gltf = ra_gltfs.get(&**r_gltf).unwrap();
 
+    let mut scene_primitives = HashSet::<Entity>::new();
     for (ent_parent, name, children) in q_parents.iter() {
         if gltf.named_nodes.contains_key(&**name) {
             cmd.entity(ent_parent).insert(Inspectable);
@@ -286,9 +278,6 @@ fn mark_scene_objects(
         else {
             continue;
         };
-
-        // FIXME: These hashsets don't actually contain anything. Ever. -_-
-        //        This has "worked" this whole time because {} == {}
 
         // Collect all of the mesh handles in the glTF mesh
         let prims_from_gltf = gltf_mesh
@@ -314,8 +303,126 @@ fn mark_scene_objects(
 
             for &ent_child in children.iter() {
                 if q_primitives.contains(ent_child) {
+                    scene_primitives.insert(ent_child);
                     cmd.entity(ent_child).insert(PickableBundle::default());
                 }
+            }
+        }
+    }
+
+    // FIXME: This belongs in a different system; see TODO note above this function
+    if let Ok((mut cam, mut cam_xform, cam_proj)) = q_camera.get_single_mut() {
+        let world2cam = cam_xform.compute_matrix().inverse();
+        let aabb_points = q_aabbs
+            .iter()
+            // Filter for AABBs belonging to the glTF scene
+            .filter(|(ent, _, _, _)| scene_primitives.contains(ent))
+            // Transform the AABBs into world-space
+            .flat_map(|(_, aabb, xform, parent)| {
+                let mut min = xform.transform_point(aabb.min().into());
+                let mut max = xform.transform_point(aabb.max().into());
+                let mut parent = Some(parent);
+                loop {
+                    if let Some((parent_xform, parent_parent)) =
+                        parent.and_then(|parent| q_parent_xforms.get(**parent).ok())
+                    {
+                        min = parent_xform.transform_point(min);
+                        max = parent_xform.transform_point(max);
+                        parent = parent_parent;
+                    } else {
+                        // TODO: The cost of this is probably negligible, but we
+                        //       should still probably figure out a way to
+                        //       exclude it from production builds
+                        for point in Aabb::from_min_max(min, max).extrema() {
+                            cmd.spawn(DebugPoint {
+                                point,
+                                color: Color::CYAN,
+                            });
+                        }
+
+                        break [min, max];
+                    }
+                }
+            });
+
+        if let Some(aabb) = Aabb::enclosing(aabb_points) {
+            let plane_origin = Vec3::from(aabb.center);
+            let plane_normal = cam_xform.forward();
+
+            if let Some((_depth, bounding_rect)) = aabb
+                .extrema()
+                .iter()
+                .copied()
+                .map(|mut p| {
+                    // Inflate the combined AABB to give the model some breathing room
+                    p *= 1.5;
+
+                    // Project each corner onto the camera plane
+                    let v = p - plane_origin;
+                    let proj = p - v.project_onto_normalized(plane_normal);
+                    cmd.spawn(DebugPoint {
+                        point: proj,
+                        color: Color::FUCHSIA,
+                    });
+
+                    // Transform into the camera's local space
+                    world2cam.transform_point(proj)
+                })
+                // Fold the camera-space plane-projected points into a bounding rect and view depth
+                .fold(None, |accum: Option<(f32, Rect)>, p: Vec3| match accum {
+                    Some((depth, rect)) => Some((depth, rect.union_point(vec2(p.x, p.y)))),
+                    None => {
+                        let depth = p.z.abs();
+                        let p = vec2(p.x, p.y);
+                        Some((depth, Rect::from_corners(p, p)))
+                    }
+                })
+            {
+                let pproj = match cam_proj {
+                    Projection::Perspective(p) => p,
+                    _ => panic!("Expected a perspective projection"),
+                };
+
+                // Formula for the target camera distance
+                // (c/o https://stackoverflow.com/questions/2866350/move-camera-to-fit-3d-scene):
+                //
+                // d = (s/2) / tan(a/2)
+                // where:
+                //   d = distance
+                //   s = size of the largest camera-aligned axis in world coords
+                //   a = field-of-view angle for the same axis
+                let Vec2 {
+                    x: width,
+                    y: height,
+                } = bounding_rect.size();
+
+                let s = f32::max(width, height);
+                let a = if s == height {
+                    pproj.fov
+                } else {
+                    f32::atan(pproj.aspect_ratio * f32::tan(pproj.fov / 2.))
+                };
+
+                // TODO:
+                // According to "I eat babies" at the Ars Technica forums
+                // (https://arstechnica.com/civis/threads/if-you-have-aspect-ratio-and-vertical-fov-can-you-calc-horizontal-fov.37447/):
+                //
+                // tan(fov_v / 2) = y / z
+                // tan(fov_h / 2) = x / z
+                //
+                // Theoretically, this would let us skip some costly tan/atan
+                // computations, but I must be missing something, because just
+                // substituting (s / depth) for the divisor below would make the
+                // whole equation independent of the FOV, which is obviously
+                // wrong.
+                //
+                // Unfortunately I'm embarrassingly bad at algebra, but there
+                // must be some room for simplification here.
+                let radius = (s / 2.) / f32::tan(a / 2.);
+
+                cam.focus = aabb.center.into();
+                cam.radius = radius;
+                cam_xform.translation = cam.focus + cam_xform.back() * radius;
             }
         }
     }

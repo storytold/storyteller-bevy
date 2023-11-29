@@ -74,6 +74,14 @@ pub fn init(viewport_size: ViewportSize) {
 
 #[cfg(feature = "wasm")]
 #[wasm_bindgen(js_name = startViewer)]
+/// Start the application as a read-only viewer for a single library object.
+///
+/// @param object_id ID of the library object to load.
+/// @param canvas_selector A CSS selector for the canvas that will host the Bevy
+///   application. This should be unique (i.e. `querySelectorAll` should not
+///   return more than one element), so using an ID selector is a good idea.
+/// @param canvas_alt `alt` text for the HTML canvas element.
+/// @param viewport_size The size of the canvas in CSS `px` units.
 pub fn start_viewer(
     object_id: &str,
     canvas_selector: &str,

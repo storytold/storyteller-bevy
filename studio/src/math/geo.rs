@@ -1,7 +1,7 @@
 use bevy::{
     math::vec3,
     prelude::*,
-    render::{mesh::Indices, render_resource::PrimitiveTopology},
+    render::{mesh::Indices, primitives::Aabb, render_resource::PrimitiveTopology},
 };
 
 pub struct Cone {
@@ -109,5 +109,31 @@ impl From<Plane2Sided> for Mesh {
         mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions);
 
         mesh
+    }
+}
+
+pub trait Extrema {
+    type Output: Sized;
+
+    fn extrema(&self) -> Self::Output;
+}
+
+impl Extrema for Aabb {
+    type Output = [Vec3; 8];
+
+    fn extrema(&self) -> Self::Output {
+        let min = Vec3::from(self.min());
+        let max = Vec3::from(self.max());
+
+        [
+            min,
+            vec3(min.x, min.y, max.z),
+            vec3(min.x, max.y, min.z),
+            vec3(max.x, min.y, min.z),
+            vec3(min.x, max.y, max.z),
+            vec3(max.x, min.y, max.z),
+            vec3(max.x, max.y, min.z),
+            max,
+        ]
     }
 }
