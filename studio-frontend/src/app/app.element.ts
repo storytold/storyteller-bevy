@@ -5,12 +5,14 @@ import {
 	type EntityMultiSpawnEvent,
 	type EntitySelectEvent,
 	type EntitySpawnEvent,
+	type SceneStateEvent,
 	TransformSpace,
 	TransformType,
 	ViewportSize,
+	SceneState,
 } from "@storyteller/studio";
 import { match } from "@storyteller/utility";
-import { LitElement, html, unsafeCSS } from "lit";
+import { LitElement, html, nothing, unsafeCSS } from "lit";
 import { customElement, state } from "lit/decorators.js";
 
 import "./button.element";
@@ -29,6 +31,7 @@ export class AppElement extends LitElement {
 	static override styles = unsafeCSS(styles);
 
 	@state() showHelp = false;
+	@state() loading = true;
 
 	@state() transformSpace = TransformSpace.Local;
 	@state() transformType = TransformType.Translate;
@@ -77,6 +80,16 @@ export class AppElement extends LitElement {
 			cancelable: true,
 			composed: true,
 		}));
+	}
+
+	@on("window:scene-state")
+	onSceneStateChange({ detail: state }: SceneStateEvent): void {
+		console.log("scene state change:", SceneState[state]);
+
+		this.loading = match (state, {
+			[SceneState.Active]: () => false,
+			_: () => true,
+		});
 	}
 
 	@on("window:entity-select")
@@ -264,7 +277,14 @@ export class AppElement extends LitElement {
 
 		${this.showHelp ? html`
 			<sts-help class="help"></sts-help>
-		` : null}
+		` : nothing}
+
+		${this.loading ? html`
+			<!-- TODO: Animated spinner or something -- talk to our designers -->
+			<div class="loading">
+				<h1>Loading</h1>
+			</div>
+		` : nothing}
 	`;
 }
 

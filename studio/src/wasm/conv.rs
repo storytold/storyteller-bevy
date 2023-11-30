@@ -132,3 +132,9 @@ where
         }
     }
 }
+
+impl AsJsValue for u32 {
+    fn as_js(&self) -> Result<JsValue, String> {
+        Ok(JsValue::from_f64(*self as f64))
+    }
+}

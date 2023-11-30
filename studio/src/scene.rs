@@ -18,6 +18,9 @@ use bevy::{
 };
 use bevy_mod_picking::PickableBundle;
 
+#[cfg(feature = "wasm")]
+use wasm_bindgen::prelude::wasm_bindgen;
+
 use crate::{
     camera_controller::{CameraController, CameraControllerBundle, CameraMotionSystem},
     debug::DebugPoint,
@@ -51,13 +54,20 @@ impl Plugin for ScenePlugin {
 
         #[cfg(feature = "wasm")]
         app.add_systems(
+            Update,
+            wasm::notify_state_changes
+                .map(bevy::utils::error)
+                .run_if(resource_changed::<State<SceneState>>()),
+        )
+        .add_systems(
             PostUpdate,
             wasm::notify_entity_spawn_changes.map(bevy::utils::error),
         );
     }
 }
 
-#[derive(States, Clone, Default, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "wasm", wasm_bindgen)]
+#[derive(States, Clone, Copy, Default, Debug, PartialEq, Eq, Hash)]
 pub enum SceneState {
     #[default]
     None,
@@ -228,6 +238,9 @@ fn tick_scene_spawning(
     r_active_scene: Res<ActiveScene>,
     mut st_next: ResMut<NextState<SceneState>>,
 ) {
+    // TODO: The instance is considered "ready" even if shaders still need to be
+    //       compiled, so this event isn't really sufficient for controlling a
+    //       loading screen.
     if r_scene_spawner.instance_is_ready(**r_active_scene) {
         st_next.set(SceneState::Active);
     }
@@ -468,7 +481,31 @@ mod wasm {
 
     use crate::wasm::{self, AsJson};
 
-    use super::Inspectable;
+    use super::{Inspectable, SceneState};
+
+    #[wasm_bindgen(typescript_custom_section)]
+    const SCENE_STATE_EVENT: &str = r#"
+export interface SceneStateEvent {
+    type: "scene-state";
+    detail: SceneState;
+}
+
+declare global {
+    export interface HTMLElementEventMap {
+        "scene_state": SceneStateEvent;
+    }
+}
+    "#;
+
+    pub(super) fn notify_state_changes(
+        r_state: Res<State<SceneState>>,
+        q_window: Query<&Window, With<PrimaryWindow>>,
+    ) -> Result<(), String> {
+        if let Ok(window) = q_window.get_single() {
+            wasm::dispatch_to_js(window, "scene-state", &(**r_state as u32))?;
+        }
+        Ok(())
+    }
 
     #[wasm_bindgen(typescript_custom_section)]
     const TYPE_DECLARATIONS: &str = r#"
