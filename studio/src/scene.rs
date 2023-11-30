@@ -13,6 +13,7 @@ use bevy::{
         primitives::Aabb,
         render_resource::{AsBindGroup, ShaderRef},
     },
+    scene::InstanceId,
     utils::{HashMap, HashSet},
 };
 use bevy_mod_picking::PickableBundle;
@@ -32,28 +33,20 @@ impl Plugin for ScenePlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(ClearColor(Color::hsl(0.0, 0.0, 0.25)))
             .insert_resource(Msaa::Off)
-            .add_event::<LoadObjectEvent>()
+            .add_state::<SceneState>()
+            .add_event::<LoadSceneEvent>()
             .add_plugins(MaterialPlugin::<ProceduralGridMaterial>::default())
             .add_systems(Startup, initialize)
             .add_systems(
-                PreUpdate,
-                (
-                    load_requested_object,
-                    spawn_new_gltf_scene.run_if(
-                        resource_exists::<NewGltf>()
-                            .and_then(new_gltf_loaded)
-                            .and_then(run_once()),
-                    ),
-                ),
-            )
-            .add_systems(
                 Update,
-                mark_scene_objects.run_if(
-                    resource_exists::<NewGltf>()
-                        .and_then(new_gltf_loaded)
-                        .and_then(gltf_scene_spawned),
+                (
+                    init_scene_loading,
+                    tick_scene_loading.run_if(in_state(SceneState::Loading)),
+                    tick_scene_spawning.run_if(in_state(SceneState::Spawning)),
                 ),
             )
+            .add_systems(OnEnter(SceneState::Spawning), spawn_next_scene)
+            .add_systems(OnEnter(SceneState::Active), mark_scene_objects)
             .add_systems(PostUpdate, move_plane_with_camera.after(CameraMotionSystem));
 
         #[cfg(feature = "wasm")]
@@ -64,11 +57,27 @@ impl Plugin for ScenePlugin {
     }
 }
 
-#[derive(Component)]
-struct WorldGridPlane;
+#[derive(States, Clone, Default, Debug, PartialEq, Eq, Hash)]
+pub enum SceneState {
+    #[default]
+    None,
+    Loading,
+    Spawning,
+    Active,
+}
 
 #[derive(Resource, Deref, DerefMut)]
-struct NewGltf(pub Handle<Gltf>);
+struct PendingScene(pub Handle<Gltf>);
+
+#[derive(Resource, Deref)]
+struct ActiveScene {
+    #[deref]
+    pub instance: InstanceId,
+    pub source: Handle<Gltf>,
+}
+
+#[derive(Component)]
+struct WorldGridPlane;
 
 #[derive(Component)]
 struct Inspectable;
@@ -77,11 +86,10 @@ struct Inspectable;
 pub struct ObjectLibrary(pub HashMap<String, Handle<Gltf>>);
 
 #[derive(Event, Deref)]
-pub struct LoadObjectEvent(pub String);
+pub struct LoadSceneEvent(pub String);
 
 fn initialize(
     mut cmd: Commands,
-    // assets: Res<AssetServer>,
     mut ra_meshes: ResMut<Assets<Mesh>>,
     mut ra_mat_proc_grid: ResMut<Assets<ProceduralGridMaterial>>,
 ) {
@@ -173,88 +181,72 @@ fn initialize(
     });
 }
 
-#[derive(Default)]
-struct LoadState(Handle<Gltf>, bool);
-
-fn new_gltf_loaded(
-    r_gltf: Res<NewGltf>,
+fn tick_scene_loading(
+    r_pending_scene: Res<PendingScene>,
     ra_gltfs: Res<Assets<Gltf>>,
     mut er_scene_events: EventReader<AssetEvent<Scene>>,
-    mut l_loaded: Local<LoadState>,
-) -> bool {
-    if l_loaded.0.path() != r_gltf.path() {
-        *l_loaded = LoadState(r_gltf.clone(), false);
-    } else if l_loaded.1 {
-        return true;
-    }
-
-    l_loaded.1 = er_scene_events.read().any(|event| match event {
-        AssetEvent::LoadedWithDependencies { id } => {
-            let gltf = ra_gltfs.get(&**r_gltf).unwrap();
-            let Some(default_scene) = &gltf.default_scene else {
-                return false;
-            };
-
-            *id == default_scene.id()
+    mut st_next: ResMut<NextState<SceneState>>,
+) {
+    for event in er_scene_events.read() {
+        if let AssetEvent::LoadedWithDependencies { id } = event {
+            let gltf = ra_gltfs.get(&**r_pending_scene).unwrap();
+            if gltf.default_scene.is_some() && gltf.default_scene.as_ref().unwrap().id() == *id {
+                st_next.set(SceneState::Spawning);
+                break;
+            }
         }
-        _ => false,
-    });
-
-    l_loaded.1
+    }
 }
 
-fn spawn_new_gltf_scene(mut cmd: Commands, ra_gltfs: Res<Assets<Gltf>>, r_gltf: Res<NewGltf>) {
-    let gltf = ra_gltfs.get(&**r_gltf).unwrap();
-    let Some(scene) = &gltf.default_scene else {
-        return;
-    };
-
-    cmd.spawn((
-        Name::new("Scene"),
-        Inspectable,
-        SceneBundle {
-            scene: scene.clone(),
-            ..default()
-        },
-    ));
-}
-
-fn gltf_scene_spawned(
-    r_gltf: Res<NewGltf>,
+fn spawn_next_scene(
+    mut cmd: Commands,
     ra_gltfs: Res<Assets<Gltf>>,
-    q_scenes: Query<&Handle<Scene>, (With<Name>, With<Children>)>,
-) -> bool {
-    let gltf = ra_gltfs.get(&**r_gltf).unwrap();
+    r_pending_scene: Res<PendingScene>,
+    mut r_scene_spawner: ResMut<SceneSpawner>,
+) {
+    let gltf = ra_gltfs.get(&**r_pending_scene).unwrap();
+    let scene = gltf
+        .default_scene
+        .as_ref()
+        .expect("Expected glTF to include a default scene");
 
-    let Some(gltf_scene_path) = gltf.default_scene.as_ref().and_then(|handle| handle.path()) else {
-        warn!("No default scene found for glTF: {:#?}", gltf);
-        return false;
-    };
+    let parent = cmd
+        .spawn((Name::new("Scene"), Inspectable, SpatialBundle::default()))
+        .id();
 
-    q_scenes.iter().any(|handle| {
-        let Some(path) = handle.path() else {
-            return false;
-        };
-        path == gltf_scene_path
-    })
+    let instance = r_scene_spawner.spawn_as_child(scene.clone(), parent);
+
+    cmd.remove_resource::<PendingScene>();
+    cmd.insert_resource(ActiveScene {
+        instance,
+        source: r_pending_scene.clone(),
+    });
 }
 
-// TODO: This is basically an ad-hoc state transition handler with extra steps.
-//       Refactor this whole `NewGltf` kludge into an actual Bevy state type
+fn tick_scene_spawning(
+    r_scene_spawner: Res<SceneSpawner>,
+    r_active_scene: Res<ActiveScene>,
+    mut st_next: ResMut<NextState<SceneState>>,
+) {
+    if r_scene_spawner.instance_is_ready(**r_active_scene) {
+        st_next.set(SceneState::Active);
+    }
+}
+
 fn mark_scene_objects(
     mut cmd: Commands,
-    r_gltf: Res<NewGltf>,
+    r_scene: Res<ActiveScene>,
     ra_gltfs: Res<Assets<Gltf>>,
     ra_gltf_nodes: Res<Assets<gltf::GltfNode>>,
     ra_gltf_meshes: Res<Assets<gltf::GltfMesh>>,
     q_parents: Query<(Entity, &Name, &Children), Without<Selectable>>,
     q_primitives: Query<&Handle<Mesh>>,
-    // FIXME: This belongs in a different system; see TODO note above
+    // FIXME: This belongs in a different system
     q_aabbs: Query<(Entity, &Aabb, &Transform, &Parent), Without<CameraController>>,
     q_parent_xforms: Query<(&Transform, Option<&Parent>), Without<CameraController>>,
     mut q_camera: Query<(&mut CameraController, &mut Transform, &Projection)>,
 ) {
-    let gltf = ra_gltfs.get(&**r_gltf).unwrap();
+    let gltf = ra_gltfs.get(&r_scene.source).unwrap();
 
     let mut scene_primitives = HashSet::<Entity>::new();
     for (ent_parent, name, children) in q_parents.iter() {
@@ -310,7 +302,7 @@ fn mark_scene_objects(
         }
     }
 
-    // FIXME: This belongs in a different system; see TODO note above this function
+    // FIXME: This belongs in a different system
     if let Ok((mut cam, mut cam_xform, cam_proj)) = q_camera.get_single_mut() {
         let world2cam = cam_xform.compute_matrix().inverse();
         let aabb_points = q_aabbs
@@ -426,8 +418,6 @@ fn mark_scene_objects(
             }
         }
     }
-
-    cmd.remove_resource::<NewGltf>();
 }
 
 fn move_plane_with_camera(
@@ -442,14 +432,16 @@ fn move_plane_with_camera(
     }
 }
 
-fn load_requested_object(
+fn init_scene_loading(
     mut cmd: Commands,
     assets: Res<AssetServer>,
-    mut er: EventReader<LoadObjectEvent>,
+    mut er: EventReader<LoadSceneEvent>,
+    mut st_next: ResMut<NextState<SceneState>>,
 ) {
     if let Some(id) = er.read().last() {
         let name = &**id;
-        cmd.insert_resource(NewGltf(assets.load(format!("gltf/{name}.gltf"))));
+        cmd.insert_resource(PendingScene(assets.load(format!("gltf/{name}.gltf"))));
+        st_next.set(SceneState::Loading);
     }
 }
 

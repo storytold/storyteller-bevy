@@ -7,7 +7,7 @@ use debug::DebugPlugin;
 use input::StudioInputPlugin;
 use interaction::InteractionPlugin;
 use math::InterpolationPlugin;
-use scene::{LoadObjectEvent, ScenePlugin};
+use scene::{LoadSceneEvent, ScenePlugin};
 use skybox::SkyboxPlugin;
 use ui::UiLayerPlugin;
 use viewport::ViewportSize;
@@ -114,8 +114,8 @@ pub fn start_viewer(
             SkyboxPlugin,
             UiLayerPlugin,
         ))
-        .add_systems(Startup, move |mut ew: EventWriter<LoadObjectEvent>| {
-            ew.send(LoadObjectEvent(object_id.clone()));
+        .add_systems(Startup, move |mut ew: EventWriter<LoadSceneEvent>| {
+            ew.send(LoadSceneEvent(object_id.clone()));
         })
         .run();
 }
