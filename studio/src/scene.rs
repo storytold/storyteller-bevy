@@ -483,7 +483,7 @@ mod wasm {
 
     #[wasm_bindgen(typescript_custom_section)]
     const SCENE_STATE_EVENT: &str = r#"
-export interface SceneStateEvent {
+export interface SceneStateEvent extends CustomEvent {
     type: "scene-state";
     detail: SceneState;
 }
