@@ -86,17 +86,15 @@ struct ActiveScene {
     pub source: Handle<Gltf>,
 }
 
+#[derive(Event, Deref)]
+pub struct LoadSceneEvent(pub String);
+
+// TODO: Move this
 #[derive(Component)]
 struct WorldGridPlane;
 
 #[derive(Component)]
 struct Inspectable;
-
-#[derive(Resource, Deref, DerefMut)]
-pub struct ObjectLibrary(pub HashMap<String, Handle<Gltf>>);
-
-#[derive(Event, Deref)]
-pub struct LoadSceneEvent(pub String);
 
 fn initialize(
     mut cmd: Commands,
