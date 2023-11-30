@@ -301,8 +301,7 @@ fn frame_scene_in_view(
     mut cmd: Commands,
     r_scene_spawner: Res<SceneSpawner>,
     r_active_scene: Res<ActiveScene>,
-    q_aabbs: Query<(&Aabb, &Transform, &Parent), Without<CameraController>>,
-    q_parent_xforms: Query<(&Transform, Option<&Parent>), Without<CameraController>>,
+    q_aabbs: Query<(&Aabb, &GlobalTransform)>,
     mut q_camera: Query<(&mut CameraController, &mut Transform, &Projection)>,
 ) {
     let Ok((mut cam, mut cam_xform, cam_proj)) = q_camera.get_single_mut() else {
@@ -312,31 +311,21 @@ fn frame_scene_in_view(
     let aabb_points = r_scene_spawner
         .iter_instance_entities(**r_active_scene)
         .filter_map(|ent| q_aabbs.get(ent).ok())
-        .flat_map(|(aabb, xform, parent)| {
-            let mut min = xform.transform_point(aabb.min().into());
-            let mut max = xform.transform_point(aabb.max().into());
-            let mut parent = Some(parent);
-            loop {
-                if let Some((parent_xform, parent_parent)) =
-                    parent.and_then(|parent| q_parent_xforms.get(**parent).ok())
-                {
-                    min = parent_xform.transform_point(min);
-                    max = parent_xform.transform_point(max);
-                    parent = parent_parent;
-                } else {
-                    // TODO: The cost of this is probably negligible, but we
-                    //       should still probably figure out a way to
-                    //       exclude it from production builds
-                    for point in Aabb::from_min_max(min, max).extrema() {
-                        cmd.spawn(DebugPoint {
-                            point,
-                            color: Color::CYAN,
-                        });
-                    }
+        .flat_map(|(aabb, world_xform)| {
+            let min = world_xform.transform_point(aabb.min().into());
+            let max = world_xform.transform_point(aabb.max().into());
 
-                    break [min, max];
-                }
+            // TODO: The cost of this is probably negligible, but we
+            //       should still probably figure out a way to
+            //       exclude it from production builds
+            for point in Aabb::from_min_max(min, max).extrema() {
+                cmd.spawn(DebugPoint {
+                    point,
+                    color: Color::CYAN,
+                });
             }
+
+            [min, max]
         });
 
     let Some(aabb) = Aabb::enclosing(aabb_points) else {
