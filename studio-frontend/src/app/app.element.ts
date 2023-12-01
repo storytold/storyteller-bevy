@@ -193,6 +193,7 @@ export class AppElement extends LitElement {
 			// studio.init(new ViewportSize(width, height));
 			studio.startViewer(
 				"desk",
+				"test_scene",
 				"#studio_canvas",
 				"Storyteller Studio",
 				new ViewportSize(width, height),

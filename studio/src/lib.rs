@@ -77,6 +77,7 @@ pub fn init(viewport_size: ViewportSize) {
 /// Start the application as a read-only viewer for a single library object.
 ///
 /// @param object_id ID of the library object to load.
+/// @param skybox_id ID of the Skybox to use
 /// @param canvas_selector A CSS selector for the canvas that will host the Bevy
 ///   application. This should be unique (i.e. `querySelectorAll` should not
 ///   return more than one element), so using an ID selector is a good idea.
@@ -84,6 +85,7 @@ pub fn init(viewport_size: ViewportSize) {
 /// @param viewport_size The size of the canvas in CSS `px` units.
 pub fn start_viewer(
     object_id: &str,
+    skybox_id: &str,
     canvas_selector: &str,
     canvas_alt: &str,
     viewport_size: ViewportSize,
@@ -91,6 +93,7 @@ pub fn start_viewer(
     console_error_panic_hook::set_once();
 
     let object_id = object_id.to_string();
+    let skybox_id = skybox_id.to_string();
 
     App::new()
         .add_plugins((
@@ -114,8 +117,12 @@ pub fn start_viewer(
             SkyboxPlugin,
             UiLayerPlugin,
         ))
-        .add_systems(Startup, move |mut ew: EventWriter<LoadSceneEvent>| {
-            ew.send(LoadSceneEvent(object_id.clone()));
-        })
+        .add_systems(
+            Startup,
+            move |mut cmd: Commands, mut ew: EventWriter<LoadSceneEvent>| {
+                cmd.insert_resource(skybox::SkyboxId(skybox_id.clone()));
+                ew.send(LoadSceneEvent(object_id.clone()));
+            },
+        )
         .run();
 }

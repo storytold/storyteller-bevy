@@ -26,7 +26,6 @@ use crate::{
     debug::DebugPoint,
     interaction::Selectable,
     math::Extrema,
-    skybox::SkyboxId,
     MainCamera,
 };
 
@@ -114,12 +113,6 @@ fn initialize(
     mut ra_meshes: ResMut<Assets<Mesh>>,
     mut ra_mat_proc_grid: ResMut<Assets<ProceduralGridMaterial>>,
 ) {
-    // Skybox
-    cmd.insert_resource(SkyboxId("test_scene".into()));
-
-    // glTF scene
-    // cmd.insert_resource(NewGltf(assets.load("gltf/sample-room.gltf")));
-
     // Camera, graphics settings
     let focus = Vec3::ZERO;
     let camera_xform = Transform::from_xyz(-2.5, 4.5, 5.0).looking_at(focus, Vec3::Y);
