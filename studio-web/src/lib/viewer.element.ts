@@ -9,34 +9,33 @@ import { ViewportSize } from "@storyteller/studio";
 export class ViewerElement extends LitElement {
 	static override styles = unsafeCSS(styles);
 
-	@property() object?: string;
-	@property() skybox?: string;
+	@property() objectId?: string;
+	@property() skyboxId?: string;
 
 	protected override createRenderRoot(): Element | ShadowRoot {
 		return this;
 	}
 
-	override connectedCallback(): void {
-		this.#startViewer();
-		super.connectedCallback();
-	}
-
 	protected override updated(changes: PropertyValues<this>): void {
-		// TODO: Add methods to `studio` to update the object and skybox at runtime
-		if (changes.has("object") || changes.has("skybox"))
+		console.log("ViewerElement.updated");
+		// FIXME: Calling this multiple times causes the Bevy app to panic. Need
+		//        to expose an interface for updating the object and/or skybox at
+		//        runtime.
+		if (changes.has("objectId") || changes.has("skyboxId"))
 			this.#startViewer();
 	}
 
 	#startViewer(): void {
-		if (!this.object) return;
-		if (!this.skybox) return;
+		console.log("ViewerElement.#startViewer");
+		if (!this.objectId) return;
+		if (!this.skyboxId) return;
 
 		const width = window.innerWidth;
 		const height = window.innerHeight;
 		try {
 			studio.startViewer(
-				this.object,
-				this.skybox,
+				this.objectId,
+				this.skyboxId,
 				"#studio_canvas",
 				"Storyteller Studio",
 				new ViewportSize(width, height),
@@ -50,4 +49,10 @@ export class ViewerElement extends LitElement {
 	protected override render = () => html`
 		<canvas id="studio_canvas" alt="Storyteller Studio"></canvas>
 	`;
+}
+
+declare global {
+	export interface HTMLElementTagNameMap {
+		"sts-viewer": ViewerElement;
+	}
 }
