@@ -137,3 +137,26 @@ impl Extrema for Aabb {
         ]
     }
 }
+
+pub trait Combinable {
+    type IterItem<'a>;
+    type Output;
+
+    fn combine<'a>(elements: impl Iterator<Item = Self::IterItem<'a>>) -> Self::Output;
+}
+
+impl Combinable for Aabb {
+    type IterItem<'a> = (&'a Self, &'a GlobalTransform);
+    type Output = Option<Self>;
+
+    fn combine<'a>(elements: impl Iterator<Item = Self::IterItem<'a>>) -> Self::Output {
+        let points = elements.flat_map(|(aabb, world_xform)| {
+            let min = world_xform.transform_point(aabb.min().into());
+            let max = world_xform.transform_point(aabb.max().into());
+
+            [min, max]
+        });
+
+        Aabb::enclosing(points)
+    }
+}

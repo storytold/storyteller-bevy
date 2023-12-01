@@ -5,7 +5,7 @@ use bevy::{
         tonemapping::Tonemapping,
     },
     gltf::Gltf,
-    math::vec2,
+    math::{vec2, vec3},
     pbr::ShadowFilteringMethod,
     prelude::*,
     render::primitives::Aabb,
@@ -18,8 +18,7 @@ use wasm_bindgen::prelude::wasm_bindgen;
 use crate::{
     camera_controller::{CameraController, CameraControllerBundle},
     debug::DebugPoint,
-    interaction::Selectable,
-    math::Extrema,
+    math::{Combinable, Extrema},
     MainCamera,
 };
 
@@ -50,7 +49,12 @@ impl Plugin for ScenePlugin {
             )
             .add_systems(
                 OnEnter(SceneState::Active),
-                (tag_scene_elements, frame_scene_in_view).in_set(SceneSpawnerSystem),
+                (
+                    tag_scene_elements,
+                    spawn_main_scene_light,
+                    frame_scene_in_view,
+                )
+                    .in_set(SceneSpawnerSystem),
             );
 
         #[cfg(feature = "wasm")]
@@ -95,6 +99,9 @@ pub struct LoadSceneEvent(pub String);
 #[derive(Component)]
 pub struct SceneElement;
 
+#[derive(Component)]
+pub struct SceneRoot;
+
 fn initialize(mut cmd: Commands) {
     // Camera, graphics settings
     let focus = Vec3::ZERO;
@@ -123,25 +130,6 @@ fn initialize(mut cmd: Commands) {
             ..default()
         },
         Fxaa::default(),
-    ));
-
-    // Main light
-    // TODO: Figure out a scene-agnostic lighting setup
-    cmd.spawn((
-        Name::new("Light"),
-        Selectable,
-        SceneElement,
-        PointLightBundle {
-            point_light: PointLight {
-                color: Color::hex("FFE5B4").unwrap(),
-                intensity: 200.,
-                radius: 0.1,
-                shadows_enabled: true,
-                ..default()
-            },
-            transform: Transform::from_xyz(0.35263, 2.4348, 0.19601),
-            ..default()
-        },
     ));
 }
 
@@ -188,7 +176,12 @@ fn spawn_next_scene(
         .expect("Expected glTF to include a default scene");
 
     let parent = cmd
-        .spawn((Name::new("Scene"), SceneElement, SpatialBundle::default()))
+        .spawn((
+            Name::new("Scene"),
+            SceneRoot,
+            SceneElement,
+            SpatialBundle::default(),
+        ))
         .id();
 
     let instance = r_scene_spawner.spawn_as_child(scene.clone(), parent);
@@ -240,6 +233,60 @@ fn tag_scene_elements(
     }
 }
 
+fn spawn_main_scene_light(
+    mut cmd: Commands,
+    r_scene_spawner: Res<SceneSpawner>,
+    r_active_scene: Res<ActiveScene>,
+    q_aabbs: Query<(&Aabb, &GlobalTransform)>,
+    q_scene_root: Query<Entity, With<SceneRoot>>,
+) {
+    let Ok(scene_root) = q_scene_root.get_single() else {
+        return;
+    };
+
+    let Some(aabb) = Aabb::combine(
+        r_scene_spawner
+            .iter_instance_entities(**r_active_scene)
+            .filter_map(|ent| q_aabbs.get(ent).ok()),
+    ) else {
+        return;
+    };
+
+    let light_offset_base = vec3(0.5, 1., 1.).normalize();
+    let size = f32::max(
+        f32::max(aabb.half_extents.x, aabb.half_extents.y),
+        aabb.half_extents.z,
+    ) * 2.;
+    let light_pos = Vec3::from(aabb.center) + light_offset_base * size * 2.;
+
+    cmd.spawn(DebugPoint {
+        point: light_pos,
+        color: Color::WHITE,
+    });
+    cmd.entity(scene_root).with_children(|cmd| {
+        cmd.spawn((
+            Name::new("Light"),
+            SceneElement,
+            SpotLightBundle {
+                spot_light: SpotLight {
+                    color: Color::WHITE,
+                    // TODO: This doesn't scale super well to very large objects
+                    intensity: 200. * size,
+                    radius: 0.1,
+                    shadows_enabled: true,
+                    shadow_normal_bias: 0.2 * size,
+                    outer_angle: f32::to_radians(150.),
+                    inner_angle: f32::to_radians(45.),
+                    ..default()
+                },
+                transform: Transform::from_translation(light_pos)
+                    .looking_at(aabb.center.into(), Vec3::Y),
+                ..default()
+            },
+        ));
+    });
+}
+
 fn frame_scene_in_view(
     mut cmd: Commands,
     r_scene_spawner: Res<SceneSpawner>,
@@ -250,30 +297,16 @@ fn frame_scene_in_view(
     let Ok((mut cam, mut cam_xform, cam_proj)) = q_camera.get_single_mut() else {
         return;
     };
-    let world2cam = cam_xform.compute_matrix().inverse();
-    let aabb_points = r_scene_spawner
-        .iter_instance_entities(**r_active_scene)
-        .filter_map(|ent| q_aabbs.get(ent).ok())
-        .flat_map(|(aabb, world_xform)| {
-            let min = world_xform.transform_point(aabb.min().into());
-            let max = world_xform.transform_point(aabb.max().into());
 
-            // TODO: The cost of this is probably negligible, but we
-            //       should still probably figure out a way to
-            //       exclude it from production builds
-            for point in Aabb::from_min_max(min, max).extrema() {
-                cmd.spawn(DebugPoint {
-                    point,
-                    color: Color::CYAN,
-                });
-            }
-
-            [min, max]
-        });
-
-    let Some(aabb) = Aabb::enclosing(aabb_points) else {
+    let Some(aabb) = Aabb::combine(
+        r_scene_spawner
+            .iter_instance_entities(**r_active_scene)
+            .filter_map(|ent| q_aabbs.get(ent).ok()),
+    ) else {
         return;
     };
+
+    let world2cam = cam_xform.compute_matrix().inverse();
     let plane_origin = Vec3::from(aabb.center);
     let plane_normal = cam_xform.forward();
 
@@ -282,12 +315,18 @@ fn frame_scene_in_view(
         .iter()
         .copied()
         .map(|mut p| {
+            cmd.spawn(DebugPoint {
+                point: p,
+                color: Color::CYAN,
+            });
+
             // Inflate the combined AABB to give the model some breathing room
             p *= 1.5;
 
             // Project each corner onto the camera plane
             let v = p - plane_origin;
             let proj = p - v.project_onto_normalized(plane_normal);
+
             cmd.spawn(DebugPoint {
                 point: proj,
                 color: Color::FUCHSIA,
