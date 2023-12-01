@@ -1,9 +1,4 @@
-use bevy::{
-    asset::AssetPath,
-    gltf::{Gltf, GltfMesh, GltfNode},
-    prelude::*,
-    utils::HashSet,
-};
+use bevy::prelude::*;
 use bevy_mod_outline::{
     AutoGenerateOutlineNormalsPlugin, OutlineBundle, OutlinePlugin, OutlineVolume,
 };
@@ -11,7 +6,7 @@ use bevy_mod_picking::{prelude::Pointer, selection::Select, PickableBundle};
 
 use crate::{
     input::{self, Action, InputAction, Lifecycle},
-    scene::{ActiveScene, SceneElement, SceneSpawnerSystem, SceneState},
+    scene::{SceneElement, SceneSpawnerSystem, SceneState},
 };
 
 pub struct SelectionPlugin;
@@ -49,78 +44,21 @@ pub struct Selected;
 #[derive(Resource, Deref, DerefMut, Debug)]
 pub struct Selection(Entity);
 
-fn tag_scene_elements<'a>(
+fn tag_scene_elements(
     mut cmd: Commands,
-    r_active_scene: Res<ActiveScene>,
-    ra_gltfs: Res<Assets<Gltf>>,
-    ra_gltf_nodes: Res<Assets<GltfNode>>,
-    ra_gltf_meshes: Res<Assets<GltfMesh>>,
-    q_elements: Query<(Entity, &Name, &Children), (With<SceneElement>, Without<Selectable>)>,
+    q_scene_elements: Query<(Entity, &Children), (With<SceneElement>, Without<Selectable>)>,
     q_primitives: Query<&Handle<Mesh>>,
-    // Local data structures to avoid excessive reallocations
-    mut l_prims_from_gltf: Local<HashSet<AssetPath<'a>>>,
-    mut l_prims_from_ecs: Local<HashSet<AssetPath<'a>>>,
 ) {
-    let gltf = ra_gltfs.get(&r_active_scene.source).unwrap();
+    for (ent, children) in q_scene_elements.iter() {
+        cmd.entity(ent).insert(Selectable);
 
-    for (ent, name, children) in q_elements.iter() {
-        // See if this name matches any of the meshes or nodes in our glTF scene
-        let Some(gltf_mesh) = gltf
-            .named_meshes
-            .get(&**name)
-            .cloned()
-            .or_else(|| {
-                gltf.named_nodes.get(&**name).and_then(|node_handle| {
-                    ra_gltf_nodes
-                        .get(node_handle)
-                        .and_then(|node| node.mesh.clone())
-                })
-            })
-            .and_then(|handle| ra_gltf_meshes.get(&handle))
-        else {
-            continue;
-        };
-
-        // Collect all of the mesh handles in the glTF mesh
-        l_prims_from_gltf.clear();
-        l_prims_from_gltf.extend(
-            gltf_mesh
-                .primitives
-                .iter()
-                .filter_map(|prim| prim.mesh.path())
-                .cloned(),
-        );
-
-        // Collect all of the mesh handles in this entity's children
-        l_prims_from_ecs.clear();
-        l_prims_from_ecs.extend(
-            children
-                .iter()
-                .filter_map(|ent_child| {
-                    q_primitives
-                        .get(*ent_child)
-                        .ok()
-                        .and_then(|handle| handle.path())
-                })
-                .cloned(),
-        );
-
-        // If the sets match, this is the entity that represents the glTF mesh
-        if *l_prims_from_gltf == *l_prims_from_ecs && !l_prims_from_gltf.is_empty() {
-            cmd.entity(ent).insert(Selectable);
-
-            for &ent_child in children
-                .iter()
-                .filter(|child| q_primitives.contains(**child))
-            {
-                cmd.entity(ent_child).insert(PickableBundle::default());
-            }
+        for &ent_child in children
+            .iter()
+            .filter(|child| q_primitives.contains(**child))
+        {
+            cmd.entity(ent_child).insert(PickableBundle::default());
         }
     }
-
-    // Avoid holding any long-term references
-    l_prims_from_gltf.clear();
-    l_prims_from_ecs.clear();
 }
 
 fn update_selection(
