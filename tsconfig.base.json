@@ -17,6 +17,7 @@
     "paths": {
       "@storyteller/framework": ["framework/src/index.ts"],
       "@storyteller/studio": ["dist/studio"],
+      "@storyteller/studio-web": ["studio-web/src/index.ts"],
       "@storyteller/utility": ["utility/src/index.ts"]
     }
   },
