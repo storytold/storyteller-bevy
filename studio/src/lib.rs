@@ -10,6 +10,7 @@ mod camera_controller;
 mod debug;
 mod design_system;
 mod input;
+mod inspector;
 mod interaction;
 mod math;
 mod scene;
@@ -22,6 +23,7 @@ use crate::{
     camera_controller::CameraControllerPlugin,
     debug::DebugPlugin,
     input::StudioInputPlugin,
+    inspector::InspectorPlugin,
     interaction::InteractionPlugin,
     math::InterpolationPlugin,
     scene::{LoadSceneEvent, ScenePlugin},
@@ -69,6 +71,7 @@ pub fn init(viewport_size: ViewportSize) {
         DefaultPickingPlugins,
         DebugPlugin,
         InteractionPlugin,
+        InspectorPlugin,
         StudioInputPlugin,
         InterpolationPlugin,
         CameraControllerPlugin,
@@ -119,6 +122,7 @@ pub fn start_viewer(
             DefaultPickingPlugins,
             DebugPlugin,
             InteractionPlugin,
+            InspectorPlugin,
             StudioInputPlugin,
             InterpolationPlugin,
             CameraControllerPlugin,

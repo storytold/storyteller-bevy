@@ -27,6 +27,9 @@ use crate::{
 
 pub struct ScenePlugin;
 
+#[derive(SystemSet, Clone, Copy, PartialEq, Eq, Hash, Debug)]
+pub struct SceneSpawnerSystem;
+
 impl Plugin for ScenePlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(ClearColor(Color::hsl(0.0, 0.0, 0.25)))
@@ -40,12 +43,16 @@ impl Plugin for ScenePlugin {
                     init_scene_loading,
                     tick_scene_loading.run_if(in_state(SceneState::Loading)),
                     tick_scene_spawning.run_if(in_state(SceneState::Spawning)),
-                ),
+                )
+                    .in_set(SceneSpawnerSystem),
             )
-            .add_systems(OnEnter(SceneState::Spawning), spawn_next_scene)
+            .add_systems(
+                OnEnter(SceneState::Spawning),
+                spawn_next_scene.in_set(SceneSpawnerSystem),
+            )
             .add_systems(
                 OnEnter(SceneState::Active),
-                (tag_scene_elements, frame_scene_in_view),
+                (tag_scene_elements, frame_scene_in_view).in_set(SceneSpawnerSystem),
             );
 
         #[cfg(feature = "wasm")]
@@ -54,11 +61,6 @@ impl Plugin for ScenePlugin {
             wasm::notify_state_changes
                 .map(bevy::utils::error)
                 .run_if(resource_changed::<State<SceneState>>()),
-        )
-        // TODO: Move this to a separate inspector plugin
-        .add_systems(
-            PostUpdate,
-            wasm::notify_entity_spawn_changes.map(bevy::utils::error),
         );
     }
 }
@@ -86,9 +88,6 @@ struct ActiveScene {
 #[derive(Event, Deref)]
 pub struct LoadSceneEvent(pub String);
 
-#[derive(Component)]
-struct Inspectable;
-
 // TODOL This could be converted into an enum that indicates what "kind" of
 //       element this is (e.g. StaticMesh, SkinnedMesh, Bone, Light, Camera).
 //       We don't have an immediate need for that just yet, but likely will
@@ -96,7 +95,7 @@ struct Inspectable;
 /// A tag that identifies its entity as a user-facing scene element like a prop,
 /// a light, or a camera.
 #[derive(Component)]
-struct SceneElement;
+pub struct SceneElement;
 
 fn initialize(mut cmd: Commands) {
     // Camera, graphics settings
@@ -133,7 +132,7 @@ fn initialize(mut cmd: Commands) {
     cmd.spawn((
         Name::new("Light"),
         Selectable,
-        Inspectable,
+        SceneElement,
         PointLightBundle {
             point_light: PointLight {
                 color: Color::hex("FFE5B4").unwrap(),
@@ -191,7 +190,7 @@ fn spawn_next_scene(
         .expect("Expected glTF to include a default scene");
 
     let parent = cmd
-        .spawn((Name::new("Scene"), Inspectable, SpatialBundle::default()))
+        .spawn((Name::new("Scene"), SceneElement, SpatialBundle::default()))
         .id();
 
     let instance = r_scene_spawner.spawn_as_child(scene.clone(), parent);
@@ -381,7 +380,7 @@ fn _mark_scene_objects(
     let mut scene_primitives = HashSet::<Entity>::new();
     for (ent_parent, name, children) in q_parents.iter() {
         if gltf.named_nodes.contains_key(&**name) {
-            cmd.entity(ent_parent).insert(Inspectable);
+            cmd.entity(ent_parent).insert(SceneElement);
         }
 
         // See if this name matches any of the meshes or nodes in our glTF scene
@@ -552,15 +551,11 @@ fn _mark_scene_objects(
 
 #[cfg(feature = "wasm")]
 mod wasm {
-    use std::collections::VecDeque;
-
-    use bevy::{prelude::*, utils::HashSet, window::PrimaryWindow};
-    use serde::Serialize;
+    use bevy::{prelude::*, window::PrimaryWindow};
     use wasm_bindgen::prelude::*;
 
-    use crate::wasm::{self, AsJson};
-
-    use super::{Inspectable, SceneState};
+    use super::SceneState;
+    use crate::wasm;
 
     #[wasm_bindgen(typescript_custom_section)]
     const SCENE_STATE_EVENT: &str = r#"
@@ -584,251 +579,5 @@ declare global {
             wasm::dispatch_to_js(window, "scene-state", &(**r_state as u32))?;
         }
         Ok(())
-    }
-
-    #[wasm_bindgen(typescript_custom_section)]
-    const TYPE_DECLARATIONS: &str = r#"
-export interface SceneObject {
-    /** The entity ID. */
-    id: string;
-    /** A user-friendly name for displaying in the UI */
-    name: string;
-    /** The IDs of this object's children in the hierarchy */
-    children: string[];
-    /** The ID of this object's parent in the hierarchy, if it has one */
-    parent: string | null;
-    /** The local-space transform */
-    transform: Transform;
-    /** The world-space transform */
-    globalTransform: GlobalTransform;
-}
-
-/**
- * An event indicating that a new entity has spawned.
- */
-export interface EntitySpawnEvent extends CustomEvent {
-    type: "entity-spawn";
-    detail: SceneObject;
-}
-
-/**
- * An event indicating that an entity has been de-spawned.
- */
-export interface EntityDespawnEvent extends CustomEvent {
-    type: "entity-despawn";
-    /** The entity ID */
-    detail: string;
-}
-
-/**
- * An event indicating that multiple entities have spawned.
- */
-export interface EntityMultiSpawnEvent extends CustomEvent {
-    type: "entity-multi-spawn";
-    detail: SceneObject[];
-}
-
-declare global {
-    export interface HTMLElementEventMap {
-        "entity-spawn": EntitySpawnEvent;
-        "entity-despawn": EntityDespawnEvent;
-        "entity-multi-spawn": EntityMultiSpawnEvent;
-    }
-}
-    "#;
-
-    #[derive(Serialize)]
-    pub(super) struct SceneObject {
-        id: String,
-        name: String,
-        children: Vec<String>,
-        parent: Option<String>,
-        transform: serde_json::Value,
-        #[serde(rename(serialize = "globalTransform"))]
-        global_transform: serde_json::Value,
-    }
-
-    struct SceneObjectBuilder<'a> {
-        id: Entity,
-        name: Option<String>,
-        children: Option<Vec<Entity>>,
-        parent: Option<Entity>,
-        transform: Option<&'a Transform>,
-        global_transform: Option<&'a GlobalTransform>,
-    }
-
-    impl<'a> SceneObjectBuilder<'a> {
-        fn new(id: Entity) -> Self {
-            Self {
-                id,
-                name: None,
-                children: None,
-                parent: None,
-                transform: None,
-                global_transform: None,
-            }
-        }
-        fn finish(self) -> SceneObject {
-            SceneObject {
-                id: format!("{:?}", self.id),
-                name: self.name.unwrap(),
-                children: self
-                    .children
-                    .map(|children| children.iter().map(|ent| format!("{ent:?}")).collect())
-                    .unwrap_or_default(),
-                parent: self.parent.map(|ent| format!("{ent:?}")),
-                transform: self.transform.unwrap().as_json(),
-                global_transform: self.global_transform.unwrap().as_json(),
-            }
-        }
-        fn with_name(mut self, name: String) -> Self {
-            self.name = Some(name);
-            self
-        }
-        fn with_children(mut self, children: Vec<Entity>) -> Self {
-            self.children = Some(children);
-            self
-        }
-        fn with_parent(mut self, parent: Entity) -> Self {
-            self.parent = Some(parent);
-            self
-        }
-        fn with_transform(mut self, transform: &'a Transform) -> Self {
-            self.transform = Some(transform);
-            self
-        }
-        fn with_global_transform(mut self, global_transform: &'a GlobalTransform) -> Self {
-            self.global_transform = Some(global_transform);
-            self
-        }
-    }
-
-    impl<'a> SceneObject {
-        fn build(id: Entity) -> SceneObjectBuilder<'a> {
-            SceneObjectBuilder::new(id)
-        }
-    }
-
-    pub(super) fn notify_entity_spawn_changes(
-        mut l_notified: Local<HashSet<Entity>>,
-        // Note: We use locals for these data structures purely to reuse
-        // existing allocations across multiple invocations of this system
-        mut l_new_objects: Local<Vec<SceneObject>>,
-        mut l_despawned_entities: Local<Vec<Entity>>,
-        mut l_missing_parents: Local<VecDeque<Entity>>,
-        q_window: Query<&Window, With<PrimaryWindow>>,
-        q_inspectables: Query<(Entity, &Transform, &GlobalTransform), With<Inspectable>>,
-        q_others: Query<(Entity, &Transform, &GlobalTransform), Without<Inspectable>>,
-        q_names: Query<&Name>,
-        q_parents: Query<&Children>,
-        q_children: Query<&Parent>,
-    ) -> Result<(), String> {
-        l_missing_parents.clear();
-
-        l_new_objects.clear();
-        l_new_objects.extend(
-            q_inspectables
-                .iter()
-                .filter_map(|(ent, xform, world_xform)| {
-                    build_scene_object(
-                        &mut l_notified,
-                        &mut l_missing_parents,
-                        ent,
-                        xform,
-                        world_xform,
-                        &q_inspectables,
-                        &q_names,
-                        &q_parents,
-                        &q_children,
-                    )
-                }),
-        );
-
-        while let Some(parent) = l_missing_parents.pop_front() {
-            let Ok((ent, xform, world_xform)) = q_others.get(parent) else {
-                error!("Failed to find missing parent: {parent:?}");
-                l_notified.insert(parent);
-
-                continue;
-            };
-
-            if let Some(object) = build_scene_object(
-                &mut l_notified,
-                &mut l_missing_parents,
-                ent,
-                xform,
-                world_xform,
-                &q_inspectables,
-                &q_names,
-                &q_parents,
-                &q_children,
-            ) {
-                l_new_objects.push(object);
-            }
-        }
-
-        l_despawned_entities.clear();
-        l_despawned_entities.extend(
-            l_notified
-                .iter()
-                .filter(|ent| !q_inspectables.contains(**ent) && !q_others.contains(**ent))
-                .cloned(),
-        );
-
-        let win = q_window.single();
-
-        for ent in l_despawned_entities.iter() {
-            // TODO: Make this take an array like the multi-spawn event
-            wasm::dispatch_to_js(win, "entity-despawn", ent)?;
-            l_notified.remove(ent);
-        }
-
-        if !l_new_objects.is_empty() {
-            // TODO: Remove the single-spawn event
-            wasm::dispatch_to_js(win, "entity-multi-spawn", &*l_new_objects)?;
-        }
-
-        Ok(())
-    }
-
-    fn build_scene_object(
-        notified: &mut HashSet<Entity>,
-        missing_parents: &mut VecDeque<Entity>,
-        ent: Entity,
-        xform: &Transform,
-        world_xform: &GlobalTransform,
-        q_inspectables: &Query<(Entity, &Transform, &GlobalTransform), With<Inspectable>>,
-        q_names: &Query<&Name>,
-        q_parents: &Query<&Children>,
-        q_children: &Query<&Parent>,
-    ) -> Option<SceneObject> {
-        if notified.contains(&ent) {
-            return None;
-        }
-
-        notified.insert(ent);
-
-        let mut result = SceneObject::build(ent)
-            .with_transform(xform)
-            .with_global_transform(world_xform);
-
-        if let Ok(children) = q_parents.get(ent) {
-            result = result.with_children(children.iter().cloned().collect());
-        }
-        if let Ok(parent) = q_children.get(ent) {
-            let parent_ent = **parent;
-            result = result.with_parent(parent_ent);
-
-            if !notified.contains(&parent_ent) && !q_inspectables.contains(parent_ent) {
-                missing_parents.push_back(parent_ent);
-            }
-        }
-
-        result = result.with_name(match q_names.get(ent) {
-            Ok(name) => name.into(),
-            Err(_) => format!("{ent:?}"),
-        });
-
-        Some(result.finish())
     }
 }
