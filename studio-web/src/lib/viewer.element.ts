@@ -18,11 +18,16 @@ export class ViewerElement extends LitElement {
 
 	protected override updated(changes: PropertyValues<this>): void {
 		console.log("ViewerElement.updated");
-		// FIXME: Calling this multiple times causes the Bevy app to panic. Need
-		//        to expose an interface for updating the object and/or skybox at
-		//        runtime.
-		if (changes.has("objectId") || changes.has("skyboxId"))
+
+		if (!studio.isInitialized()) {
 			this.#startViewer();
+		} else {
+			if (changes.has("objectId") && !!this.objectId)
+				studio.loadObject(this.objectId);
+
+			if (changes.has("skyboxId") && !!this.skyboxId)
+				studio.setSkybox(this.skyboxId);
+		}
 	}
 
 	#startViewer(): void {

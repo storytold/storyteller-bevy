@@ -79,8 +79,12 @@ pub fn init(viewport_size: ViewportSize) {
         SkyboxPlugin,
         UiLayerPlugin,
         WorldGridPlugin,
-    ))
-    .run();
+    ));
+
+    #[cfg(feature = "wasm")]
+    wasm::initialize();
+
+    app.run();
 }
 
 #[cfg_attr(feature = "wasm", wasm_bindgen(js_name = startViewer))]
@@ -106,37 +110,41 @@ pub fn start_viewer(
     let object_id = object_id.to_string();
     let skybox_id = skybox_id.to_string();
 
-    App::new()
-        .add_plugins((
-            #[cfg(feature = "wasm")]
-            viewport::wasm::ViewportPlugin,
-            DefaultPlugins.set(WindowPlugin {
-                primary_window: Some(Window {
-                    resolution: viewport_size.into(),
-                    title: canvas_alt.into(),
-                    canvas: Some(canvas_selector.into()),
-                    ..default()
-                }),
+    let mut app = App::new();
+    app.add_plugins((
+        #[cfg(feature = "wasm")]
+        viewport::wasm::ViewportPlugin,
+        DefaultPlugins.set(WindowPlugin {
+            primary_window: Some(Window {
+                resolution: viewport_size.into(),
+                title: canvas_alt.into(),
+                canvas: Some(canvas_selector.into()),
                 ..default()
             }),
-            DefaultPickingPlugins,
-            DebugPlugin,
-            InteractionPlugin,
-            InspectorPlugin,
-            StudioInputPlugin,
-            InterpolationPlugin,
-            CameraControllerPlugin,
-            ScenePlugin,
-            SkyboxPlugin,
-            UiLayerPlugin,
-            WorldGridPlugin,
-        ))
-        .add_systems(
-            Startup,
-            move |mut cmd: Commands, mut ew: EventWriter<LoadSceneEvent>| {
-                cmd.insert_resource(SkyboxId(skybox_id.clone()));
-                ew.send(LoadSceneEvent(object_id.clone()));
-            },
-        )
-        .run();
+            ..default()
+        }),
+        DefaultPickingPlugins,
+        DebugPlugin,
+        InteractionPlugin,
+        InspectorPlugin,
+        StudioInputPlugin,
+        InterpolationPlugin,
+        CameraControllerPlugin,
+        ScenePlugin,
+        SkyboxPlugin,
+        UiLayerPlugin,
+        WorldGridPlugin,
+    ))
+    .add_systems(
+        Startup,
+        move |mut cmd: Commands, mut ew: EventWriter<LoadSceneEvent>| {
+            cmd.insert_resource(SkyboxId(skybox_id.clone()));
+            ew.send(LoadSceneEvent(object_id.clone()));
+        },
+    );
+
+    #[cfg(feature = "wasm")]
+    wasm::initialize();
+
+    app.run();
 }

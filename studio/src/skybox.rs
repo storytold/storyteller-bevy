@@ -22,6 +22,9 @@ impl Plugin for SkyboxPlugin {
                     .run_if(skybox_assets_loaded),
             ),
         );
+
+        #[cfg(feature = "wasm")]
+        app.add_systems(Update, wasm::set_skybox_from_frontend);
     }
 }
 
@@ -109,6 +112,28 @@ impl SkyboxPaths {
             cubemap: format!("skyboxes/{name}.hdr"),
             env_diffuse: format!("skyboxes/{name}_diffuse.zstd.ktx2"),
             env_specular: format!("skyboxes/{name}_specular.zstd.ktx2"),
+        }
+    }
+}
+
+mod wasm {
+    use bevy::prelude::*;
+    use wasm_bindgen::prelude::*;
+
+    use crate::wasm::{self, WasmMessageBuffer};
+
+    use super::SkyboxId;
+
+    static SKYBOX_REQUEST: WasmMessageBuffer<String> = WasmMessageBuffer::new();
+
+    #[wasm_bindgen(js_name = setSkybox)]
+    pub fn set_skybox(id: &str) {
+        wasm::write_message!(SKYBOX_REQUEST, id.to_string());
+    }
+
+    pub(super) fn set_skybox_from_frontend(mut cmd: Commands) {
+        if let Some(id) = wasm::read_buffer!(SKYBOX_REQUEST) {
+            cmd.insert_resource(SkyboxId(id));
         }
     }
 }

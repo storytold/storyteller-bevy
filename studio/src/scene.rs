@@ -44,6 +44,10 @@ impl Plugin for ScenePlugin {
                     .in_set(SceneSpawnerSystem),
             )
             .add_systems(
+                OnEnter(SceneState::Loading),
+                despawn_previous_scene.in_set(SceneSpawnerSystem),
+            )
+            .add_systems(
                 OnEnter(SceneState::Spawning),
                 spawn_next_scene.in_set(SceneSpawnerSystem),
             )
@@ -60,9 +64,12 @@ impl Plugin for ScenePlugin {
         #[cfg(feature = "wasm")]
         app.add_systems(
             Update,
-            wasm::notify_state_changes
-                .map(bevy::utils::error)
-                .run_if(resource_changed::<State<SceneState>>()),
+            (
+                wasm::dispatch_scene_request,
+                wasm::notify_state_changes
+                    .map(bevy::utils::error)
+                    .run_if(resource_changed::<State<SceneState>>()),
+            ),
         );
     }
 }
@@ -143,6 +150,12 @@ fn init_scene_loading(
         let name = &**id;
         cmd.insert_resource(PendingScene(assets.load(format!("gltf/{name}.gltf"))));
         st_next.set(SceneState::Loading);
+    }
+}
+
+fn despawn_previous_scene(mut cmd: Commands, q_scene_root: Query<Entity, With<SceneRoot>>) {
+    if let Ok(scene_root) = q_scene_root.get_single() {
+        cmd.entity(scene_root).despawn_recursive();
     }
 }
 
@@ -400,8 +413,23 @@ mod wasm {
     use bevy::{prelude::*, window::PrimaryWindow};
     use wasm_bindgen::prelude::*;
 
-    use super::SceneState;
-    use crate::wasm;
+    use super::{LoadSceneEvent, SceneState};
+    use crate::wasm::{self, WasmMessageBuffer};
+
+    static OBJECT_LOAD_REQUEST: WasmMessageBuffer<String> = WasmMessageBuffer::new();
+
+    #[wasm_bindgen(js_name = loadObject)]
+    pub fn load_object(id: &str) {
+        wasm::write_message!(OBJECT_LOAD_REQUEST, id.to_string());
+    }
+
+    // FIXME: Is it an object or a scene? Inconsistent terminology is
+    //        unnecessarily confusing
+    pub(super) fn dispatch_scene_request(mut ew_load_scene: EventWriter<LoadSceneEvent>) {
+        if let Some(id) = wasm::read_buffer!(OBJECT_LOAD_REQUEST) {
+            ew_load_scene.send(LoadSceneEvent(id));
+        }
+    }
 
     #[wasm_bindgen(typescript_custom_section)]
     const SCENE_STATE_EVENT: &str = r#"
