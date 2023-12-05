@@ -18,11 +18,9 @@ export default forwardRef<ViewerElement, Props>(({
 
 	useEffect(() => {
 		const viewer = viewerRef.current;
-		console.log("viewer:", viewer);
 
 		if (viewer && onSceneStateChange) {
 			viewer.addEventListener("scene-state", onSceneStateChange);
-
 			return () => {
 				viewer.removeEventListener("scene-state", onSceneStateChange);
 			}

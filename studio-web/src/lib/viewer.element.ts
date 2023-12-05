@@ -17,8 +17,6 @@ export class ViewerElement extends LitElement {
 	}
 
 	protected override updated(changes: PropertyValues<this>): void {
-		console.log("ViewerElement.updated");
-
 		if (!studio.isInitialized()) {
 			this.#startViewer();
 		} else {
@@ -31,7 +29,6 @@ export class ViewerElement extends LitElement {
 	}
 
 	#startViewer(): void {
-		console.log("ViewerElement.#startViewer");
 		if (!this.objectId) return;
 		if (!this.skyboxId) return;
 
