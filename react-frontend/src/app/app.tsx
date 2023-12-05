@@ -1,7 +1,9 @@
-import "@storyteller/studio-web";
-
-import styles from "./app.module.scss";
+import { type SceneStateEvent, SceneState } from "@storyteller/studio";
 import { FormEvent, useState } from "react";
+
+import StudioViewer from "./studio-viewer";
+
+import style from "./app.module.scss";
 
 const OBJECTS = [
 	{
@@ -79,6 +81,7 @@ const SKYBOXES = [
 export default () => {
 	const [objectId, setObjectId] = useState("desk");
 	const [skyboxId, setSkyboxId] = useState("test_scene");
+	const [loading, setLoading] = useState(true);
 
 	const onObjectSelect = (event: FormEvent<HTMLSelectElement>) => {
 		setObjectId((event.target as HTMLSelectElement).value)
@@ -88,47 +91,67 @@ export default () => {
 		setSkyboxId((event.target as HTMLSelectElement).value)
 	}
 
-	return <>
-		<div className="controls">
-			<label>
-				Object
-				<select
-					name="object"
-					value={objectId}
-					onChange={onObjectSelect}
-				>
-					{OBJECTS.map(({ id, label }) => (
-						<option
-							key={id}
-							value={id}
-						>
-							{label}
-						</option>
-					))}
-				</select>
-			</label>
-			<label>
-				Skybox
-				<select
-					name="skybox"
-					value={skyboxId}
-					onChange={onSkyboxSelect}
-				>
-					{SKYBOXES.map(({ id, label }) => (
-						<option
-							key={id}
-							value={id}
-						>
-							{label}
-						</option>
-					))}
-				</select>
-			</label>
-		</div>
+	const onSceneStateChange = ({ detail: state }: SceneStateEvent) => {
+		setLoading(state !== SceneState.Active);
+	}
 
-		<sts-viewer
-			objectId={objectId}
-			skyboxId={skyboxId}
-		/>
-	</>;
+	return (
+		<div className={style.root}>
+			<div className={style.controls}>
+				<label className={style.control}>
+					<span className={style.label}>Object</span>
+					<select
+						className={style.input}
+						name="object"
+						value={objectId}
+						disabled={loading}
+						onChange={onObjectSelect}
+					>
+						{OBJECTS.map(({ id, label }) => (
+							<option
+								key={id}
+								value={id}
+							>
+								{label}
+							</option>
+						))}
+					</select>
+				</label>
+				<label className={style.control}>
+					<span className={style.label}>Skybox</span>
+					<select
+						className={style.input}
+						name="skybox"
+						value={skyboxId}
+						disabled={loading}
+						onChange={onSkyboxSelect}
+					>
+						{SKYBOXES.map(({ id, label }) => (
+							<option
+								key={id}
+								value={id}
+							>
+								{label}
+							</option>
+						))}
+					</select>
+				</label>
+			</div>
+
+			<div
+				className={style.loading}
+				style={{
+					opacity: loading ? 1 : 0,
+				}}
+			>
+				<h1>Loading...</h1>
+			</div>
+
+			<StudioViewer
+				objectId={objectId}
+				skyboxId={skyboxId}
+				onSceneStateChange={onSceneStateChange}
+			/>
+		</div>
+	);
 }
