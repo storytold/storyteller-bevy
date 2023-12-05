@@ -97,6 +97,21 @@ export default () => {
 
 	return (
 		<div className={style.root}>
+			<StudioViewer
+				objectId={objectId}
+				skyboxId={skyboxId}
+				onSceneStateChange={onSceneStateChange}
+			/>
+
+			<div
+				className={style.loading}
+				style={{
+					opacity: loading ? 1 : 0,
+				}}
+			>
+				<h1>Loading...</h1>
+			</div>
+
 			<div className={style.controls}>
 				<label className={style.control}>
 					<span className={style.label}>Object</span>
@@ -137,21 +152,6 @@ export default () => {
 					</select>
 				</label>
 			</div>
-
-			<div
-				className={style.loading}
-				style={{
-					opacity: loading ? 1 : 0,
-				}}
-			>
-				<h1>Loading...</h1>
-			</div>
-
-			<StudioViewer
-				objectId={objectId}
-				skyboxId={skyboxId}
-				onSceneStateChange={onSceneStateChange}
-			/>
 		</div>
 	);
 }
