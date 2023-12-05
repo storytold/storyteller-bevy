@@ -50,7 +50,7 @@ pub mod wasm {
     use bevy::prelude::*;
     use wasm_bindgen::prelude::*;
 
-    use crate::wasm::{self, WasmMessageBuffer};
+    use crate::wasm::{StaticBuffer, WasmMessageBuffer};
 
     use super::ViewportSize;
 
@@ -58,7 +58,7 @@ pub mod wasm {
 
     #[wasm_bindgen]
     pub fn resize(viewport_size: ViewportSize) {
-        wasm::write_message!(RESIZE_BUF, viewport_size);
+        RESIZE_BUF.write_message(viewport_size);
     }
 
     pub struct ViewportPlugin;
@@ -85,8 +85,8 @@ pub mod wasm {
     }
 
     fn dispatch_resize_events(mut events: EventWriter<ViewportResizeEvent>) {
-        wasm::read_buffer!(RESIZE_BUF, |resize| {
+        if let Some(resize) = RESIZE_BUF.take_message() {
             events.send(ViewportResizeEvent(resize));
-        });
+        }
     }
 }

@@ -121,7 +121,7 @@ mod wasm {
     use bevy::prelude::*;
     use wasm_bindgen::prelude::*;
 
-    use crate::wasm::{self, WasmMessageBuffer};
+    use crate::wasm::{StaticBuffer, WasmMessageBuffer};
 
     use super::SkyboxId;
 
@@ -129,11 +129,11 @@ mod wasm {
 
     #[wasm_bindgen(js_name = setSkybox)]
     pub fn set_skybox(id: &str) {
-        wasm::write_message!(SKYBOX_REQUEST, id.to_string());
+        SKYBOX_REQUEST.write_message(id.to_string());
     }
 
     pub(super) fn set_skybox_from_frontend(mut cmd: Commands) {
-        if let Some(id) = wasm::read_buffer!(SKYBOX_REQUEST) {
+        if let Some(id) = SKYBOX_REQUEST.take_message() {
             cmd.insert_resource(SkyboxId(id));
         }
     }

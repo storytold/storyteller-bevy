@@ -88,7 +88,7 @@ mod wasm {
     use bevy::prelude::*;
     use wasm_bindgen::prelude::*;
 
-    use crate::wasm::{self, WasmMessageBuffer};
+    use crate::wasm::{StaticBuffer, WasmMessageBuffer};
 
     use super::{TransformMode, TransformSpace, TransformType};
 
@@ -111,22 +111,22 @@ mod wasm {
 
     #[wasm_bindgen(js_name = setTransformType)]
     pub fn set_transform_type(flags: u8) {
-        wasm::write_message!(TRANSFORM_TYPE_BUF, flags.into());
+        TRANSFORM_TYPE_BUF.write_message(flags.into());
     }
 
     #[wasm_bindgen(js_name = setTransformSpace)]
     pub fn set_transform_space(space: TransformSpace) {
-        wasm::write_message!(TRANSFORM_SPACE_BUF, space);
+        TRANSFORM_SPACE_BUF.write_message(space);
     }
 
     pub(super) fn update_transform_mode(mut xform_mode: ResMut<TransformMode>) {
-        wasm::read_buffer!(TRANSFORM_TYPE_BUF, |ttype| {
+        if let Some(ttype) = TRANSFORM_TYPE_BUF.take_message() {
             info!("Setting transform type: {ttype:?}");
             xform_mode.ttype = ttype;
-        });
-        wasm::read_buffer!(TRANSFORM_SPACE_BUF, |space| {
+        }
+        if let Some(space) = TRANSFORM_SPACE_BUF.take_message() {
             info!("Setting transform space: {space:?}");
             xform_mode.space = space;
-        });
+        }
     }
 }

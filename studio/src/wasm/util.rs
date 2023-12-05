@@ -8,6 +8,37 @@ use super::AsJsValue;
 
 pub(crate) type WasmMessageBuffer<T> = OnceLock<ReentrantMutex<RefCell<Option<T>>>>;
 
+pub(crate) trait StaticBuffer<T> {
+    type Inner;
+
+    fn inner(&self) -> &Self::Inner;
+    fn write_message(&self, value: T);
+    fn take_message(&self) -> Option<T>;
+}
+
+impl<T> StaticBuffer<T> for WasmMessageBuffer<T> {
+    type Inner = ReentrantMutex<RefCell<Option<T>>>;
+
+    #[inline]
+    fn inner(&self) -> &Self::Inner {
+        self.get_or_init(|| ReentrantMutex::new(RefCell::new(None)))
+    }
+
+    #[inline]
+    fn write_message(&self, value: T) {
+        let mutex = self.inner();
+        if let Some(guard) = mutex.try_lock() {
+            *guard.borrow_mut() = Some(value);
+        }
+    }
+
+    #[inline]
+    fn take_message(&self) -> Option<T> {
+        let mutex = self.inner();
+        mutex.try_lock().and_then(|guard| guard.borrow_mut().take())
+    }
+}
+
 pub(crate) fn dispatch_to_js(
     window: &Window,
     event_type: &str,
@@ -52,41 +83,3 @@ fn try_get_canvas(window: &Window) -> Result<Element, String> {
         Err(err) => Err(format!("JavaScript threw an Error: {err:?}")),
     }
 }
-
-macro_rules! get_buffer {
-    ($buffer:ident) => {
-        $buffer.get_or_init(|| {
-            ::parking_lot::ReentrantMutex::new(::std::cell::RefCell::new(
-                ::core::option::Option::None,
-            ))
-        })
-    };
-}
-
-macro_rules! write_message {
-    ($buffer:ident, $expr:expr) => {{
-        let buffer = crate::wasm::get_buffer!($buffer);
-        if let Some(lock) = buffer.try_lock() {
-            *lock.borrow_mut() = Some($expr);
-        }
-    }};
-}
-
-macro_rules! read_buffer {
-    ($buffer:ident, |$msg:ident| $stmt:stmt) => {{
-        let buffer = crate::wasm::get_buffer!($buffer);
-        if let Some(lock) = buffer.try_lock() {
-            if let Some($msg) = lock.borrow_mut().take() {
-                $stmt
-            }
-        }
-    }};
-    ($buffer:ident) => {{
-        let buffer = crate::wasm::get_buffer!($buffer);
-        buffer.try_lock().and_then(|lock| lock.borrow_mut().take())
-    }};
-}
-
-pub(crate) use get_buffer;
-pub(crate) use read_buffer;
-pub(crate) use write_message;

@@ -414,19 +414,19 @@ mod wasm {
     use wasm_bindgen::prelude::*;
 
     use super::{LoadSceneEvent, SceneState};
-    use crate::wasm::{self, WasmMessageBuffer};
+    use crate::wasm::{self, StaticBuffer, WasmMessageBuffer};
 
     static OBJECT_LOAD_REQUEST: WasmMessageBuffer<String> = WasmMessageBuffer::new();
 
     #[wasm_bindgen(js_name = loadObject)]
     pub fn load_object(id: &str) {
-        wasm::write_message!(OBJECT_LOAD_REQUEST, id.to_string());
+        OBJECT_LOAD_REQUEST.write_message(id.into());
     }
 
     // FIXME: Is it an object or a scene? Inconsistent terminology is
     //        unnecessarily confusing
     pub(super) fn dispatch_scene_request(mut ew_load_scene: EventWriter<LoadSceneEvent>) {
-        if let Some(id) = wasm::read_buffer!(OBJECT_LOAD_REQUEST) {
+        if let Some(id) = OBJECT_LOAD_REQUEST.take_message() {
             ew_load_scene.send(LoadSceneEvent(id));
         }
     }
