@@ -23,6 +23,12 @@
     "serve": {
       "executor": "@nx/vite:dev-server",
       "defaultConfiguration": "development",
+      "dependsOn": [
+        {
+          "projects": ["studio"],
+          "target": "build:web"
+        }
+      ],
       "options": {
         "buildTarget": "react-frontend:build"
       },
