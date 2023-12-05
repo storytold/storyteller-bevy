@@ -116,6 +116,7 @@ impl SkyboxPaths {
     }
 }
 
+#[cfg(feature = "wasm")]
 mod wasm {
     use bevy::prelude::*;
     use wasm_bindgen::prelude::*;
