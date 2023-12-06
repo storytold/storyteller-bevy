@@ -1,5 +1,8 @@
+import { on } from "@storyteller/framework";
+import * as studio from "@storyteller/studio";
+import { type EntitySelectEvent } from "@storyteller/studio";
 import { LitElement, html, nothing, unsafeCSS } from "lit";
-import { customElement, property } from "lit/decorators.js";
+import { customElement, property, state } from "lit/decorators.js";
 import { classMap } from "lit/directives/class-map.js";
 
 import "./icon.element";
@@ -20,15 +23,26 @@ export class TreeElement extends LitElement {
 	@property() treeChildren?: Tree[];
 	@property() expanded = false;
 
+	@state() selected = false;
+
 	toggleExpanded(): void {
 		this.expanded = !this.expanded;
 	}
 
+	@on("window:entity-select")
+	onEntitySelect({ detail: entity }: EntitySelectEvent): void {
+		this.selected = this.id === entity;
+	}
+
+	selectEntity(): void {
+		studio.select(this.id);
+	}
+
 	// TODO: A11y
 	protected override render = () => html`
-		<header>
+		<header class=${classMap({ selected: this.selected })}>
 			${this.treeChildren?.length ? html`
-				<button class="button"
+				<button class="toggle-expanded"
 					@click=${this.toggleExpanded}
 				>
 					<sts-icon
@@ -41,7 +55,9 @@ export class TreeElement extends LitElement {
 					></sts-icon>
 				</button>
 			` : nothing}
-			<span class="name">
+			<span class="name"
+				@click=${this.selectEntity}
+			>
 				${this.name}
 			</span>
 		</header>

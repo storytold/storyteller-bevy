@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, render::mesh::skinning::SkinnedMesh};
 use bevy_mod_outline::{
     AutoGenerateOutlineNormalsPlugin, OutlineBundle, OutlinePlugin, OutlineVolume,
 };
@@ -26,12 +26,13 @@ impl Plugin for SelectionPlugin {
             );
 
         #[cfg(feature = "wasm")]
-        app.add_systems(
-            PostUpdate,
-            wasm::notify_entity_selection_change
-                .map(bevy::utils::error)
-                .run_if(resource_changed_or_removed::<Selection>()),
-        );
+        app.add_systems(Update, wasm::update_selection_from_frontend)
+            .add_systems(
+                PostUpdate,
+                wasm::notify_entity_selection_change
+                    .map(bevy::utils::error)
+                    .run_if(resource_changed_or_removed::<Selection>()),
+            );
     }
 }
 
@@ -116,7 +117,15 @@ fn update_selection(
 fn draw_selection_outline(
     mut cmd: Commands,
     q_selected: Query<&Children, With<Selected>>,
-    q_meshes: Query<Entity, (With<Handle<Mesh>>, Without<OutlineVolume>)>,
+    q_meshes: Query<
+        Entity,
+        (
+            With<Handle<Mesh>>,
+            Without<OutlineVolume>,
+            // FIXME: It shouldn't be necessary to filter out SkinnedMesh here
+            Without<SkinnedMesh>,
+        ),
+    >,
     q_outlines: Query<Entity, With<OutlineVolume>>,
 ) {
     // Remove existing outlines
@@ -143,13 +152,13 @@ fn draw_selection_outline(
 #[cfg(feature = "wasm")]
 mod wasm {
     use bevy::{
-        prelude::{Query, Res, With},
+        prelude::*,
         window::{PrimaryWindow, Window},
     };
     use wasm_bindgen::prelude::*;
 
-    use super::Selection;
-    use crate::wasm;
+    use super::{Selected, Selection};
+    use crate::wasm::{self, StaticBuffer, WasmMessageBuffer};
 
     #[wasm_bindgen(typescript_custom_section)]
     const EVENT_DECLARATION: &str = r#"
@@ -175,5 +184,25 @@ declare global {
     ) -> Result<(), String> {
         let entity = r_selection.map(|selection| **selection);
         wasm::dispatch_to_js(q_window.single(), "entity-select", &entity)
+    }
+
+    static SELECTION_REQUEST: WasmMessageBuffer<Entity> = WasmMessageBuffer::new();
+
+    #[wasm_bindgen]
+    pub fn select(entity: &str) {
+        let mut split = entity.split('v');
+        let index = split.next().unwrap().parse::<u32>().unwrap();
+        let generation = split.next().unwrap().parse::<u32>().unwrap();
+        let bits = (generation as u64) << 32 | index as u64;
+
+        let entity = Entity::from_bits(bits);
+        SELECTION_REQUEST.write_message(entity);
+    }
+
+    pub(super) fn update_selection_from_frontend(mut cmd: Commands) {
+        if let Some(entity) = SELECTION_REQUEST.take_message() {
+            cmd.insert_resource(Selection(entity));
+            cmd.entity(entity).insert(Selected);
+        }
     }
 }

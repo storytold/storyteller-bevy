@@ -3,9 +3,14 @@
 	flex-direction: column;
 }
 
+:host {
+	min-width: min-content;
+}
+
 header {
 	display: flex;
-	padding-block: 5px;
+	align-items: center;
+	border-radius: 4px;
 
 	font: {
 		family: "Fira Sans", sans-serif;
@@ -20,14 +25,28 @@ header {
 	user-select: none;
 
 	color: #FFFC;
+	transition: {
+		property: background, color;
+		duration: 0.1s;
+		timing-function: linear;
+	}
+
+	&:hover:not(:has(.toggle-expanded:hover)) {
+		background: #0000001F;
+	}
 
 	&.selected {
-		font-weight: 500;
+		background: #7A2C34E3;
 		color: #FFF;
+		font-weight: 500;
+
+		&:hover {
+			background: #90363F !important;
+		}
 	}
 }
 
-.button {
+.toggle-expanded {
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -54,7 +73,11 @@ header {
 }
 
 .name {
-	padding-inline-start: 5px;
+	flex: 1 0 0;
+	padding: {
+		block: 5px;
+		inline: 5px 10px;
+	}
 }
 
 .children {
