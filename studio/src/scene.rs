@@ -9,7 +9,7 @@ use bevy::{
     math::{vec2, vec3},
     pbr::ShadowFilteringMethod,
     prelude::*,
-    render::primitives::Aabb,
+    render::{mesh::skinning::SkinnedMesh, primitives::Aabb},
     scene::InstanceId,
 };
 
@@ -107,6 +107,9 @@ pub struct LoadSceneEvent(pub String);
 /// a light, or a camera.
 #[derive(Component)]
 pub struct SceneElement;
+
+#[derive(Component)]
+pub struct SkeletalJoint;
 
 #[derive(Component)]
 pub struct SceneRoot;
@@ -248,16 +251,28 @@ fn tag_scene_elements(
     // leafy parts of a plant. Here we only want to tag the elements that a user
     // might want to individually address when arranging or animating a scene.
     q_named_non_primitives: Query<&Name, Without<Handle<Mesh>>>,
+    q_skinned_meshes: Query<&SkinnedMesh>,
 ) {
     let gltf = ra_gltfs.get(&r_active_scene.source).unwrap();
 
-    for ent in r_scene_spawner.iter_instance_entities(**r_active_scene) {
-        let Ok(name) = q_named_non_primitives.get(ent) else {
-            continue;
-        };
-
+    for (ent, name) in r_scene_spawner
+        .iter_instance_entities(**r_active_scene)
+        .filter_map(|ent| match q_named_non_primitives.get(ent) {
+            Ok(name) => Some((ent, name)),
+            _ => None,
+        })
+    {
         if gltf.named_nodes.contains_key(&**name) {
             cmd.entity(ent).insert(SceneElement).insert(PrefabMarker);
+        }
+    }
+
+    for skinned_mesh in r_scene_spawner
+        .iter_instance_entities(**r_active_scene)
+        .filter_map(|ent| q_skinned_meshes.get(ent).ok())
+    {
+        for &joint in skinned_mesh.joints.iter() {
+            cmd.entity(joint).insert(SkeletalJoint);
         }
     }
 }

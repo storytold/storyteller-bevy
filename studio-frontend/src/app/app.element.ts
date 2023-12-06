@@ -190,7 +190,7 @@ export class AppElement extends LitElement {
 			}
 			<sts-viewer
 				objectId="base-human-female"
-				skyboxId="meadow_4k"
+				skyboxId="test_scene"
 				.mode=${this.mode}
 				@scene-state=${this.onSceneStateChange}
 			></sts-viewer>

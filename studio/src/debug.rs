@@ -7,7 +7,9 @@ use bevy_mod_picking::debug::DebugPickingMode;
 use crate::{
     camera_controller::{CameraController, CameraMotionSystem},
     input::{Action, InputAction, Lifecycle},
-    is_editor, MainCamera,
+    is_editor,
+    scene::SkeletalJoint,
+    MainCamera,
 };
 
 #[derive(Resource, Deref, DerefMut)]
@@ -40,7 +42,7 @@ impl Plugin for DebugPlugin {
                         .run_if(is_editor)
                         .run_if(resource_changed::<DebugMode>()),
                     update_gizmo_line_thickness,
-                    (draw_world_axes, draw_debug_points)
+                    (draw_world_axes, draw_debug_points, draw_skeletal_joints)
                         .after(CameraMotionSystem)
                         .run_if(is_debug_mode),
                 ),
@@ -107,6 +109,26 @@ fn draw_debug_points(
             Transform::from_translation(point).with_scale(Vec3::splat(dist / 300.)),
             color,
         );
+    }
+}
+
+fn draw_skeletal_joints(
+    mut gizmos: Gizmos,
+    q_joints: Query<(&GlobalTransform, Option<&Parent>), With<SkeletalJoint>>,
+) {
+    for (world_xform, parent) in q_joints.iter() {
+        let (_, rotation, xlation) = world_xform.to_scale_rotation_translation();
+
+        if let Some((parent_xform, _)) = parent.and_then(|parent| q_joints.get(**parent).ok()) {
+            let parent_xlation = parent_xform.translation();
+            let bone_len = Vec3::distance(xlation, parent_xlation);
+            let joint_radius = f32::min(0.01, bone_len / 6.);
+
+            gizmos.sphere(xlation, rotation, joint_radius, Color::BLACK);
+            gizmos.line(xlation, parent_xlation, Color::BLACK);
+        } else {
+            gizmos.sphere(xlation, rotation, 0.01, Color::BLACK);
+        }
     }
 }
 
