@@ -9,7 +9,7 @@ use bevy::{
     math::{vec2, vec3},
     pbr::ShadowFilteringMethod,
     prelude::*,
-    render::{mesh::skinning::SkinnedMesh, primitives::Aabb},
+    render::{mesh::skinning::SkinnedMesh, primitives::Aabb, view::NoFrustumCulling},
     scene::InstanceId,
 };
 
@@ -267,10 +267,15 @@ fn tag_scene_elements(
         }
     }
 
-    for skinned_mesh in r_scene_spawner
+    for (ent, skinned_mesh) in r_scene_spawner
         .iter_instance_entities(**r_active_scene)
-        .filter_map(|ent| q_skinned_meshes.get(ent).ok())
+        .filter_map(|ent| match q_skinned_meshes.get(ent) {
+            Ok(skinned_mesh) => Some((ent, skinned_mesh)),
+            _ => None,
+        })
     {
+        cmd.entity(ent).insert(NoFrustumCulling);
+
         for &joint in skinned_mesh.joints.iter() {
             cmd.entity(joint).insert(SkeletalJoint);
         }
