@@ -1,5 +1,6 @@
 import { match } from "@storyteller/utility";
 import type { LitElement } from "lit";
+import { getMethodDescriptor, prependRoutine } from "./internal";
 
 /**
  * Adds the decorated method as an event listener for the given event name, and
@@ -21,29 +22,16 @@ export function on(eventSelector: string) {
 	});
 
 	return <T extends LitElement>(proto: T, propName: keyof T, desc: PropertyDescriptor) => {
-		const handler = desc?.value ?? proto[propName] ?? (() => {});
+		const handler = getMethodDescriptor(proto, propName)?.value ?? (() => {});
 
-		const connectedCb = proto.connectedCallback;
-		const disconnectedCb = proto.disconnectedCallback;
-
-		Object.defineProperty(proto, "connectedCallback", {
-			value: function (this: HTMLElement) {
-				target ??= this;
-				target.addEventListener(eventName, handler.bind(this));
-				connectedCb.call(this);
-			},
-			configurable: true,
-			writable: true,
+		prependRoutine(proto, "connectedCallback", function (this: T) {
+			target ??= this;
+			target.addEventListener(eventName, handler.bind(this));
 		});
 
-		Object.defineProperty(proto, "disconnectedCallback", {
-			value: function (this: HTMLElement) {
-				target ??= this;
-				target.removeEventListener(eventName, handler.bind(this));
-				disconnectedCb.call(this);
-			},
-			configurable: true,
-			writable: true,
+		prependRoutine(proto, "disconnectedCallback", function (this: T) {
+			target ??= this;
+			target.removeEventListener(eventName, handler.bind(this));
 		});
 
 		return desc;

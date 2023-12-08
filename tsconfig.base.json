@@ -18,6 +18,7 @@
       "@storyteller/framework": ["framework/src/index.ts"],
       "@storyteller/studio": ["dist/studio"],
       "@storyteller/studio-web": ["studio-web/src/index.ts"],
+      "@storyteller/studio-web/canvas-provider": ["studio-web/src/lib/canvas-provider.element.ts"],
       "@storyteller/studio-web/viewer": ["studio-web/src/lib/viewer.element.ts"],
       "@storyteller/utility": ["utility/src/index.ts"]
     }

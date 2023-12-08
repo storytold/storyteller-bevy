@@ -1,4 +1,5 @@
 import { ViewerElement } from "@storyteller/studio-web";
+import { CanvasProviderElement } from "@storyteller/studio-web/canvas-provider";
 
 declare global {
 	export namespace JSX {
@@ -9,6 +10,10 @@ declare global {
 				React.HTMLAttributes<ViewerElement>,
 				ViewerElement,
 			>;
+			"sts-canvas-provider": React.DetailedHTMLProps<
+				React.HTMLAttributes<CanvasProviderElement>,
+				CanvasProviderElement,
+			>
 		}
 	}
 }

@@ -1,9 +1,9 @@
 import type { SceneStateEvent } from "@storyteller/studio";
 import { ViewerElement } from "@storyteller/studio-web/viewer";
 import "@storyteller/studio-web/viewer";
-import { MutableRefObject, forwardRef, useEffect, useRef } from "react";
+import React, { MutableRefObject, forwardRef, useEffect, useRef } from "react";
 
-export interface Props {
+export interface Props extends React.HTMLProps<ViewerElement> {
 	objectId: string;
 	skyboxId: string;
 	onSceneStateChange?(event: SceneStateEvent): void;
@@ -13,6 +13,7 @@ export default forwardRef<ViewerElement, Props>(({
 	objectId,
 	skyboxId,
 	onSceneStateChange,
+	...props
 }, ref) => {
 	const viewerRef = useRef<ViewerElement>(null);
 
@@ -37,10 +38,7 @@ export default forwardRef<ViewerElement, Props>(({
 	}
 
 	return (
-		<sts-viewer
-			ref={refCallback}
-			objectId={objectId}
-			skyboxId={skyboxId}
-		/>
+		// @ts-ignore
+		<sts-viewer {...props} ref={refCallback} objectId={objectId} skyboxId={skyboxId} />
 	);
 });

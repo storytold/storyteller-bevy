@@ -2,6 +2,7 @@ import { type SceneStateEvent, SceneState } from "@storyteller/studio";
 import { FormEvent, useState } from "react";
 
 import StudioViewer from "./studio-viewer";
+import StudioCanvasProvider from "./studio-canvas-provider";
 
 import style from "./app.module.scss";
 
@@ -79,13 +80,10 @@ const SKYBOXES = [
 ];
 
 export default () => {
-	const [objectId, setObjectId] = useState("desk");
-	const [skyboxId, setSkyboxId] = useState("test_scene");
+	const [objectId, setObjectId] = useState<string|null>(null);
+	const [skyboxId, setSkyboxId] = useState("meadow_4k");
+	const [modalOpen, setModalOpen] = useState(false);
 	const [loading, setLoading] = useState(true);
-
-	const onObjectSelect = (event: FormEvent<HTMLSelectElement>) => {
-		setObjectId((event.target as HTMLSelectElement).value)
-	}
 
 	const onSkyboxSelect = (event: FormEvent<HTMLSelectElement>) => {
 		setSkyboxId((event.target as HTMLSelectElement).value)
@@ -96,62 +94,75 @@ export default () => {
 	}
 
 	return (
-		<div className={style.root}>
-			<StudioViewer
-				objectId={objectId}
-				skyboxId={skyboxId}
-				onSceneStateChange={onSceneStateChange}
-			/>
-
-			<div
-				className={style.loading}
-				style={{
-					opacity: loading ? 1 : 0,
-				}}
-			>
-				<h1>Loading...</h1>
+		<StudioCanvasProvider>
+			<div className={style.root}>
+				{OBJECTS.map(({ id, label }) => (
+					<div
+						className={style.thumbnail}
+						key={id}
+						onClick={() => {
+							if (id !== objectId) {
+								setLoading(true);
+								setObjectId(id);
+							}
+							setModalOpen(true);
+						}}
+					>
+						<h3>{label}</h3>
+					</div>
+				))}
 			</div>
 
-			<div className={style.controls}>
-				<label className={style.control}>
-					<span className={style.label}>Object</span>
-					<select
-						className={style.input}
-						name="object"
-						value={objectId}
-						disabled={loading}
-						onChange={onObjectSelect}
+			{modalOpen && !!objectId && <>
+				<div
+					className={style.modalOverlay}
+					onClick={() => setModalOpen(false)}
+				/>
+				<div className={style.modal}>
+					<StudioViewer
+						objectId={objectId}
+						skyboxId={skyboxId}
+						onSceneStateChange={onSceneStateChange}
+					/>
+
+					<div
+						className={style.loading}
+						style={{
+							opacity: loading ? 1 : 0,
+						}}
 					>
-						{OBJECTS.map(({ id, label }) => (
-							<option
-								key={id}
-								value={id}
+						<h1>Loading...</h1>
+					</div>
+
+					<div className={style.controls}>
+						<label className={style.control}>
+							<span className={style.label}>Skybox</span>
+							<select
+								className={style.input}
+								name="skybox"
+								value={skyboxId}
+								disabled={loading}
+								onChange={onSkyboxSelect}
 							>
-								{label}
-							</option>
-						))}
-					</select>
-				</label>
-				<label className={style.control}>
-					<span className={style.label}>Skybox</span>
-					<select
-						className={style.input}
-						name="skybox"
-						value={skyboxId}
-						disabled={loading}
-						onChange={onSkyboxSelect}
+								{SKYBOXES.map(({ id, label }) => (
+									<option
+										key={id}
+										value={id}
+									>
+										{label}
+									</option>
+								))}
+							</select>
+						</label>
+					</div>
+
+					<button className={style.modalClose}
+						onClick={() => setModalOpen(false)}
 					>
-						{SKYBOXES.map(({ id, label }) => (
-							<option
-								key={id}
-								value={id}
-							>
-								{label}
-							</option>
-						))}
-					</select>
-				</label>
-			</div>
-		</div>
+						&times;
+					</button>
+				</div>
+			</>}
+		</StudioCanvasProvider>
 	);
 }

@@ -32,13 +32,14 @@
 	font-size: 16px;
 	padding: 10px 12px;
 	pointer-events: auto;
+	outline: 0 solid transparent;
 
 	// TODO: Copypasta
 	background: #0006;
 	color: #FFFC;
 	backdrop-filter: blur(16px);
 	transition: {
-		property: background, color;
+		property: background, color, outline-width, outline-color;
 		duration: 0.1s;
 		timing-function: linear;
 	}
@@ -60,6 +61,11 @@
 	&:hover {
 		background: #0008;
 		color: #FFF;
+	}
+
+	&:has(:focus-visible) {
+		z-index: 1;
+		outline: 4px solid #2F83FFBF;
 	}
 
 	&:has(:checked) {

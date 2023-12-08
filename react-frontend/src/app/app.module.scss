@@ -1,5 +1,58 @@
 .root {
 	position: relative;
+	padding: 64px;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: center;
+	gap: 32px;
+}
+
+.thumbnail {
+	flex: 0 0 352px;
+	width: 352px;
+	height: 352px;
+	background: #444;
+	border-radius: 8px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
+
+	&:hover {
+		background: #666;
+	}
+}
+
+.modalOverlay {
+	position: fixed;
+	inset: 0;
+	background: #2222227F;
+	backdrop-filter: blur(12px);
+}
+
+.modal {
+	position: fixed;
+	width: 1280px;
+	height: 720px;
+	top: calc(50vh - 360px);
+	left: calc(50vw - 640px);
+	border-radius: 16px;
+	overflow: hidden;
+	box-shadow:
+		0 0 16px rgba(0,0,0,0.17),
+		0 16px 48px rgba(0,0,0,0.3);
+}
+
+.loading {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: #222;
+	pointer-events: none;
+	transition: opacity 66.666ms linear;
 }
 
 .controls {
@@ -34,13 +87,28 @@
 	}
 }
 
-.loading {
+.modalClose {
 	position: absolute;
-	inset: 0;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	background: #222;
-	pointer-events: none;
-	transition: opacity 66.666ms linear;
+	top: 16px;
+	right: 16px;
+	width: 48px;
+	height: 48px;
+	line-height: 48px;
+	border-radius: 50%;
+	appearance: none;
+	border: none;
+	padding: 0;
+	margin: 0;
+	background: #2222227F;
+	backdrop-filter: blur(16px);
+	font: unset {
+		family: inherit;
+		weight: 400;
+		size: 40px;
+	}
+	cursor: pointer;
+
+	&:hover {
+		background: #222222AA;
+	}
 }
