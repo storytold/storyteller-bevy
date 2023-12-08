@@ -1,4 +1,5 @@
 use bevy::{
+    asset::AssetPath,
     core_pipeline::{
         bloom::{BloomCompositeMode, BloomPrefilterSettings, BloomSettings},
         fxaa::Fxaa,
@@ -143,12 +144,24 @@ fn initialize(mut cmd: Commands) {
 fn init_scene_loading(
     mut cmd: Commands,
     assets: Res<AssetServer>,
+    r_active_scene: Option<Res<ActiveScene>>,
     mut er: EventReader<LoadSceneEvent>,
     mut st_next: ResMut<NextState<SceneState>>,
 ) {
     if let Some(id) = er.read().last() {
         let name = &**id;
-        cmd.insert_resource(PendingScene(assets.load(format!("gltf/{name}.gltf"))));
+        let path = format!("gltf/{name}.gltf");
+
+        // Avoid trying to re-load this scene if it's already active
+        if let Some(active_scene_path) =
+            r_active_scene.and_then(|scene| scene.source.path().cloned())
+        {
+            if active_scene_path == AssetPath::parse(&path) {
+                return;
+            }
+        }
+
+        cmd.insert_resource(PendingScene(assets.load(path)));
         st_next.set(SceneState::Loading);
     }
 }
