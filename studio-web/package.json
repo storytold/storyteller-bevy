@@ -1,12 +1,12 @@
 {
   "name": "@storyteller/studio-web",
   "version": "0.0.1",
-  "dependencies": {},
+  "dependencies": {
+    "@storyteller/framework": "0.0.1",
+    "@storyteller/studio": "0.0.1",
+    "lit": "^2.8.0"
+  },
   "main": "./index.js",
   "module": "./index.mjs",
-  "typings": "./index.d.ts",
-  "exports": {
-    "./canvas-provider": "./canvas-provider.element.js",
-    "./viewer": "./viewer.element.js"
-  }
+  "typings": "./index.d.ts"
 }

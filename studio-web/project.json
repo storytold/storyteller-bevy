@@ -7,6 +7,12 @@
     "build": {
       "executor": "@nx/vite:build",
       "outputs": ["{options.outputPath}"],
+      "dependsOn": [
+        {
+          "projects": ["studio"],
+          "target": "build:web"
+        }
+      ],
       "options": {
         "outputPath": "dist/studio-web"
       }
