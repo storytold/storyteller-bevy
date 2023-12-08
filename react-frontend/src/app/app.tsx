@@ -82,6 +82,7 @@ const SKYBOXES = [
 export default () => {
 	const [objectId, setObjectId] = useState<string|null>(null);
 	const [skyboxId, setSkyboxId] = useState("meadow_4k");
+	const [modalOpen, setModalOpen] = useState(false);
 	const [loading, setLoading] = useState(true);
 
 	const onSkyboxSelect = (event: FormEvent<HTMLSelectElement>) => {
@@ -100,8 +101,11 @@ export default () => {
 						className={style.thumbnail}
 						key={id}
 						onClick={() => {
-							setLoading(true);
-							setObjectId(id);
+							if (id !== objectId) {
+								setLoading(true);
+								setObjectId(id);
+							}
+							setModalOpen(true);
 						}}
 					>
 						<h3>{label}</h3>
@@ -109,10 +113,10 @@ export default () => {
 				))}
 			</div>
 
-			{!!objectId && <>
+			{modalOpen && !!objectId && <>
 				<div
 					className={style.modalOverlay}
-					onClick={() => setObjectId(null)}
+					onClick={() => setModalOpen(false)}
 				/>
 				<div className={style.modal}>
 					<StudioViewer
@@ -153,7 +157,7 @@ export default () => {
 					</div>
 
 					<button className={style.modalClose}
-						onClick={() => setObjectId(null)}
+						onClick={() => setModalOpen(false)}
 					>
 						&times;
 					</button>
