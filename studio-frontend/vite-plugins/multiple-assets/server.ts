@@ -24,6 +24,7 @@ function getFiles(dir, files_): string[] {
 const mimeTypes = {
     ".7z": "application/x-7z-compressed",
     ".bin": "application/octet-stream",
+    ".bvh": "text/bvh",
     ".css": "text/css",
     ".eot": "font/eot",
     ".gif": "image/gif",
