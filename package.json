@@ -2,7 +2,9 @@
   "name": "@storyteller/source",
   "version": "0.0.0",
   "license": "MIT",
-  "scripts": {},
+  "scripts": {
+    "link-packages": "node ./scripts/link-packages.cjs"
+  },
   "private": true,
   "devDependencies": {
     "@nx/js": "16.9.1",
