@@ -1,7 +1,10 @@
 {
   "name": "@storyteller/framework",
   "version": "0.0.1",
-  "dependencies": {},
+  "dependencies": {
+    "@storyteller/utility": "0.0.1",
+    "lit": "^2.8.0"
+  },
   "main": "./index.js",
   "module": "./index.mjs",
   "typings": "./index.d.ts"
