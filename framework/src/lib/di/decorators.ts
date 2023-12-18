@@ -1,4 +1,4 @@
-import { Ctor, Method } from "@storyteller/utility";
+import { Ctor, Fn, Method } from "@storyteller/utility";
 import { LitElement } from "lit";
 
 import { appendRoutine, prependRoutine } from "../decorators/internal";
@@ -10,10 +10,32 @@ const $$injector = Symbol("#injector");
 
 export type ProviderOptions<T, E extends LitElement>
 	= Token<T>
-	| {
-		token: Token<T>,
-		provide(this: E): T,
-	};
+	| CustomProvider<T, E>;
+
+export interface CustomProvider<T, E extends LitElement> {
+	token: Token<T>;
+	/**
+	 * A method which is invoked just before `connectedCallback` to resolve the
+	 * provided value.
+	 */
+	provide(this: E): T;
+}
+
+/**
+ * Registers the decorated custom element as a provider of the given `token`.
+ * Descendants who `inject` the `token`, and ancestors who `queryProviders` for
+ * `token`, will receive a reference to the instance of this element.
+ */
+export function provide<T, E extends LitElement>(token: Token<T>): Fn<[Ctor<E>], void>;
+
+/**
+ * Registers the decorated custom element as a custom provider for the
+ * configured `token`. Descendants who `inject` the `token`, and ancestors who
+ * `queryProviders` for `token`, will receive the return value of the configured
+ * `provide` method, which is invoked just before this element's
+ * `connectedCallback`.
+ */
+export function provide<T, E extends LitElement>(config: CustomProvider<T, E>): Fn<[Ctor<E>], void>;
 
 export function provide<T, E extends LitElement>(options: ProviderOptions<T, E>) {
 	type Decorated = E & {
@@ -66,6 +88,14 @@ export function provide<T, E extends LitElement>(options: ProviderOptions<T, E>)
 	}
 }
 
+/**
+ * Initializes the decorated property just before `connectedCallback` by looking
+ * up the nearest ancestor element configured to `provide` the given `token`.
+ *
+ * @note If no provider for the given `token` is found among this element's
+ * ancestors, the decorated property will remain `undefined` unless initialized
+ * with a default value.
+ */
 export function inject<T, E extends LitElement>(token: Token<T>) {
 	return <K extends keyof E>(proto: E, key: K) => {
 		const $field = Symbol(String(key));
@@ -99,10 +129,19 @@ export function inject<T, E extends LitElement>(token: Token<T>) {
 	}
 }
 
+/**
+ * Initializes the decorated property just after `connectedCallback` by looking
+ * for descendants configured to `provide` the given `token`.
+ *
+ * @note It's strongly recommended to default-initialize the decorated property
+ * to an empty array. The decorated property will be immutably updated at
+ * runtime (via `Array.prototype.concat` and `Array.prototype.filter`) when
+ * providers are added to or removed from the DOM sub-tree.
+ */
 export function queryProviders<T, E extends LitElement>(token: Token<T>) {
 	return <K extends keyof E>(proto: E, key: K) => {
 		function onProvided(this: E, event: DependencyProvision<T>): void {
-			const array = this[key];
+			const array = this[key] ?? [];
 			assertType<E[K] & T[]>(array);
 
 			if (event.detail.token === token)
@@ -110,7 +149,7 @@ export function queryProviders<T, E extends LitElement>(token: Token<T>) {
 		}
 
 		function onRemoved(this: E, event: ProviderRemoval<T>): void {
-			const array = this[key];
+			const array = this[key] ?? [];
 			assertType<E[K] & T[]>(array);
 
 			if (event.detail.token === token)
