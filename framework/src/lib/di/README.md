@@ -1,7 +1,7 @@
 This module is a simple implementation of hierarchical [dependency injection](https://en.wikipedia.org/wiki/Dependency_injection),
 inspired by [Angular](https://angular.io/guide/hierarchical-dependency-injection),
 based on [this talk](https://www.youtube.com/watch?v=6o5zaKHedTE) by Polymer/Lit
-engineer Justinc Fagnani, and adapted from [this StackBlitz experiment](https://stackblitz.com/edit/vitejs-vite-6tenu8?file=src%2Fapp.ts).
+engineer Justin Fagnani, and adapted from [this StackBlitz experiment](https://stackblitz.com/edit/vitejs-vite-6tenu8?file=src%2Fapp.ts).
 
 ### Design Goals
 
