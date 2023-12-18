@@ -7,6 +7,10 @@ export class UniqueToken {
 	constructor (name: string) {
 		this.#id = Symbol(name);
 	}
+
+	toString(): string {
+		return `UniqueToken(${String(this.#id)})`;
+	}
 }
 
 export type Token<T>

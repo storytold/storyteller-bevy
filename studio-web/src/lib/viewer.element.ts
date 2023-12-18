@@ -16,7 +16,7 @@ export class ViewerElement extends LitElement {
 	@property() skyboxId?: string;
 
 	@inject(CANVAS_PROVIDER)
-	_canvasProvider!: CanvasProvider;
+	_canvasProvider?: CanvasProvider;
 
 	#canvas?: HTMLCanvasElement;
 	#resizeObserver?: ResizeObserver;
@@ -27,13 +27,16 @@ export class ViewerElement extends LitElement {
 		this.#resizeObserver = new ResizeObserver(this.#onResize.bind(this));
 		this.#resizeObserver.observe(this);
 
+		if (!this._canvasProvider)
+			throw new Error(`No provider found for token: ${CANVAS_PROVIDER}`);
+
 		if ((this.#canvas = this._canvasProvider.takeCanvas()))
 			this.appendChild(this.#canvas);
 	}
 
 	override disconnectedCallback(): void {
 		if (this.#canvas)
-			this._canvasProvider.returnCanvas(this.removeChild(this.#canvas));
+			this._canvasProvider?.returnCanvas(this.removeChild(this.#canvas));
 
 		this.#resizeObserver?.disconnect();
 
@@ -71,7 +74,7 @@ export class ViewerElement extends LitElement {
 			studio.startViewer(
 				this.objectId,
 				this.skyboxId,
-				`#${this._canvasProvider.canvasId}`,
+				`#${this._canvasProvider!.canvasId}`,
 				"Storyteller Studio",
 				new ViewportSize(width, height),
 			);
