@@ -781,7 +781,7 @@ impl ChannelType {
     ///     ChannelType::RotationX);
     ///
     /// let err = ChannelType::from_bytes("Hello").unwrap_err();
-    /// assert_eq!(err.into_inner(), "Hello");
+    /// assert_eq!(&err.into_inner(), b"Hello");
     /// ```
     #[inline]
     pub fn from_bytes<B>(s: &B) -> Result<Self, ParseChannelError>
