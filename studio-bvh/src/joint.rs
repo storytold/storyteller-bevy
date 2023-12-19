@@ -1,7 +1,7 @@
 #![allow(dead_code, missing_docs)]
 
 use crate::Channel;
-use bstr::{BStr, BString, ByteSlice};
+use bstr::{BStr, BString, ByteSlice, Utf8Error};
 use smallvec::SmallVec;
 use std::{
     cmp::{Ordering, PartialEq, PartialOrd},
@@ -60,6 +60,16 @@ impl JointData {
         };
 
         name.as_bytes()
+    }
+
+    #[inline]
+    pub(crate) fn name_str(&self) -> Result<&str, Utf8Error> {
+        let name = match *self {
+            JointData::Root { ref name, .. } => name,
+            JointData::Child { ref name, .. } => name,
+        };
+
+        name.as_str()
     }
 
     #[inline]
@@ -213,8 +223,14 @@ pub(crate) type JointNameInner = SmallVec<[u8; mem::size_of::<String>()]>;
 pub(crate) struct JointName(pub(crate) JointNameInner);
 
 impl JointName {
+    #[inline]
     pub(crate) fn as_bytes(&self) -> &[u8] {
         self.as_ref()
+    }
+
+    #[inline]
+    pub(crate) fn as_str(&self) -> Result<&str, Utf8Error> {
+        self.as_bytes().to_str()
     }
 }
 

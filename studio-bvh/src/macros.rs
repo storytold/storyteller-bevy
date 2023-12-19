@@ -535,7 +535,11 @@ mod tests {
                 channels: &[ChannelType],
                 end_site: O,
             ) {
-                assert_eq!(joint.name(), expected_name);
+                let name = match joint.name_str() {
+                    Ok(name) => name,
+                    Err(err) => panic!("{err}"),
+                };
+                assert_eq!(name, expected_name);
                 assert_eq!(*joint.offset(), expected_offset);
                 for (chan, expected_chan) in joint
                     .channels()
