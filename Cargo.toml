@@ -1,6 +1,12 @@
 [workspace]
 resolver = "2"
-members = ["./studio"]
+members = [
+    "./studio",
+    "./studio-bvh",
+]
+
+[workspace.dependencies]
+anyhow = "1.0.75"
 
 [workspace.dependencies.bevy]
 version = "0.12.1"
