@@ -432,7 +432,7 @@ impl Bvh {
                     let mut channels: SmallVec<[Channel; 6]> = Default::default();
                     channels.reserve(num_channels);
 
-                    while let Some(tok) = tokens.next() {
+                    for tok in tokens {
                         let channel_ty = ChannelType::try_from(tok).map_err(|e| {
                             LoadJointsError::ParseChannelError {
                                 error: e,
@@ -548,7 +548,7 @@ impl Bvh {
                 let mut tokens = line.fields();
 
                 let frame_time_kw = tokens.next();
-                if frame_time_kw == FRAME_TIME_KEYWORDS.get(0).map(|b| *b) {
+                if frame_time_kw == FRAME_TIME_KEYWORDS.get(0).copied() {
                     // do nothing
                 } else {
                     return Err(LoadMotionError::MissingFrameTime {
@@ -558,7 +558,7 @@ impl Bvh {
                 }
 
                 let frame_time_kw = tokens.next();
-                if frame_time_kw == FRAME_TIME_KEYWORDS.get(1).map(|b| *b) {
+                if frame_time_kw == FRAME_TIME_KEYWORDS.get(1).copied() {
                     // do nothing
                 } else {
                     return Err(LoadMotionError::MissingFrameTime {

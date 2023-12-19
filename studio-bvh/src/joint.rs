@@ -45,18 +45,12 @@ pub(crate) enum JointData {
 impl JointData {
     #[inline]
     pub(crate) const fn is_root(&self) -> bool {
-        match *self {
-            JointData::Root { .. } => true,
-            _ => false,
-        }
+        matches!(*self, JointData::Root { .. })
     }
 
     #[inline]
     pub(crate) const fn is_child(&self) -> bool {
-        match *self {
-            JointData::Child { .. } => true,
-            _ => false,
-        }
+        matches!(*self, JointData::Child { .. })
     }
 
     #[inline]
@@ -143,7 +137,7 @@ impl JointData {
     pub(crate) fn empty_root() -> Self {
         JointData::Root {
             name: Default::default(),
-            offset: [0.0, 0.0, 0.0].into(),
+            offset: [0.0, 0.0, 0.0],
             channels: Default::default(),
         }
     }
@@ -152,7 +146,7 @@ impl JointData {
     pub(crate) fn empty_child() -> Self {
         JointData::Child {
             name: Default::default(),
-            offset: [0.0, 0.0, 0.0].into(),
+            offset: [0.0, 0.0, 0.0],
             channels: Default::default(),
             end_site_offset: Default::default(),
             private: JointPrivateData::empty(),
@@ -193,7 +187,7 @@ impl JointData {
             } => *channels = new_channels,
             JointData::Child {
                 ref mut channels, ..
-            } => *channels = new_channels.iter().map(|c| *c).collect(),
+            } => *channels = new_channels.iter().copied().collect(),
         }
     }
 
@@ -291,7 +285,7 @@ impl From<Vec<u8>> for JointName {
 impl From<&'_ [u8]> for JointName {
     #[inline]
     fn from(s: &'_ [u8]) -> Self {
-        JointName(s.into_iter().copied().collect::<JointNameInner>())
+        JointName(s.iter().copied().collect::<JointNameInner>())
     }
 }
 
@@ -790,7 +784,7 @@ impl Joint<'_> {
     /// Returns an iterator over the children of `self`.
     #[inline]
     pub fn children(&self) -> Joints<'_> {
-        Joints::iter_children(&self)
+        Joints::iter_children(self)
     }
 
     /// Access a read-only view of the internal data of the `Joint`.

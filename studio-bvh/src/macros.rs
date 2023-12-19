@@ -461,25 +461,27 @@ impl BvhLiteralBuilder {
 
     pub fn push_channel(&mut self, channel: ChannelType) {
         let channel = Channel::new(channel, self.current_channel_index);
-        self.last_joint().map(|joint| match *joint {
-            JointData::Root {
-                ref mut channels, ..
-            } => {
-                channels.push(channel);
+        if let Some(joint) = self.last_joint() {
+            match *joint {
+                JointData::Root {
+                    ref mut channels, ..
+                } => {
+                    channels.push(channel);
+                }
+                JointData::Child {
+                    ref mut channels, ..
+                } => {
+                    channels.push(channel);
+                }
             }
-            JointData::Child {
-                ref mut channels, ..
-            } => {
-                channels.push(channel);
-            }
-        });
+        }
         self.current_channel_index += 1;
     }
 
     pub fn push_joint_offset(&mut self, offset: Offset, is_end_site: bool) {
-        self.last_joint().map(|joint| {
+        if let Some(joint) = self.last_joint() {
             joint.set_offset(offset, is_end_site);
-        });
+        }
     }
 
     #[inline]

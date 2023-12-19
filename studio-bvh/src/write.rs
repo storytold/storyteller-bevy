@@ -11,6 +11,7 @@ use std::{
 
 /// Specify formatting options for writing a `Bvh`.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[non_exhaustive]
 pub struct WriteOptions {
     /// Which indentation style to use for nested bones.
     pub indent: IndentStyle,
@@ -28,8 +29,6 @@ pub struct WriteOptions {
     ///
     /// If this is `None`, then the minimum precision required will be used
     pub motion_values_significant_figures: Option<usize>,
-    #[doc(hidden)]
-    _nonexhaustive: (),
 }
 
 impl Default for WriteOptions {
@@ -49,7 +48,6 @@ impl WriteOptions {
             offset_significant_figures: None,
             frame_time_significant_figures: None,
             motion_values_significant_figures: None,
-            _nonexhaustive: (),
         }
     }
 
@@ -60,7 +58,7 @@ impl WriteOptions {
         let mut curr_string_len = 0usize;
         let mut iter_state = WriteOptionsIterState::new();
 
-        while self.next_chunk(bvh, &mut curr_chunk, &mut iter_state) != false {
+        while self.next_chunk(bvh, &mut curr_chunk, &mut iter_state) {
             let bytes: &[u8] = curr_chunk.as_ref();
             curr_string_len += bytes.len();
             curr_bytes_written += writer.write(bytes)?;
@@ -81,8 +79,8 @@ impl WriteOptions {
         let mut out_string = vec![];
         let mut iter_state = WriteOptionsIterState::new();
 
-        while self.next_chunk(bvh, &mut curr_chunk, &mut iter_state) != false {
-            out_string.extend(curr_chunk.drain(..));
+        while self.next_chunk(bvh, &mut curr_chunk, &mut iter_state) {
+            out_string.append(&mut curr_chunk);
         }
 
         out_string
@@ -162,14 +160,14 @@ impl WriteOptions {
         let terminator = self.line_terminator.as_bytes();
 
         match *iter_state {
-            WriteOptionsIterState::WriteHierarchy { ref mut written } => {
+            WriteOptionsIterState::Hierarchy { ref mut written } => {
                 if !*written {
                     *chunk = b"HIERARCHY".to_vec();
                     chunk.extend_from_slice(self.line_terminator.as_bytes());
                     *written = true;
                 } else {
                     let mut joints = bvh.joints();
-                    *iter_state = WriteOptionsIterState::WriteJoints {
+                    *iter_state = WriteOptionsIterState::Joints {
                         current_joint: joints.next(),
                         joints,
                         wrote_name: false,
@@ -178,13 +176,13 @@ impl WriteOptions {
                     };
                 }
             }
-            WriteOptionsIterState::WriteJoints {
+            WriteOptionsIterState::Joints {
                 current_joint: None,
                 ..
             } => {
-                *iter_state = WriteOptionsIterState::WriteMotion { written: false };
+                *iter_state = WriteOptionsIterState::Motion { written: false };
             }
-            WriteOptionsIterState::WriteJoints {
+            WriteOptionsIterState::Joints {
                 ref mut joints,
                 ref mut current_joint,
                 ref mut wrote_name,
@@ -296,25 +294,25 @@ impl WriteOptions {
                     }
                 }
             }
-            WriteOptionsIterState::WriteMotion { ref mut written } => {
+            WriteOptionsIterState::Motion { ref mut written } => {
                 if !*written {
                     *chunk = b"MOTION".to_vec();
                     chunk.extend_from_slice(terminator);
                     *written = true;
                 } else {
-                    *iter_state = WriteOptionsIterState::WriteNumFrames { written: false };
+                    *iter_state = WriteOptionsIterState::NumFrames { written: false };
                 }
             }
-            WriteOptionsIterState::WriteNumFrames { ref mut written } => {
+            WriteOptionsIterState::NumFrames { ref mut written } => {
                 if !*written {
                     *chunk = format!("Frames: {}", bvh.frames().len()).into_bytes();
                     chunk.extend_from_slice(terminator);
                     *written = true;
                 } else {
-                    *iter_state = WriteOptionsIterState::WriteFrameTime { written: false };
+                    *iter_state = WriteOptionsIterState::FrameTime { written: false };
                 }
             }
-            WriteOptionsIterState::WriteFrameTime { ref mut written } => {
+            WriteOptionsIterState::FrameTime { ref mut written } => {
                 if !*written {
                     *chunk = match self.frame_time_significant_figures {
                         Some(sf) => {
@@ -329,10 +327,10 @@ impl WriteOptions {
                     *written = true;
                 } else {
                     let frames = bvh.frames();
-                    *iter_state = WriteOptionsIterState::WriteFrames { frames };
+                    *iter_state = WriteOptionsIterState::Frames { frames };
                 }
             }
-            WriteOptionsIterState::WriteFrames { ref mut frames } => {
+            WriteOptionsIterState::Frames { ref mut frames } => {
                 return frames
                     .next()
                     .map(|frame| {
@@ -358,26 +356,26 @@ impl WriteOptions {
 }
 
 enum WriteOptionsIterState<'a> {
-    WriteHierarchy {
+    Hierarchy {
         written: bool,
     },
-    WriteJoints {
+    Joints {
         joints: Joints<'a>,
         current_joint: Option<Joint<'a>>,
         wrote_name: bool,
         wrote_offset: bool,
         wrote_channels: bool,
     },
-    WriteMotion {
+    Motion {
         written: bool,
     },
-    WriteNumFrames {
+    NumFrames {
         written: bool,
     },
-    WriteFrameTime {
+    FrameTime {
         written: bool,
     },
-    WriteFrames {
+    Frames {
         frames: Frames<'a>,
     },
 }
@@ -385,7 +383,7 @@ enum WriteOptionsIterState<'a> {
 impl WriteOptionsIterState<'_> {
     #[inline]
     const fn new() -> Self {
-        WriteOptionsIterState::WriteHierarchy { written: false }
+        WriteOptionsIterState::Hierarchy { written: false }
     }
 }
 

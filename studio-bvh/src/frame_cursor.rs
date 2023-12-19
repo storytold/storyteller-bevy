@@ -36,6 +36,13 @@ impl<'bvh> FrameCursor<'bvh> {
         self.bvh.frames().len()
     }
 
+    #[must_use]
+    #[inline(always)]
+    #[allow(missing_docs)]
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     /// Returns the number of channels in the [`Bvh`] the cursor is is currently
     /// pointing to.
     ///
@@ -403,7 +410,7 @@ impl<'bvh> FrameCursor<'bvh> {
     /// # } // fn main()
     /// ```
     pub fn remove_frame(&mut self) -> Result<&mut Self, FrameRemoveError> {
-        if self.len() == 0 {
+        if self.is_empty() {
             return Err(FrameRemoveError::new(self.index));
         }
 
@@ -567,7 +574,7 @@ fn vec_insert_slice<T: Clone + Default>(vec: &mut Vec<T>, index: usize, slice: &
     vec.resize_with(new_len, T::default);
 
     // Move the existing items to the end
-    for (to_move, end_index) in (index..old_len).into_iter().zip(old_len + index..new_len) {
+    for (to_move, end_index) in (index..old_len).zip(old_len + index..new_len) {
         vec.swap(to_move, end_index);
     }
 

@@ -302,7 +302,7 @@ impl fmt::Display for LoadMotionError {
                 ref parse_error,
                 line,
             } => {
-                if let Some(_) = parse_error {
+                if parse_error.is_some() {
                     write!(fmtr, "{}: could not parse the num frames value", line)
                 } else {
                     write!(
@@ -316,7 +316,7 @@ impl fmt::Display for LoadMotionError {
                 ref parse_error,
                 line,
             } => {
-                if let Some(_) = parse_error {
+                if parse_error.is_some() {
                     write!(fmtr, "{}: could not parse the frame time", line)
                 } else {
                     write!(fmtr, "{}: Could not parse the frame time", line)

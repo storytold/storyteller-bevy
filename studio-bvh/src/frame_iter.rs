@@ -144,7 +144,7 @@ impl<'a> AsRef<[f32]> for Frame<'a> {
 impl<'a> Borrow<[f32]> for Frame<'a> {
     #[inline]
     fn borrow(&self) -> &[f32] {
-        &*self.0
+        self.0
     }
 }
 
@@ -308,7 +308,6 @@ macro_rules! impl_channel_frame_index {
             impl FrameIndex for $chn {
                 type SliceIndex = usize;
 
-                #[inline]
                 #[inline]
                 fn to_slice_index(self) -> Self::SliceIndex {
                     self.motion_index

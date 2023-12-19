@@ -814,10 +814,10 @@ impl ChannelType {
     /// ```
     #[inline]
     pub const fn is_rotation(&self) -> bool {
-        match *self {
-            ChannelType::RotationX | ChannelType::RotationY | ChannelType::RotationZ => true,
-            _ => false,
-        }
+        matches!(
+            *self,
+            ChannelType::RotationX | ChannelType::RotationY | ChannelType::RotationZ
+        )
     }
 
     /// Returns `true` if this channel corresponds to a positional
