@@ -237,7 +237,7 @@ macro_rules! parse_joints_internal {
 /// # Example
 ///
 /// ```
-/// # use bvh_anim::bvh;
+/// # use studio_bvh::bvh;
 /// let simple_skeleton = bvh! {
 ///     HIERARCHY
 ///     ROOT Base
@@ -287,7 +287,7 @@ macro_rules! parse_joints_internal {
 /// You can use the `bvh` macro to create empty `Bvh` instances:
 ///
 /// ```
-/// # use bvh_anim::bvh;
+/// # use studio_bvh::bvh;
 /// let empty = bvh!{};
 ///
 /// let empty = bvh! {

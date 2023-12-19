@@ -155,7 +155,7 @@ impl<'bvh> FrameCursor<'bvh> {
     ///
     /// ```
     /// # fn main() {
-    /// # use bvh_anim::bvh;
+    /// # use studio_bvh::bvh;
     /// let mut simple_skeleton = bvh! {
     ///     HIERARCHY
     ///     ROOT Base
@@ -254,7 +254,7 @@ impl<'bvh> FrameCursor<'bvh> {
     ///
     /// ```
     /// # fn main() {
-    /// # use bvh_anim::bvh;
+    /// # use studio_bvh::bvh;
     /// let mut simple_skeleton = bvh! {
     ///     HIERARCHY
     ///     ROOT Base
@@ -349,7 +349,7 @@ impl<'bvh> FrameCursor<'bvh> {
     ///
     /// ```
     /// # fn main() {
-    /// # use bvh_anim::bvh;
+    /// # use studio_bvh::bvh;
     /// let mut simple_skeleton = bvh! {
     ///     HIERARCHY
     ///     ROOT Base
@@ -431,7 +431,7 @@ impl<'bvh> FrameCursor<'bvh> {
     ///
     /// ```
     /// # fn main() {
-    /// # use bvh_anim::bvh;
+    /// # use studio_bvh::bvh;
     /// let mut simple_skeleton = bvh! {
     ///     HIERARCHY
     ///     ROOT Base

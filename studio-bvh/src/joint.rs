@@ -559,7 +559,7 @@ impl Joint<'_> {
     /// # Examples
     ///
     /// ```no_run
-    /// # use bvh_anim::bvh;
+    /// # use studio_bvh::bvh;
     /// let bvh = bvh! {
     ///     HIERARCHY
     ///     ROOT Hips
@@ -588,7 +588,7 @@ impl Joint<'_> {
     /// # Examples
     ///
     /// ```no_run
-    /// # use bvh_anim::bvh;
+    /// # use studio_bvh::bvh;
     /// let bvh = bvh! {
     /// #   HIERARCHY
     /// #   ROOT Base
@@ -625,7 +625,7 @@ impl Joint<'_> {
     /// # Examples
     ///
     /// ```no_run
-    /// # use bvh_anim::bvh;
+    /// # use studio_bvh::bvh;
     /// let bvh = bvh! {
     ///     HIERARCHY
     ///     ROOT Hips
@@ -656,7 +656,7 @@ impl Joint<'_> {
     /// # Examples
     ///
     /// ```no_run
-    /// # use bvh_anim::bvh;
+    /// # use studio_bvh::bvh;
     /// let bvh = bvh! {
     ///     HIERARCHY
     ///     ROOT Hips
@@ -688,7 +688,7 @@ impl Joint<'_> {
     /// # Examples
     ///
     /// ```no_run
-    /// # use bvh_anim::bvh;
+    /// # use studio_bvh::bvh;
     /// let bvh = bvh! {
     ///     HIERARCHY
     ///     ROOT Base
@@ -733,7 +733,7 @@ impl Joint<'_> {
     /// # Examples
     ///
     /// ```no_run
-    /// # use bvh_anim::{bvh, ChannelType};
+    /// # use studio_bvh::{bvh, ChannelType};
     /// let bvh = bvh! {
     ///     HIERARCHY
     ///     ROOT Hips

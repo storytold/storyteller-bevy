@@ -291,7 +291,7 @@ pub fn from_reader<R: BufReadExt>(data: R) -> Result<Bvh, LoadError> {
 /// # Examples
 ///
 /// ```
-/// # use bvh_anim::{self, from_bytes};
+/// # use studio_bvh::{self, from_bytes};
 /// let bvh_string = br#"
 ///     HIERARCHY
 ///     ROOT Hips
@@ -311,7 +311,7 @@ pub fn from_reader<R: BufReadExt>(data: R) -> Result<Bvh, LoadError> {
 ///
 /// let bvh = from_bytes(&bvh_string[..])?;
 /// # let _ = bvh;
-/// # Result::<(), bvh_anim::errors::LoadError>::Ok(())
+/// # Result::<(), studio_bvh::errors::LoadError>::Ok(())
 /// ```
 #[inline]
 pub fn from_bytes<B: AsRef<[u8]>>(bytes: B) -> Result<Bvh, LoadError> {
@@ -323,7 +323,7 @@ pub fn from_bytes<B: AsRef<[u8]>>(bytes: B) -> Result<Bvh, LoadError> {
 /// # Examples
 ///
 /// ```
-/// # use bvh_anim::{self, from_str};
+/// # use studio_bvh::{self, from_str};
 /// let bvh_string = "
 ///     HIERARCHY
 ///     ROOT Hips
@@ -343,7 +343,7 @@ pub fn from_bytes<B: AsRef<[u8]>>(bytes: B) -> Result<Bvh, LoadError> {
 ///
 /// let bvh = from_str(bvh_string)?;
 /// # let _ = bvh;
-/// # Result::<(), bvh_anim::errors::LoadError>::Ok(())
+/// # Result::<(), studio_bvh::errors::LoadError>::Ok(())
 /// ```
 #[inline]
 pub fn from_str(string: &str) -> Result<Bvh, LoadError> {
@@ -384,7 +384,7 @@ impl Bvh {
     /// # Examples
     ///
     /// ```
-    /// # use bvh_anim::{self, Bvh};
+    /// # use studio_bvh::{self, Bvh};
     /// let bvh_string = br#"
     ///     HIERARCHY
     ///     ROOT Hips
@@ -404,7 +404,7 @@ impl Bvh {
     ///
     /// let bvh = Bvh::from_bytes(&bvh_string[..])?;
     /// # let _ = bvh;
-    /// # Result::<(), bvh_anim::errors::LoadError>::Ok(())
+    /// # Result::<(), studio_bvh::errors::LoadError>::Ok(())
     /// ```
     #[inline]
     pub fn from_bytes<B: AsRef<[u8]>>(bytes: B) -> Result<Self, LoadError> {
@@ -439,7 +439,7 @@ impl Bvh {
     /// # Examples
     ///
     /// ```no_run
-    /// # use bvh_anim::bvh;
+    /// # use studio_bvh::bvh;
     /// # use std::io;
     /// # use std::fs::File;
     /// let bvh = bvh! {
@@ -478,7 +478,7 @@ impl Bvh {
     /// # Examples
     ///
     /// ```
-    /// # use bvh_anim::{Bvh, bvh};
+    /// # use studio_bvh::{Bvh, bvh};
     /// let bvh = Bvh::new();
     /// assert!(bvh.root_joint().is_none());
     ///
@@ -531,7 +531,7 @@ impl Bvh {
     /// # Example
     ///
     /// ```
-    /// # use bvh_anim::Bvh;
+    /// # use studio_bvh::Bvh;
     /// # fn use_bvh(bvh: Bvh) {
     /// let bvh = // ...
     /// # bvh;
@@ -557,7 +557,7 @@ impl Bvh {
     /// # Example
     ///
     /// ```
-    /// # use bvh_anim::Bvh;
+    /// # use studio_bvh::Bvh;
     /// # fn use_bvh(bvh: Bvh) {
     /// let mut bvh = // ...
     /// # bvh;
@@ -583,7 +583,7 @@ impl Bvh {
     /// # Example
     ///
     /// ```
-    /// # use bvh_anim::bvh;
+    /// # use studio_bvh::bvh;
     /// let mut bvh = bvh! {
     ///     HIERARCHY
     ///     // hierarchy omitted...
@@ -631,7 +631,7 @@ impl Bvh {
     ///
     /// ```
     /// # fn main() {
-    /// # use bvh_anim::bvh;
+    /// # use studio_bvh::bvh;
     /// # use std::time::Duration;
     /// let bvh = bvh! {
     ///     # HIERARCHY
@@ -656,7 +656,7 @@ impl Bvh {
     ///
     /// ```
     /// # fn main() {
-    /// # use bvh_anim::bvh;
+    /// # use studio_bvh::bvh;
     /// # use std::time::Duration;
     /// let mut bvh = bvh! {
     ///     // ...
@@ -775,7 +775,7 @@ impl ChannelType {
     /// # Examples
     ///
     /// ```
-    /// # use bvh_anim::ChannelType;
+    /// # use studio_bvh::ChannelType;
     /// assert_eq!(
     ///     ChannelType::from_bytes("Xrotation").unwrap(),
     ///     ChannelType::RotationX);
@@ -808,7 +808,7 @@ impl ChannelType {
     /// # Example
     ///
     /// ```
-    /// # use bvh_anim::ChannelType;
+    /// # use studio_bvh::ChannelType;
     /// let channel_type = ChannelType::RotationX;
     /// assert!(channel_type.is_rotation());
     /// ```
@@ -826,7 +826,7 @@ impl ChannelType {
     /// # Example
     ///
     /// ```
-    /// # use bvh_anim::ChannelType;
+    /// # use studio_bvh::ChannelType;
     /// let channel_type = ChannelType::PositionZ;
     /// assert!(channel_type.is_position());
     /// ```
@@ -840,7 +840,7 @@ impl ChannelType {
     /// # Example
     ///
     /// ```
-    /// # use bvh_anim::{Axis, ChannelType};
+    /// # use studio_bvh::{Axis, ChannelType};
     /// let channel_type = ChannelType::PositionX;
     /// assert_eq!(channel_type.axis(), Axis::X);
     /// ```
@@ -916,7 +916,7 @@ impl Axis {
     /// # Examples
     ///
     /// ```
-    /// # use bvh_anim::Axis;
+    /// # use studio_bvh::Axis;
     /// assert_eq!(Axis::X.vector(), [1.0, 0.0, 0.0]);
     /// assert_eq!(Axis::Y.vector(), [0.0, 1.0, 0.0]);
     /// assert_eq!(Axis::Z.vector(), [0.0, 0.0, 1.0]);
