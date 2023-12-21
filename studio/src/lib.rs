@@ -7,6 +7,7 @@ use space_editor::prelude::space_undo::UndoPlugin;
 #[cfg(feature = "wasm")]
 use wasm_bindgen::prelude::*;
 
+mod bvh;
 mod camera_controller;
 mod debug;
 mod design_system;
@@ -21,6 +22,7 @@ mod viewport;
 mod world_grid;
 
 use crate::{
+    bvh::BvhPlugin,
     camera_controller::CameraControllerPlugin,
     debug::DebugPlugin,
     input::StudioInputPlugin,
@@ -181,18 +183,20 @@ pub fn start_internal(
             }),
             ..default()
         }),
-        CommonPlugins,
-    ));
-
-    if matches!(studio_mode, StudioMode::Editor) {
-        app.add_plugins((DefaultPickingPlugins, EditorPlugins));
-
-        // Only for registering components for undo
-        use space_editor::prelude::space_undo::AppAutoUndo;
-        app.auto_reflected_undo::<Transform>();
-    }
-
-    app.add_systems(
+        DefaultPickingPlugins,
+        DebugPlugin,
+        InteractionPlugin,
+        InspectorPlugin,
+        StudioInputPlugin,
+        InterpolationPlugin,
+        CameraControllerPlugin,
+        ScenePlugin,
+        SkyboxPlugin,
+        UiLayerPlugin,
+        WorldGridPlugin,
+        BvhPlugin, // TODO: Alphabetize these plugins
+    ))
+    .add_systems(
         Startup,
         move |mut cmd: Commands, mut ew: EventWriter<LoadSceneEvent>| {
             cmd.insert_resource(SkyboxId(skybox_id.clone()));

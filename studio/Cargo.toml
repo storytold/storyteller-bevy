@@ -13,6 +13,7 @@ name = "studio-standalone"
 path = "src/main.rs"
 
 [dependencies]
+anyhow = { workspace = true }
 bevy-inspector-egui = "0.21.0"
 bevy_mod_raycast = "0.16.0"
 bevy_rapier3d = "0.23.0"
@@ -24,6 +25,7 @@ parking_lot = "0.12.1"
 serde = { version = "1.0.192", optional = true }
 serde-wasm-bindgen = { version = "0.6.1", optional = true }
 serde_json = { version = "1.0.108", optional = true }
+studio-bvh = { path = "../studio-bvh" }
 wasm-bindgen = "0.2.84"
 web-sys = { version = "0.3.65", optional = true, features = [
 	"CustomEvent",

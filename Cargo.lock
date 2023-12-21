@@ -4113,6 +4113,7 @@ dependencies = [
  "serde-wasm-bindgen",
  "serde_json",
  "space_editor",
+ "studio-bvh",
  "wasm-bindgen",
  "web-sys",
 ]

@@ -18,6 +18,7 @@ use space_editor::prelude::{space_undo::OneFrameUndoIgnore, PrefabMarker};
 use wasm_bindgen::prelude::wasm_bindgen;
 
 use crate::{
+    bvh::Bvh,
     camera_controller::{CameraController, CameraControllerBundle},
     debug::DebugPoint,
     math::{Combinable, Extrema},
@@ -39,6 +40,7 @@ impl Plugin for ScenePlugin {
             .add_systems(
                 Update,
                 (
+                    spawn_test_bvh, // TODO
                     init_scene_loading,
                     tick_scene_loading.run_if(in_state(SceneState::Loading)),
                     tick_scene_spawning.run_if(in_state(SceneState::Spawning)),
@@ -114,10 +116,14 @@ pub struct SkeletalJoint;
 #[derive(Component)]
 pub struct SceneRoot;
 
-fn initialize(mut cmd: Commands) {
+#[derive(Resource, Deref, DerefMut)]
+struct TestBvh(Handle<Bvh>); // TODO
+
+fn initialize(mut cmd: Commands, r_assets: Res<AssetServer>) {
     // Camera, graphics settings
     let focus = Vec3::ZERO;
     let camera_xform = Transform::from_xyz(-2.5, 4.5, 5.0).looking_at(focus, Vec3::Y);
+
     cmd.spawn((
         Name::new("Main Camera"),
         MainCamera,
@@ -143,6 +149,24 @@ fn initialize(mut cmd: Commands) {
         },
         Fxaa::default(),
     ));
+
+    // TODO
+    cmd.insert_resource(TestBvh(r_assets.load("mocap/scott.bvh")));
+}
+
+// TODO
+fn spawn_test_bvh(
+    mut _cmd: Commands,
+    mut er_bvh_events: EventReader<AssetEvent<Bvh>>,
+    r_bvh: Res<TestBvh>,
+    ra_bvh: Res<Assets<Bvh>>,
+) {
+    for event in er_bvh_events.read() {
+        if matches!(event, AssetEvent::LoadedWithDependencies { .. }) {
+            let bvh = ra_bvh.get(&**r_bvh).unwrap();
+            info!("{bvh:#?}");
+        }
+    }
 }
 
 fn init_scene_loading(
