@@ -114,20 +114,20 @@ fn draw_debug_points(
 
 fn draw_skeletal_joints(
     mut gizmos: Gizmos,
-    q_joints: Query<(&GlobalTransform, Option<&Parent>), With<SkeletalJoint>>,
+    q_joints: Query<(&GlobalTransform, Option<&Parent>, &SkeletalJoint)>,
 ) {
-    for (world_xform, parent) in q_joints.iter() {
+    for (world_xform, parent, joint) in q_joints.iter() {
         let (_, rotation, xlation) = world_xform.to_scale_rotation_translation();
 
-        if let Some((parent_xform, _)) = parent.and_then(|parent| q_joints.get(**parent).ok()) {
+        if let Some((parent_xform, _, _)) = parent.and_then(|parent| q_joints.get(**parent).ok()) {
             let parent_xlation = parent_xform.translation();
             let bone_len = Vec3::distance(xlation, parent_xlation);
             let joint_radius = f32::min(0.01, bone_len / 6.);
 
-            gizmos.sphere(xlation, rotation, joint_radius, Color::BLACK);
-            gizmos.line(xlation, parent_xlation, Color::BLACK);
+            gizmos.sphere(xlation, rotation, joint_radius, joint.0);
+            gizmos.line(xlation, parent_xlation, joint.0);
         } else {
-            gizmos.sphere(xlation, rotation, 0.01, Color::BLACK);
+            gizmos.sphere(xlation, rotation, 0.01, joint.0);
         }
     }
 }

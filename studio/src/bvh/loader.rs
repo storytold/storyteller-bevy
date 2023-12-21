@@ -30,9 +30,15 @@ impl AssetLoader for BvhLoader {
             // FIXME: This is algorithmically terrible
             let bvh = studio_bvh::from_bytes(&buf).anyhow()?;
             let all_joints = bvh.joints().map(|j| j.data().clone()).collect::<Vec<_>>();
-            let joints = all_joints
-                .iter()
-                .map(|joint| joint.clone().into_bvh_joint(&all_joints))
+            let joints = bvh
+                .joints()
+                .filter_map(|joint| {
+                    if joint.is_root() {
+                        Some(joint.data().clone().into_bvh_joint(&all_joints))
+                    } else {
+                        None
+                    }
+                })
                 .collect();
 
             Ok(Bvh { joints })

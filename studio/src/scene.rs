@@ -18,7 +18,7 @@ use space_editor::prelude::{space_undo::OneFrameUndoIgnore, PrefabMarker};
 use wasm_bindgen::prelude::wasm_bindgen;
 
 use crate::{
-    bvh::Bvh,
+    bvh::{Bvh, BvhJoint},
     camera_controller::{CameraController, CameraControllerBundle},
     debug::DebugPoint,
     math::{Combinable, Extrema},
@@ -111,7 +111,7 @@ pub struct LoadSceneEvent(pub String);
 pub struct SceneElement;
 
 #[derive(Component)]
-pub struct SkeletalJoint;
+pub struct SkeletalJoint(pub Color);
 
 #[derive(Component)]
 pub struct SceneRoot;
@@ -156,7 +156,7 @@ fn initialize(mut cmd: Commands, r_assets: Res<AssetServer>) {
 
 // TODO
 fn spawn_test_bvh(
-    mut _cmd: Commands,
+    mut cmd: Commands,
     mut er_bvh_events: EventReader<AssetEvent<Bvh>>,
     r_bvh: Res<TestBvh>,
     ra_bvh: Res<Assets<Bvh>>,
@@ -164,8 +164,42 @@ fn spawn_test_bvh(
     for event in er_bvh_events.read() {
         if matches!(event, AssetEvent::LoadedWithDependencies { .. }) {
             let bvh = ra_bvh.get(&**r_bvh).unwrap();
-            info!("{bvh:#?}");
+            for joint in bvh.joints.iter() {
+                let scale = Vec3::splat(0.01);
+                let offset = vec3(0., 0.849, -0.024);
+
+                let mut parent = cmd.spawn((
+                    Name::new("BVH Skeleton"),
+                    SpatialBundle::from_transform(Transform {
+                        rotation: default(),
+                        translation: offset,
+                        scale,
+                    }),
+                ));
+                let parent_ent = parent.id();
+
+                spawn_joint(parent.commands(), joint, Some(parent_ent));
+            }
         }
+    }
+}
+
+// TODO
+fn spawn_joint(cmd: &mut Commands, joint: &BvhJoint, parent: Option<Entity>) {
+    let mut spawned = cmd.spawn((
+        Name::new(joint.name.clone()),
+        SpatialBundle::from_transform(joint.transform),
+        SceneElement,
+        SkeletalJoint(Color::CYAN),
+    ));
+    let spawned_ent = spawned.id();
+
+    if let Some(parent) = parent {
+        spawned.set_parent(parent);
+    }
+
+    for child in joint.children.iter() {
+        spawn_joint(spawned.commands(), child, Some(spawned_ent));
     }
 }
 
@@ -301,7 +335,7 @@ fn tag_scene_elements(
         cmd.entity(ent).insert(NoFrustumCulling);
 
         for &joint in skinned_mesh.joints.iter() {
-            cmd.entity(joint).insert(SkeletalJoint);
+            cmd.entity(joint).insert(SkeletalJoint(Color::BLACK));
         }
     }
 }
