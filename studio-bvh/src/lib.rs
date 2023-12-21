@@ -192,7 +192,7 @@ mod parse;
 use crate::{
     errors::{LoadError, ParseChannelError},
     frames::{FrameCursor, Frames, FramesMut},
-    joint::{JointData, Offset},
+    joint::Offset,
 };
 use bstr::{
     io::{BufReadExt, ByteLines},
@@ -217,7 +217,7 @@ pub mod frames {
     pub use crate::frame_iter::{Frame, FrameIndex, FrameMut, Frames, FramesMut};
 }
 
-pub use joint::{Joint, JointMut, Joints, JointsMut};
+pub use joint::{Joint, JointData, JointMut, Joints, JointsMut};
 #[doc(hidden)]
 pub use macros::BvhLiteralBuilder;
 

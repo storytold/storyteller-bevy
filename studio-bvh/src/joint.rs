@@ -17,7 +17,7 @@ pub type Offset = [f32; 3];
 
 /// Internal representation of a joint.
 #[derive(Clone, Debug, PartialEq)]
-pub(crate) enum JointData {
+pub enum JointData {
     /// Root of the skeletal heirarchy.
     Root {
         /// Name of the root `Joint`.
@@ -44,17 +44,17 @@ pub(crate) enum JointData {
 
 impl JointData {
     #[inline]
-    pub(crate) const fn is_root(&self) -> bool {
+    pub const fn is_root(&self) -> bool {
         matches!(*self, JointData::Root { .. })
     }
 
     #[inline]
-    pub(crate) const fn is_child(&self) -> bool {
+    pub const fn is_child(&self) -> bool {
         matches!(*self, JointData::Child { .. })
     }
 
     #[inline]
-    pub(crate) fn name(&self) -> &[u8] {
+    pub fn name(&self) -> &[u8] {
         let name = match *self {
             JointData::Root { ref name, .. } | JointData::Child { ref name, .. } => name,
         };
@@ -63,7 +63,7 @@ impl JointData {
     }
 
     #[inline]
-    pub(crate) fn name_str(&self) -> Result<&str, Utf8Error> {
+    pub fn name_str(&self) -> Result<&str, Utf8Error> {
         let name = match *self {
             JointData::Root { ref name, .. } => name,
             JointData::Child { ref name, .. } => name,
@@ -73,14 +73,14 @@ impl JointData {
     }
 
     #[inline]
-    pub(crate) const fn offset(&self) -> &Offset {
+    pub const fn offset(&self) -> &Offset {
         match *self {
             JointData::Child { ref offset, .. } | JointData::Root { ref offset, .. } => offset,
         }
     }
 
     #[inline]
-    pub(crate) const fn end_site(&self) -> Option<&Offset> {
+    pub const fn end_site(&self) -> Option<&Offset> {
         match *self {
             JointData::Child {
                 ref end_site_offset,
@@ -220,7 +220,7 @@ pub(crate) type JointNameInner = SmallVec<[u8; mem::size_of::<String>()]>;
 
 /// Wrapper struct for the `Joint` name type.
 #[derive(Clone, Default, Eq, Hash, Ord)]
-pub(crate) struct JointName(pub(crate) JointNameInner);
+pub struct JointName(pub(crate) JointNameInner);
 
 impl JointName {
     #[inline]
@@ -365,7 +365,7 @@ impl fmt::Display for JointName {
 /// Data private to joints.
 #[doc(hidden)]
 #[derive(Clone, Eq, PartialEq)]
-pub(crate) struct JointPrivateData {
+pub struct JointPrivateData {
     /// Index of this `Joint` in the array.
     pub(crate) self_index: usize,
     /// The parent index in the array of `JointPrivateData`s in the `Bvh`.
@@ -805,7 +805,7 @@ impl Joint<'_> {
 
     /// Access a read-only view of the internal data of the `Joint`.
     #[inline]
-    pub(crate) const fn data(&self) -> &JointData {
+    pub const fn data(&self) -> &JointData {
         &self.joints[self.index]
     }
 }

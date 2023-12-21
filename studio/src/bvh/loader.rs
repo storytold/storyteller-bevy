@@ -1,7 +1,7 @@
 use bevy::{
     asset::{io::Reader, AssetLoader, AsyncReadExt, LoadContext},
     prelude::*,
-    utils::{BoxedFuture, HashMap},
+    utils::BoxedFuture,
 };
 
 use super::{
@@ -21,39 +21,50 @@ impl AssetLoader for BvhLoader {
         &'a self,
         reader: &'a mut Reader,
         _settings: &'a Self::Settings,
-        cx: &'a mut LoadContext,
+        _cx: &'a mut LoadContext,
     ) -> BoxedFuture<'a, Result<Self::Asset, Self::Error>> {
         Box::pin(async move {
             let mut buf = vec![];
             reader.read_to_end(&mut buf).await.anyhow()?;
 
+            // FIXME: This is algorithmically terrible
             let bvh = studio_bvh::from_bytes(&buf).anyhow()?;
+            let all_joints = bvh.joints().map(|j| j.data().clone()).collect::<Vec<_>>();
+            let joints = all_joints
+                .iter()
+                .map(|joint| joint.clone().into_bvh_joint(&all_joints))
+                .collect();
 
-            let mut joints = Vec::<Handle<BvhJoint>>::new();
-            let mut named_joints = HashMap::new();
-
-            for (idx, joint) in bvh.joints().enumerate() {
-                let label = format!("Joint{idx}");
-                let asset = BvhJoint {
-                    transform: Transform::from_translation((*joint.offset()).into()),
-                    parent: joint.parent_index().map(|idx| joints[idx].clone()),
-                };
-
-                let handle = cx.add_labeled_asset(label, asset);
-                joints.push(handle.clone());
-
-                let name = String::from_utf8_lossy(joint.name()).to_string();
-                named_joints.insert(name, handle);
-            }
-
-            Ok(Bvh {
-                joints,
-                named_joints,
-            })
+            Ok(Bvh { joints })
         })
     }
 
     fn extensions(&self) -> &[&str] {
         &["bvh"]
+    }
+}
+
+trait IntoBvhJoint: Sized {
+    fn into_bvh_joint(self, data: &[Self]) -> BvhJoint;
+}
+
+impl IntoBvhJoint for studio_bvh::JointData {
+    fn into_bvh_joint(self, data: &[Self]) -> BvhJoint {
+        BvhJoint {
+            name: String::from_utf8_lossy(self.name()).into(),
+            transform: Transform::from_translation((*self.offset()).into()),
+            children: data
+                .iter()
+                .filter_map(|joint| {
+                    joint.parent_index().and_then(|idx| {
+                        if idx == self.index() {
+                            Some(joint.clone().into_bvh_joint(data))
+                        } else {
+                            None
+                        }
+                    })
+                })
+                .collect(),
+        }
     }
 }
