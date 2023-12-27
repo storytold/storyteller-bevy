@@ -236,7 +236,7 @@ export class AppElement extends LitElement {
 						<sts-icon icon="up-down-left-right">Translate</sts-icon>
 						<input type="checkbox"
 							name="translate"
-							?checked=${this.transformType & TransformType.Translate}
+							?checked=${Boolean(this.transformType & TransformType.Translate)}
 							@input=${this.onTransformTypeChange}
 						/>
 					</label>
@@ -244,7 +244,7 @@ export class AppElement extends LitElement {
 						<sts-icon icon="rotate">Rotate</sts-icon>
 						<input type="checkbox"
 							name="rotate"
-							?checked=${this.transformType & TransformType.Rotate}
+							?checked=${Boolean(this.transformType & TransformType.Rotate)}
 							@input=${this.onTransformTypeChange}
 						/>
 					</label>
@@ -253,7 +253,7 @@ export class AppElement extends LitElement {
 						<input type="checkbox"
 							name="scale"
 							disabled
-							?checked=${this.transformType & TransformType.Scale}
+							?checked=${Boolean(this.transformType & TransformType.Scale)}
 							@input=${this.onTransformTypeChange}
 						/>
 					</label>
