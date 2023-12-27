@@ -4,7 +4,7 @@ import { inject } from "@storyteller/framework";
 import { LitElement, PropertyValues, html, unsafeCSS } from "lit";
 import { customElement, property } from "lit/decorators.js";
 
-import { CANVAS_PROVIDER, CanvasProvider } from "./canvas-provider.element";
+import { CANVAS_PROVIDER, type CanvasProvider } from "./canvas-provider.element";
 
 import styles from "./viewer.element.scss?inline";
 
