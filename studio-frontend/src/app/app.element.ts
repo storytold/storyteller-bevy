@@ -8,19 +8,23 @@ import {
 	type SceneStateEvent,
 	TransformSpace,
 	TransformType,
-	ViewportSize,
 	SceneState,
 } from "@storyteller/studio";
+import { CanvasProvider } from "@storyteller/studio-web/canvas-provider";
 import { match } from "@storyteller/utility";
-import { LitElement, html, nothing, unsafeCSS } from "lit";
+import { LitElement, html, nothing } from "lit";
 import { customElement, state } from "lit/decorators.js";
+import { classMap } from "lit-html/directives/class-map.js";
+import { Ref, createRef, ref } from "lit-html/directives/ref.js";
 
+import "@storyteller/studio-web/canvas-provider";
+import "@storyteller/studio-web/viewer";
 import "./button.element";
 import "./help.element";
 import "./icon.element";
 import "./tree.element";
 
-import styles from "./app.element.scss?inline";
+import "./app.element.scss";
 
 interface SceneObject extends Omit<studio.SceneObject, "children"> {
 	children: SceneObject[];
@@ -28,8 +32,6 @@ interface SceneObject extends Omit<studio.SceneObject, "children"> {
 
 @customElement("app-root")
 export class AppElement extends LitElement {
-	static override styles = unsafeCSS(styles);
-
 	@state() showHelp = false;
 	@state() loading = true;
 
@@ -41,18 +43,17 @@ export class AppElement extends LitElement {
 
 	#sceneObjects: studio.SceneObject[] = [];
 	#entityMap = new Map<string, SceneObject>();
-	#studioCanvas?: HTMLCanvasElement | null;
+	#canvasProvider: Ref<CanvasProvider> = createRef();
 
-	override connectedCallback(): void {
-		this.#studioCanvas = this.#initStudio();
-		super.connectedCallback();
+	get #studioCanvas(): HTMLCanvasElement | null {
+		const provider = this.#canvasProvider.value;
+		if (!provider) return null;
+
+		return document.getElementById(provider.canvasId) as HTMLCanvasElement | null;
 	}
 
-	@on("window:resize")
-	onWindowResize(): void {
-		const width = window.innerWidth;
-		const height = window.innerHeight;
-		studio.resize(new ViewportSize(width, height));
+	protected override createRenderRoot(): Element | ShadowRoot {
+		return this;
 	}
 
 	@on("keydown")
@@ -82,7 +83,6 @@ export class AppElement extends LitElement {
 		}));
 	}
 
-	@on("window:scene-state")
 	onSceneStateChange({ detail: state }: SceneStateEvent): void {
 		console.log("scene state change:", SceneState[state]);
 
@@ -186,105 +186,102 @@ export class AppElement extends LitElement {
 		console.log("Hierarchy:", this.sceneObjects);
 	}
 
-	#initStudio(): HTMLCanvasElement | null {
-		const width = window.innerWidth;
-		const height = window.innerHeight;
-		try {
-			studio.startViewer(
-				"couch",
-				"test_scene",
-				"#studio_canvas",
-				"Storyteller Studio",
-				new ViewportSize(width, height),
-			);
-		} catch (err) {
-			if (!(err as Error).message?.startsWith("Using exceptions for control flow"))
-				throw err;
-		}
-
-		return document.querySelector<HTMLCanvasElement>(`canvas[alt="Storyteller Studio"]`);
-	}
-
 	protected override render = () => html`
-		<!-- TODO: What's a "component"? -->
-		<div class="toolbar" role="toolbar">
-			<div class="toolbar-group" role="group">
-				<label class="btn-toggle">
-					<sts-icon icon="cube">Local</sts-icon>
-					<input type="radio"
-						name="transform-space"
-						value="local"
-						?checked=${this.transformSpace === TransformSpace.Local}
-						@input=${this.onTransformSpaceChange}
-					/>
-				</label>
-				<label class="btn-toggle">
-					<sts-icon icon="globe">Global</sts-icon>
-					<input type="radio"
-						name="transform-space"
-						value="world"
-						?checked=${this.transformSpace === TransformSpace.World}
-						@input=${this.onTransformSpaceChange}
-					/>
-				</label>
-			</div>
-			<div class="toolbar-group" role="group">
-				<label class="btn-toggle">
-					<sts-icon icon="up-down-left-right">Translate</sts-icon>
-					<input type="checkbox"
-						name="translate"
-						?checked=${this.transformType & TransformType.Translate}
-						@input=${this.onTransformTypeChange}
-					/>
-				</label>
-				<!-- disabled -->
-				<label class="btn-toggle">
-					<sts-icon icon="rotate">Rotate</sts-icon>
-					<input type="checkbox"
-						name="rotate"
-						?checked=${this.transformType & TransformType.Rotate}
-						@input=${this.onTransformTypeChange}
-					/>
-				</label>
-				<label class="btn-toggle">
-					<sts-icon icon="scale">Scale</sts-icon>
-					<input type="checkbox"
-						name="scale"
-						disabled
-						?checked=${this.transformType & TransformType.Scale}
-						@input=${this.onTransformTypeChange}
-					/>
-				</label>
-			</div>
-		</div>
-
-		<div class="hierarchy">
-			${this.sceneObjects.map(obj => html`
-				<sts-tree class="scene-object"
-					id=${obj.id}
-					.name=${obj.name}
-					.treeChildren=${obj.children}
-				></sts-tree>
-			`)}
-		</div>
-
-		<sts-button class="btn-help"
-			icon="circle-info"
-			@click=${this.toggleHelp}
+		<sts-canvas-provider
+			class="app-root"
+			${ref(this.#canvasProvider as any)}
 		>
-			Help
-		</sts-button>
+			<sts-viewer
+				objectId="sample-room"
+				skyboxId="test_scene"
+				@scene-state=${this.onSceneStateChange}
+			></sts-viewer>
 
-		${this.showHelp ? html`
-			<sts-help class="help"></sts-help>
-		` : nothing}
-
-		${this.loading ? html`
-			<!-- TODO: Animated spinner or something -- talk to our designers -->
-			<div class="loading">
-				<h1>Loading</h1>
+			<div class="toolbar v-start h-start" role="toolbar">
+				<div class="toolbar-group" role="group">
+					<sts-button
+						class=${classMap({ active: this.showHelp })}
+						icon="circle-info"
+						@click=${this.toggleHelp}
+					>
+						Help
+					</sts-button>
+				</div>
 			</div>
-		` : nothing}
+
+			<!-- TODO: What's a "component"? -->
+			<div class="toolbar v-start h-center" role="toolbar">
+				<div class="toolbar-group" role="group">
+					<label class="btn-toggle">
+						<sts-icon icon="cube">Local</sts-icon>
+						<input type="radio"
+							name="transform-space"
+							value="local"
+							?checked=${this.transformSpace === TransformSpace.Local}
+							@input=${this.onTransformSpaceChange}
+						/>
+					</label>
+					<label class="btn-toggle">
+						<sts-icon icon="globe">Global</sts-icon>
+						<input type="radio"
+							name="transform-space"
+							value="world"
+							?checked=${this.transformSpace === TransformSpace.World}
+							@input=${this.onTransformSpaceChange}
+						/>
+					</label>
+				</div>
+				<div class="toolbar-group" role="group">
+					<label class="btn-toggle">
+						<sts-icon icon="up-down-left-right">Translate</sts-icon>
+						<input type="checkbox"
+							name="translate"
+							?checked=${this.transformType & TransformType.Translate}
+							@input=${this.onTransformTypeChange}
+						/>
+					</label>
+					<!-- disabled -->
+					<label class="btn-toggle">
+						<sts-icon icon="rotate">Rotate</sts-icon>
+						<input type="checkbox"
+							name="rotate"
+							?checked=${this.transformType & TransformType.Rotate}
+							@input=${this.onTransformTypeChange}
+						/>
+					</label>
+					<label class="btn-toggle">
+						<sts-icon icon="scale">Scale</sts-icon>
+						<input type="checkbox"
+							name="scale"
+							disabled
+							?checked=${this.transformType & TransformType.Scale}
+							@input=${this.onTransformTypeChange}
+						/>
+					</label>
+				</div>
+			</div>
+
+			<div class="hierarchy v-start h-end">
+				${this.sceneObjects.map(obj => html`
+					<sts-tree class="scene-object"
+						id=${obj.id}
+						.name=${obj.name}
+						.treeChildren=${obj.children}
+					></sts-tree>
+				`)}
+			</div>
+
+			${this.showHelp ? html`
+				<sts-help class="help v-after-toolbar h-start"></sts-help>
+			` : nothing}
+
+			${this.loading ? html`
+				<!-- TODO: Animated spinner or something -- talk to our designers -->
+				<div class="loading">
+					<h1>Loading</h1>
+				</div>
+			` : nothing}
+		</sts-canvas-provider>
 	`;
 }
 
