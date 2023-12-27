@@ -22,6 +22,7 @@ import "@storyteller/studio-web/viewer";
 import "./button.element";
 import "./help.element";
 import "./icon.element";
+import "./toolbar.element";
 import "./tree.element";
 
 import "./app.element.scss";
@@ -197,8 +198,8 @@ export class AppElement extends LitElement {
 				@scene-state=${this.onSceneStateChange}
 			></sts-viewer>
 
-			<div class="toolbar v-start h-start" role="toolbar">
-				<div class="toolbar-group" role="group">
+			<sts-toolbar class="v-start h-start">
+				<sts-toolbar-group>
 					<sts-button
 						class=${classMap({ active: this.showHelp })}
 						icon="circle-info"
@@ -206,12 +207,11 @@ export class AppElement extends LitElement {
 					>
 						Help
 					</sts-button>
-				</div>
-			</div>
+				</sts-toolbar-group>
+			</sts-toolbar>
 
-			<!-- TODO: What's a "component"? -->
-			<div class="toolbar v-start h-center" role="toolbar">
-				<div class="toolbar-group" role="group">
+			<sts-toolbar class="v-start h-center">
+				<sts-toolbar-group>
 					<label class="btn-toggle">
 						<sts-icon icon="cube">Local</sts-icon>
 						<input type="radio"
@@ -230,8 +230,8 @@ export class AppElement extends LitElement {
 							@input=${this.onTransformSpaceChange}
 						/>
 					</label>
-				</div>
-				<div class="toolbar-group" role="group">
+				</sts-toolbar-group>
+				<sts-toolbar-group>
 					<label class="btn-toggle">
 						<sts-icon icon="up-down-left-right">Translate</sts-icon>
 						<input type="checkbox"
@@ -240,7 +240,6 @@ export class AppElement extends LitElement {
 							@input=${this.onTransformTypeChange}
 						/>
 					</label>
-					<!-- disabled -->
 					<label class="btn-toggle">
 						<sts-icon icon="rotate">Rotate</sts-icon>
 						<input type="checkbox"
@@ -258,8 +257,8 @@ export class AppElement extends LitElement {
 							@input=${this.onTransformTypeChange}
 						/>
 					</label>
-				</div>
-			</div>
+				</sts-toolbar-group>
+			</sts-toolbar>
 
 			<div class="hierarchy v-start h-end">
 				${this.sceneObjects.map(obj => html`

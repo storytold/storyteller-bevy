@@ -1,0 +1,22 @@
+:host {
+	display: flex;
+	gap: 2px;
+}
+
+::slotted(*) {
+	border-radius: 0;
+}
+
+::slotted(:first-child) {
+	border: {
+		top-left-radius: 8px;
+		bottom-left-radius: 8px;
+	}
+}
+
+::slotted(:last-child) {
+	border: {
+		top-right-radius: 8px;
+		bottom-right-radius: 8px;
+	}
+}
