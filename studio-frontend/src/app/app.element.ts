@@ -23,6 +23,7 @@ import "./button.element";
 import "./help.element";
 import "./icon.element";
 import "./toolbar.element";
+import "./transform-toolbar.element";
 import "./tree.element";
 
 import "./app.element.scss";
@@ -125,38 +126,14 @@ export class AppElement extends LitElement {
 		this.showHelp = !this.showHelp;
 	}
 
-	onTransformSpaceChange(event: InputEvent): void {
-		const { value } = event.target as HTMLInputElement;
-		const space = match (value, {
-			"local": () => TransformSpace.Local,
-			"world": () => TransformSpace.World,
-			_: () => {
-				throw new Error(`Unknown transform space: "${value}"`);
-			}
-		});
-
+	onTransformSpaceChange({ detail: space }: CustomEvent<TransformSpace>): void {
 		this.transformSpace = space;
 		studio.setTransformSpace(space);
 	}
 
-	onTransformTypeChange(event: InputEvent): void {
-		const { name, checked } = event.target as HTMLInputElement;
-		const flag = match (name, {
-			"translate": () => TransformType.Translate,
-			"rotate": () => TransformType.Rotate,
-			"scale": () => TransformType.Scale,
-			_: () => {
-				throw new Error(`Unknown transform type: "${name}"`);
-			}
-		});
-
-		if (checked) {
-			this.transformType |= flag;
-		} else {
-			this.transformType &= ~flag;
-		}
-
-		studio.setTransformType(this.transformType);
+	onTransformTypeChange({ detail: type }: CustomEvent<TransformType>): void {
+		this.transformType = type;
+		studio.setTransformType(type);
 	}
 
 	// TODO: Get some help from someone who knows what an algorithm is
@@ -210,55 +187,13 @@ export class AppElement extends LitElement {
 				</sts-toolbar-group>
 			</sts-toolbar>
 
-			<sts-toolbar class="v-start h-center">
-				<sts-toolbar-group>
-					<label class="btn-toggle">
-						<sts-icon icon="cube">Local</sts-icon>
-						<input type="radio"
-							name="transform-space"
-							value="local"
-							?checked=${this.transformSpace === TransformSpace.Local}
-							@input=${this.onTransformSpaceChange}
-						/>
-					</label>
-					<label class="btn-toggle">
-						<sts-icon icon="globe">Global</sts-icon>
-						<input type="radio"
-							name="transform-space"
-							value="world"
-							?checked=${this.transformSpace === TransformSpace.World}
-							@input=${this.onTransformSpaceChange}
-						/>
-					</label>
-				</sts-toolbar-group>
-				<sts-toolbar-group>
-					<label class="btn-toggle">
-						<sts-icon icon="up-down-left-right">Translate</sts-icon>
-						<input type="checkbox"
-							name="translate"
-							?checked=${Boolean(this.transformType & TransformType.Translate)}
-							@input=${this.onTransformTypeChange}
-						/>
-					</label>
-					<label class="btn-toggle">
-						<sts-icon icon="rotate">Rotate</sts-icon>
-						<input type="checkbox"
-							name="rotate"
-							?checked=${Boolean(this.transformType & TransformType.Rotate)}
-							@input=${this.onTransformTypeChange}
-						/>
-					</label>
-					<label class="btn-toggle">
-						<sts-icon icon="scale">Scale</sts-icon>
-						<input type="checkbox"
-							name="scale"
-							disabled
-							?checked=${Boolean(this.transformType & TransformType.Scale)}
-							@input=${this.onTransformTypeChange}
-						/>
-					</label>
-				</sts-toolbar-group>
-			</sts-toolbar>
+			<sts-transform-toolbar
+				class="v-start h-center"
+				.type=${this.transformType}
+				@type-change=${this.onTransformTypeChange}
+				.space=${this.transformSpace}
+				@space-change=${this.onTransformSpaceChange}
+			></sts-transform-toolbar>
 
 			<div class="hierarchy v-start h-end">
 				${this.sceneObjects.map(obj => html`

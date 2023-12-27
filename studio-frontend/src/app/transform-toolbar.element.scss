@@ -1,0 +1,57 @@
+.btn-toggle {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	position: relative;
+	font-size: 16px;
+	padding: 10px 12px;
+	pointer-events: auto;
+
+	// TODO: Copypasta
+	background: #0006;
+	color: #FFFC;
+	backdrop-filter: blur(16px);
+	transition: {
+		property: background, color;
+		duration: 0.1s;
+		timing-function: linear;
+	}
+
+	&:hover {
+		background: #0008;
+		color: #FFF;
+	}
+
+	&:has(:focus-visible) {
+		z-index: 1;
+		outline: 4px solid #2F83FFBF;
+	}
+
+	&:has(:checked) {
+		background: #7A2C34E3;
+		color: #FFF;
+
+		&:hover {
+			background: #90363F;
+		}
+	}
+
+	&:has(:disabled) {
+		background: #0003 !important;
+		color: #FFF6 !important;
+	}
+
+	input {
+		display: block;
+		appearance: none;
+		border: 0;
+		margin: 0;
+		padding: 0;
+		opacity: 0;
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		z-index: 1;
+	}
+}
