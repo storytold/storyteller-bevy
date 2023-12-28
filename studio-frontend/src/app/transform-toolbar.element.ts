@@ -103,10 +103,3 @@ export class TransformToolbarElement extends LitElement {
 		</sts-toolbar>
 	`;
 }
-
-declare global {
-	export interface HTMLElementEventMap {
-		"space-change": CustomEvent<TransformSpace>;
-		"type-change": CustomEvent<TransformType>;
-	}
-}
