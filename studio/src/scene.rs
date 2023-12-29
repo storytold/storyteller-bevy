@@ -18,7 +18,7 @@ use space_editor::prelude::{space_undo::OneFrameUndoIgnore, PrefabMarker};
 use wasm_bindgen::prelude::wasm_bindgen;
 
 use crate::{
-    bvh::{Bvh, BvhJoint},
+    bvh::{Bvh, BvhJoint, CommandsSpawnBvhExt},
     camera_controller::{CameraController, CameraControllerBundle},
     debug::DebugPoint,
     math::{Combinable, Extrema},
@@ -156,52 +156,54 @@ fn initialize(mut cmd: Commands, r_assets: Res<AssetServer>) {
 
 // TODO
 fn spawn_test_bvh(
-    mut cmd: Commands,
+    mut commands: Commands,
     mut er_bvh_events: EventReader<AssetEvent<Bvh>>,
     r_bvh: Res<TestBvh>,
-    ra_bvh: Res<Assets<Bvh>>,
 ) {
     for event in er_bvh_events.read() {
         if matches!(event, AssetEvent::LoadedWithDependencies { .. }) {
-            let bvh = ra_bvh.get(&**r_bvh).unwrap();
-            for joint in bvh.joints.iter() {
-                let scale = Vec3::splat(0.01);
-                let offset = vec3(0., 0.849, -0.024);
+            commands.spawn_bvh_with_transform(&r_bvh.0, Transform::from_scale(Vec3::splat(0.01)).with_translation(Vec3::new(0., 0.849, -0.024)));
 
-                let mut parent = cmd.spawn((
-                    Name::new("BVH Skeleton"),
-                    SpatialBundle::from_transform(Transform {
-                        rotation: default(),
-                        translation: offset,
-                        scale,
-                    }),
-                ));
-                let parent_ent = parent.id();
+            info!("SPAWNED BVH")
+            // let bvh = ra_bvh.get(&**r_bvh).unwrap();
+            // for joint in bvh.joints.iter() {
+            //     let scale = Vec3::splat(0.01);
+            //     let offset = vec3(0., 0.849, -0.024);
 
-                spawn_joint(parent.commands(), joint, Some(parent_ent));
-            }
+            //     let mut parent = cmd.spawn((
+            //         Name::new("BVH Skeleton"),
+            //         SpatialBundle::from_transform(Transform {
+            //             rotation: default(),
+            //             translation: offset,
+            //             scale,
+            //         }),
+            //     ));
+            //     let parent_ent = parent.id();
+
+            //     spawn_joint(parent.commands(), joint, Some(parent_ent));
+            // }
         }
     }
 }
 
-// TODO
-fn spawn_joint(cmd: &mut Commands, joint: &BvhJoint, parent: Option<Entity>) {
-    let mut spawned = cmd.spawn((
-        Name::new(joint.name.clone()),
-        SpatialBundle::from_transform(joint.transform),
-        SceneElement,
-        SkeletalJoint(Color::CYAN),
-    ));
-    let spawned_ent = spawned.id();
+// // TODO
+// fn spawn_joint(cmd: &mut Commands, joint: &BvhJoint, parent: Option<Entity>) {
+//     let mut spawned = cmd.spawn((
+//         Name::new(joint.name.clone()),
+//         SpatialBundle::from_transform(joint.transform),
+//         SceneElement,
+//         SkeletalJoint(Color::CYAN),
+//     ));
+//     let spawned_ent = spawned.id();
 
-    if let Some(parent) = parent {
-        spawned.set_parent(parent);
-    }
+//     if let Some(parent) = parent {
+//         spawned.set_parent(parent);
+//     }
 
-    for child in joint.children.iter() {
-        spawn_joint(spawned.commands(), child, Some(spawned_ent));
-    }
-}
+//     for child in joint.children.iter() {
+//         spawn_joint(spawned.commands(), child, Some(spawned_ent));
+//     }
+// }
 
 fn init_scene_loading(
     mut cmd: Commands,

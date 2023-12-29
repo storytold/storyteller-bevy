@@ -8,7 +8,7 @@ use std::{
     ffi::{CStr, CString},
     fmt, mem,
     ops::{Deref, DerefMut},
-    str,
+    str, collections::VecDeque, net,
 };
 
 /// A 3-element point representing the location of a joint offset or
@@ -397,12 +397,16 @@ impl fmt::Debug for JointPrivateData {
     }
 }
 
+pub(crate) enum JointIterType {
+    All(usize),
+    Sequence(VecDeque<usize>)
+}
+
 /// An iterator over the `Joint`s of a `Bvh` skeleton.
 pub struct Joints<'a> {
     pub(crate) joints: &'a [JointData],
     // pub(crate) motion_values: &'a [f32],
-    pub(crate) current_joint: usize,
-    pub(crate) from_child: Option<usize>,
+    pub(crate) iter_type: JointIterType,
 }
 
 impl fmt::Debug for Joints<'_> {
@@ -418,8 +422,15 @@ impl<'a> Joints<'a> {
         Joints {
             joints,
             // clips,
-            current_joint: 0,
-            from_child: None,
+            iter_type: JointIterType::All(0),
+        }
+    }
+
+    pub(crate) const fn iter_from(joints: &'a [JointData], start : usize) -> Self {
+        Joints {
+            joints,
+            // clips,
+            iter_type: JointIterType::All(start),
         }
     }
 
@@ -431,24 +442,25 @@ impl<'a> Joints<'a> {
     /// need to iterate through to the end sites of all children, you will
     /// need to continually call `iter_children` on each `Joint` in the iterator.
     pub(crate) fn iter_children(joint: &Joint<'a>) -> Self {
-        let first_child = joint
+        let first_child : VecDeque<usize>  = joint
             .joints
             .iter()
-            .find(|jd| {
+            .filter(|jd| {
                 if let Some(p) = jd.private_data() {
                     p.parent_index == joint.index
                 } else {
                     false
                 }
             })
-            .map(JointData::index)
-            .unwrap();
+            .map(|value| value.index())
+            .collect();
+            // .map(JointData::index)
+            // .unwrap();
 
         Joints {
             joints: joint.joints,
             // clips: joint.clips,
-            current_joint: joint.data().index(),
-            from_child: Some(first_child),
+            iter_type: JointIterType::Sequence(first_child),
         }
     }
 
@@ -472,22 +484,58 @@ impl<'a> Joints<'a> {
 impl<'a> Iterator for Joints<'a> {
     type Item = Joint<'a>;
     fn next(&mut self) -> Option<Self::Item> {
-        if self.current_joint >= self.joints.len() {
-            return None;
+        match &mut self.iter_type {
+            JointIterType::All(mut current) => {
+                if current >= self.joints.len() {
+                    return None;
+                }
+
+                let joint = Some(Joint {
+                    index: current,
+                    joints: self.joints,
+                });
+
+                current += 1;
+                joint
+            },
+            JointIterType::Sequence(ref mut joints) => {
+                let Some(next) = joints.pop_front()
+                else { return None };
+
+                if next >= self.joints.len() {
+                    return None;
+                }
+
+                Some(Joint {
+                    index: next,
+                    joints: self.joints,
+                })
+            },
         }
 
-        let joint = Some(Joint {
-            index: self.current_joint,
-            joints: self.joints,
-        });
 
-        if self.from_child.is_none() {
-            self.current_joint += 1;
-        } else {
-            unimplemented!()
-        }
+        // if self.current_joint >= self.joints.len() {
+        //     return None;
+        // }
 
-        joint
+        // let joint = Some(Joint {
+        //     index: self.current_joint,
+        //     joints: self.joints,
+        // });
+
+        // // if let Some(from_child) = self.from_child {
+            
+        // // } else {
+        // //     self.current_joint += 1;
+        // // }
+
+        // // if self.from_child.is_none() {
+        //     self.current_joint += 1;
+        // // } else {
+        // //     return None
+        // // }
+
+        // joint
     }
 }
 
