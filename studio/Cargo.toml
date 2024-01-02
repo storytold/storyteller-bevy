@@ -46,6 +46,7 @@ wasm = [
 	"dep:web-sys",
 	"bevy_rapier3d/wasm-bindgen",
 ]
+desktop = []
 
 [dependencies.bevy]
 workspace = true

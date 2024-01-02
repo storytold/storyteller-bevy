@@ -57,7 +57,7 @@ fn debug_bvh_model(
     bvh_joints : Query<(&GlobalTransform, Option<&Children>), With<BvhJoint>>,
     debug_mode : Res<DebugMode>,
 ) {
-    if debug_mode.0 {
+    if true {
         for (transform, children) in bvh_joints.iter() {
             gizmos.sphere(transform.translation(), Quat::IDENTITY, 0.01, Color::TEAL);
 

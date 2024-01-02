@@ -678,6 +678,17 @@ impl Bvh {
     pub fn frame_cursor(&mut self) -> FrameCursor<'_> {
         From::from(self)
     }
+
+    pub fn get_joint(&self, index: usize) -> Option<Joint<'_>> {
+        if index < self.joints.len() {
+            Some(Joint {
+                index,
+                joints: &self.joints,
+            })
+        } else {
+            None
+        }
+    }
 }
 
 impl Default for Bvh {
