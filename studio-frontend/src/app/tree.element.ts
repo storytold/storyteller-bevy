@@ -4,6 +4,7 @@ import { type EntitySelectEvent } from "@storyteller/studio";
 import { LitElement, html, nothing, unsafeCSS } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { classMap } from "lit/directives/class-map.js";
+import { ifDefined } from "lit/directives/if-defined.js";
 
 import "./icon.element";
 
@@ -20,8 +21,8 @@ export class TreeElement extends LitElement {
 	static override styles = unsafeCSS(styles);
 
 	@property() name = "";
-	@property() treeChildren?: Tree[];
-	@property() expanded = false;
+	@property({ attribute: false }) treeChildren?: Tree[];
+	@property({ type: Boolean }) expanded = false;
 
 	@state() selected = false;
 
@@ -66,7 +67,7 @@ export class TreeElement extends LitElement {
 			<div class="children">
 				${this.treeChildren?.map(tree => html`
 					<sts-tree
-						id=${tree.id}
+						id=${ifDefined(tree.id)}
 						.name=${tree.name}
 						.treeChildren=${tree.children}
 					></sts-tree>
