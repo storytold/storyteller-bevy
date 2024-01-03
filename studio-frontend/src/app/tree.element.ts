@@ -21,6 +21,7 @@ export class TreeElement extends LitElement {
 	static override styles = unsafeCSS(styles);
 
 	@property() name = "";
+	@property() icon?: string;
 	@property({ attribute: false }) treeChildren?: Tree[];
 	@property({ type: Boolean }) expanded = false;
 
@@ -56,9 +57,12 @@ export class TreeElement extends LitElement {
 					></sts-icon>
 				</button>
 			` : nothing}
-			<span class="name"
+			<span class="label"
 				@click=${this.selectEntity}
 			>
+				${this.icon ? html`
+					<sts-icon icon=${this.icon}></sts-icon>
+				` : nothing}
 				${this.name}
 			</span>
 		</header>

@@ -72,12 +72,11 @@ header {
 	transform: rotate(90deg);
 }
 
-.name {
-	flex: 1 0 0;
-	padding: {
-		block: 5px;
-		inline: 5px 10px;
-	}
+.label {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding-inline-start: 5px;
 }
 
 .children {
