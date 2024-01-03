@@ -1,0 +1,49 @@
+:host {
+	display: flex;
+	border-radius: 8px;
+	background: #0006;
+	backdrop-filter: blur(16px);
+}
+
+.sidebar, .timeline { padding: 8px; }
+.sidebar { padding-inline-end: 0; }
+.timeline { padding-inline-start: 0; }
+
+.sidebar {
+	flex: 0 0 auto;
+	width: 256px;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.divider {
+	position: relative;
+	flex: 0 0 8px;
+	margin: {
+		right: -3px;
+		left: -3px;
+	}
+	cursor: ew-resize;
+
+	&::before {
+		content: "";
+		position: absolute;
+		top: 0;
+		right: 3px;
+		bottom: 0;
+		left: 3px;
+		background: #FFF2;
+		opacity: 0;
+		transition: opacity 66.666ms linear;
+	}
+
+	&:hover::before {
+		opacity: 1;
+	}
+}
+
+.timeline {
+	flex: 1 0 0;
+	background: #0004;
+}

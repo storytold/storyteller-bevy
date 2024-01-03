@@ -4,7 +4,9 @@ import { LitElement, TemplateResult, html, nothing, unsafeCSS } from "lit";
 import { customElement, property } from "lit/decorators.js";
 import { unsafeSVG } from "lit/directives/unsafe-svg.js";
 
+import farVideo from "@fortawesome/fontawesome-pro/svgs/regular/video.svg?raw";
 import fasCircleInfo from "@fortawesome/fontawesome-pro/svgs/regular/circle-info.svg?raw";
+import fasKey from "@fortawesome/fontawesome-pro/svgs/solid/key.svg?raw";
 import fasCube from "@fortawesome/fontawesome-pro/svgs/regular/cube.svg?raw";
 import fasGlobe from "@fortawesome/fontawesome-pro/svgs/regular/globe.svg?raw";
 import fasUpDownLeftRight from "@fortawesome/fontawesome-pro/svgs/regular/arrows-up-down-left-right.svg?raw";
@@ -40,10 +42,12 @@ function renderSvg(iconId: string) {
 		"circle-info": () => fasCircleInfo,
 		"caret-right": () => fasCaretRight,
 		"cube": () => fasCube,
+		"key": () => fasKey,
 		"globe": () => fasGlobe,
 		"up-down-left-right": () => fasUpDownLeftRight,
 		"rotate": () => fasRotate,
 		"scale": () => fasScale,
+		"video": () => farVideo,
 		_: () => null,
 	});
 

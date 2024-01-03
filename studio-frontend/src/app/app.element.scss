@@ -1,3 +1,5 @@
+$hierarchy-width: 290px;
+
 .app-root {
 	position: fixed;
 	inset: 0;
@@ -8,12 +10,19 @@
 	position: absolute;
 	top: 16px;
 }
+.v-end {
+	position: absolute;
+	bottom: 16px;
+}
 .v-after-toolbar {
 	position: absolute;
 	top: 60px;
 }
 .h-start { left: 16px }
 .h-end  { right: 16px }
+.h-before-hierarchy {
+	right: $hierarchy-width + 32px;
+}
 .h-center {
 	left: 50%;
 	transform: translateX(-50%);
@@ -29,7 +38,7 @@ sts-button.active {
 	overflow: auto;
 
 	box-sizing: border-box;
-	width: 290px;
+	width: $hierarchy-width;
 	max-height: calc(100vh - 32px);
 	padding: 10px 15px;
 

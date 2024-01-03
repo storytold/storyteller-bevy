@@ -22,6 +22,7 @@ import "@storyteller/studio-web/canvas-provider";
 import "@storyteller/studio-web/viewer";
 import "@storyteller/studio-web/bvh-viewer";
 import "@storyteller/studio-web/mixamo-viewer";
+import "./anim-editor.element";
 import "./button.element";
 import "./help.element";
 import "./icon.element";
@@ -246,6 +247,8 @@ export class AppElement extends LitElement {
 					`)}
 				</div>
 			` : nothing}
+
+			<sts-anim-editor class="timeline v-end h-start h-before-hierarchy"></sts-anim-editor>
 
 			${this.showHelp ? html`
 				<sts-help class="help v-after-toolbar h-start"></sts-help>
