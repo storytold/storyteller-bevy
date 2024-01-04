@@ -3,13 +3,13 @@
 	overflow: hidden;
 }
 
-:host(.dragging) {
-	cursor: grabbing;
-}
-
 .wrapper {
 	position: absolute;
 	inset: 0;
+
+	&.dragging {
+		cursor: grabbing;
+	}
 }
 
 .hash {

@@ -1,6 +1,7 @@
 import { drag } from "@storyteller/framework";
 import { LitElement, html, unsafeCSS } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
+import { classMap } from "lit/directives/class-map.js";
 import { styleMap } from "lit/directives/style-map.js";
 
 import styles from "./anim-timeline.element.scss?inline";
@@ -20,6 +21,7 @@ export class AnimTimelineElement extends LitElement {
 	@state() _renderWidth!: number;
 	@state() _offsetX = 0;
 	@state() _offsetY = 0;
+	@state() _dragging = false;
 
 	#resizeObserver: ResizeObserver;
 
@@ -40,11 +42,11 @@ export class AnimTimelineElement extends LitElement {
 	}
 
 	#onDragStart(): void {
-		this.classList.toggle("dragging", true);
+		this._dragging = true;
 	}
 
 	#onDragEnd(): void {
-		this.classList.toggle("dragging", false);
+		this._dragging = false;
 	}
 
 	#onDrag(event: PointerEvent): void {
@@ -104,7 +106,11 @@ export class AnimTimelineElement extends LitElement {
 		const subdivs = new Array(Math.ceil(subdivsCount)).fill(null);
 
 		return html`
-			<div class="wrapper"
+			<div
+				class=${classMap({
+					wrapper: true,
+					dragging: this._dragging,
+				})}
 				${drag({
 					button: 1,
 					start: this.#onDragStart,
