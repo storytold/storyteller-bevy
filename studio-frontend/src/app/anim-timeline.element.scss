@@ -1,0 +1,35 @@
+:host {
+	position: relative;
+	overflow: hidden;
+}
+
+:host(.dragging) {
+	cursor: grabbing;
+}
+
+.wrapper {
+	position: absolute;
+	inset: 0;
+}
+
+.hash {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	width: 2px;
+	background: #FFF1;
+}
+
+.timestamp {
+	position: absolute;
+	top: 8px;
+	color: #FFF6;
+	font: {
+		family: "Fira Sans", sans-serif;
+		size: 14px;
+	}
+
+	.frac {
+		color: #FFF3;
+	}
+}

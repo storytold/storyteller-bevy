@@ -3,6 +3,7 @@ import { LitElement, html, unsafeCSS } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { styleMap } from "lit/directives/style-map.js";
 
+import "./anim-timeline.element";
 import "./button.element";
 import "./toolbar.element";
 import "./tree.element";
@@ -15,6 +16,9 @@ export class AnimEditorElement extends LitElement {
 
 	@state() sidebarWidth = 256;
 
+	@state() timelineStart = 0;
+	@state() timelineEnd = 30_000;
+
 	onSidebarResize(event: PointerEvent): void {
 		this.sidebarWidth = Math.max(Math.min(this.sidebarWidth + event.movementX, 512), 128);
 	}
@@ -23,9 +27,19 @@ export class AnimEditorElement extends LitElement {
 
 	}
 
+	#onTimelineStartChange(event: CustomEvent<number>): void {
+		this.timelineStart = event.detail;
+	}
+
+	#onTimelineEndChange(event: CustomEvent<number>): void {
+		this.timelineEnd = event.detail;
+	}
+
 	protected override render = () => html`
 		<div class="sidebar"
-			style=${styleMap({ width: `${this.sidebarWidth}px` })}
+			style=${styleMap({
+				width: `${this.sidebarWidth}px`,
+			})}
 		>
 			<sts-toolbar>
 				<sts-toolbar-group>
@@ -52,11 +66,11 @@ export class AnimEditorElement extends LitElement {
 			})}
 		></div>
 
-		<sts-anim-timeline class="timeline"></sts-anim-timeline>
+		<sts-anim-timeline class="timeline"
+			.rangeStart=${this.timelineStart}
+			@rangeStartChange=${this.#onTimelineStartChange}
+			.rangeEnd=${this.timelineEnd}
+			@rangeEndChange=${this.#onTimelineEndChange}
+		></sts-anim-timeline>
 	`;
-}
-
-@customElement("sts-anim-timeline")
-export class AnimTimelineElement extends LitElement {
-
 }

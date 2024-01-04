@@ -17,7 +17,7 @@ class Drag extends Directive {
 
 	#lastProps: Props = {};
 
-	override render(_: any) {
+	override render(_: Props) {
 		return nothing;
 	}
 
