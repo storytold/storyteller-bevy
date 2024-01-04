@@ -15,6 +15,46 @@
 	display: flex;
 	flex-direction: column;
 	gap: 8px;
+	overflow: hidden;
+}
+
+.btn-keyframe {
+	width: 40px;
+	height: 36px;
+	border-radius: 4px;
+	padding: 0;
+	justify-content: center;
+
+	background: #7A2C34E3;
+	color: #FFF;
+
+	&:hover {
+		background: #90363F;
+	}
+}
+
+.timeline-nav {
+	gap: 0;
+	margin-top: 2px;
+
+	sts-button {
+		width: 32px;
+		height: 32px;
+		padding: 0;
+		justify-content: center;
+		background: transparent !important;
+		backdrop-filter: initial;
+		color: #FFFC;
+		font-size: 14px;
+
+		&:hover {
+			color: #FFFF;
+		}
+
+		&.play {
+			font-size: 20px;
+		}
+	}
 }
 
 .divider {

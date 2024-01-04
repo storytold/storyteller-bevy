@@ -19,7 +19,11 @@
 	background: #0006;
 	color: #FFF;
 	backdrop-filter: blur(16px);
-	transition: background 0.1s linear;
+	transition: {
+		property: background, color;
+		duration: 0.1s;
+		timing-function: linear;
+	}
 }
 
 :host(:hover) {

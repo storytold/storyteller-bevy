@@ -43,11 +43,38 @@ export class AnimEditorElement extends LitElement {
 		>
 			<sts-toolbar>
 				<sts-toolbar-group>
-					<sts-button
+					<sts-button class="btn-keyframe"
 						icon="key"
 						@click=${this.addKeyframe}
 						aria-label="Add Keyframe"
 						title="Add Keyframe"
+					></sts-button>
+				</sts-toolbar-group>
+				<sts-toolbar-group class="timeline-nav">
+					<sts-button
+						icon="bwd-fast"
+						aria-label="Jump to Start"
+						title="Jump to Start"
+					></sts-button>
+					<sts-button
+						icon="bwd-step"
+						aria-label="Previous Keyframe"
+						title="Previous Keyframe"
+					></sts-button>
+					<sts-button class="play"
+						icon="play"
+						aria-label="Play"
+						title="Play"
+					></sts-button>
+					<sts-button
+						icon="fwd-step"
+						aria-label="Next Keyframe"
+						title="Next Keyframe"
+					></sts-button>
+					<sts-button
+						icon="fwd-fast"
+						aria-label="Jump to End"
+						title="Jump to End"
 					></sts-button>
 				</sts-toolbar-group>
 			</sts-toolbar>
@@ -56,6 +83,11 @@ export class AnimEditorElement extends LitElement {
 					role="listitem"
 					name="Camera"
 					icon="video"
+				></sts-tree>
+				<sts-tree class="track"
+					role="listitem"
+					name="Camera Target"
+					icon="crosshairs"
 				></sts-tree>
 			</div>
 		</div>

@@ -4,12 +4,18 @@ import { LitElement, TemplateResult, html, nothing, unsafeCSS } from "lit";
 import { customElement, property } from "lit/decorators.js";
 import { unsafeSVG } from "lit/directives/unsafe-svg.js";
 
+import farCrosshairs from "@fortawesome/fontawesome-pro/svgs/regular/crosshairs.svg?raw";
 import farVideo from "@fortawesome/fontawesome-pro/svgs/regular/video.svg?raw";
 import fasCircleInfo from "@fortawesome/fontawesome-pro/svgs/regular/circle-info.svg?raw";
 import fasKey from "@fortawesome/fontawesome-pro/svgs/solid/key.svg?raw";
 import fasCube from "@fortawesome/fontawesome-pro/svgs/regular/cube.svg?raw";
 import fasGlobe from "@fortawesome/fontawesome-pro/svgs/regular/globe.svg?raw";
 import fasUpDownLeftRight from "@fortawesome/fontawesome-pro/svgs/regular/arrows-up-down-left-right.svg?raw";
+import fasPlay from "@fortawesome/fontawesome-pro/svgs/solid/play.svg?raw";
+import fasFwdStep from "@fortawesome/fontawesome-pro/svgs/solid/forward-step.svg?raw";
+import fasFwdFast from "@fortawesome/fontawesome-pro/svgs/solid/forward-fast.svg?raw";
+import fasBwdStep from "@fortawesome/fontawesome-pro/svgs/solid/backward-step.svg?raw";
+import fasBwdFast from "@fortawesome/fontawesome-pro/svgs/solid/backward-fast.svg?raw";
 import fasRotate from "@fortawesome/fontawesome-pro/svgs/regular/arrows-rotate.svg?raw";
 import fasScale from "@fortawesome/fontawesome-pro/svgs/regular/arrow-up-right-and-arrow-down-left-from-center.svg?raw";
 import fasCaretRight from "@fortawesome/fontawesome-pro/svgs/solid/caret-right.svg?raw";
@@ -39,14 +45,20 @@ function renderSvg(iconId: string) {
 		return RENDER_RESULTS.get(iconId)!;
 
 	const svgSrc = match (iconId, {
+		"bwd-fast": () => fasBwdFast,
+		"bwd-step": () => fasBwdStep,
 		"circle-info": () => fasCircleInfo,
 		"caret-right": () => fasCaretRight,
+		"crosshairs": () => farCrosshairs,
 		"cube": () => fasCube,
+		"fwd-fast": () => fasFwdFast,
+		"fwd-step": () => fasFwdStep,
 		"key": () => fasKey,
 		"globe": () => fasGlobe,
-		"up-down-left-right": () => fasUpDownLeftRight,
+		"play": () => fasPlay,
 		"rotate": () => fasRotate,
 		"scale": () => fasScale,
+		"up-down-left-right": () => fasUpDownLeftRight,
 		"video": () => farVideo,
 		_: () => null,
 	});
