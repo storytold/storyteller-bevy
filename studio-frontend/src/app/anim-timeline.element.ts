@@ -104,8 +104,8 @@ export class AnimTimelineElement extends LitElement {
 		this._offsetX += event.movementX;
 
 		const msPerPx = this.msPerPx.get();
-		const rangeStart = this.rangeStart + event.movementX * msPerPx;
-		const rangeEnd = this.rangeEnd + event.movementX * msPerPx;
+		const rangeStart = this.rangeStart - event.movementX * msPerPx;
+		const rangeEnd = this.rangeEnd - event.movementX * msPerPx;
 
 		this.dispatchEvent(new CustomEvent("rangeStartChange", { detail: rangeStart }));
 		this.dispatchEvent(new CustomEvent("rangeEndChange", { detail: rangeEnd }));
