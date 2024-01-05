@@ -127,7 +127,7 @@ export class AnimTimelineElement extends LitElement {
 		}
 
 		let m = 0;
-		if (s > 60) {
+		if (s >= 60) {
 			m = Math.floor(s / 60);
 			s %= 60;
 		}
