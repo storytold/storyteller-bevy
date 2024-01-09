@@ -17,14 +17,51 @@ export class AnimEditorElement extends LitElement {
 	@state() sidebarWidth = 256;
 
 	@state() timelineStart = 0;
-	@state() timelineEnd = 30_000;
+	@state() timelineEnd = 5_000;
+
+	@state() clipStart = 0;
+	@state() clipEnd = 15_000;
+
+	@state() playHead = 0;
+	@state() keyframes: number[] = [];
 
 	onSidebarResize(event: PointerEvent): void {
 		this.sidebarWidth = Math.max(Math.min(this.sidebarWidth + event.movementX, 512), 128);
 	}
 
 	addKeyframe(): void {
+		const updated = this.keyframes.concat(this.playHead).sort((a, b) => a - b);
+		this.keyframes = updated;
+	}
 
+	jumpToStart(): void {
+		this.playHead = this.clipStart;
+	}
+
+	prevKeyframe(): void {
+		let pos = this.playHead;
+		for (let keyframe of this.keyframes.slice().reverse()) {
+			pos = keyframe;
+			if (keyframe < this.playHead)
+				break;
+		}
+
+		this.playHead = pos;
+	}
+
+	nextKeyframe(): void {
+		let pos = this.playHead;
+		for (let keyframe of this.keyframes) {
+			pos = keyframe;
+			if (keyframe > this.playHead)
+				break;
+		}
+
+		this.playHead = pos;
+	}
+
+	jumpToEnd(): void {
+		this.playHead = this.clipEnd;
 	}
 
 	#onTimelineStartChange(event: CustomEvent<number>): void {
@@ -33,6 +70,10 @@ export class AnimEditorElement extends LitElement {
 
 	#onTimelineEndChange(event: CustomEvent<number>): void {
 		this.timelineEnd = event.detail;
+	}
+
+	#onPlayHeadChange(event: CustomEvent<number>): void {
+		this.playHead = event.detail;
 	}
 
 	protected override render = () => html`
@@ -45,9 +86,9 @@ export class AnimEditorElement extends LitElement {
 				<sts-toolbar-group>
 					<sts-button class="btn-keyframe"
 						icon="key"
-						@click=${this.addKeyframe}
 						aria-label="Add Keyframe"
 						title="Add Keyframe"
+						@click=${this.addKeyframe}
 					></sts-button>
 				</sts-toolbar-group>
 				<sts-toolbar-group class="timeline-nav">
@@ -55,11 +96,13 @@ export class AnimEditorElement extends LitElement {
 						icon="bwd-fast"
 						aria-label="Jump to Start"
 						title="Jump to Start"
+						@click=${this.jumpToStart}
 					></sts-button>
 					<sts-button
 						icon="bwd-step"
 						aria-label="Previous Keyframe"
 						title="Previous Keyframe"
+						@click=${this.prevKeyframe}
 					></sts-button>
 					<sts-button class="play"
 						icon="play"
@@ -70,11 +113,13 @@ export class AnimEditorElement extends LitElement {
 						icon="fwd-step"
 						aria-label="Next Keyframe"
 						title="Next Keyframe"
+						@click=${this.nextKeyframe}
 					></sts-button>
 					<sts-button
 						icon="fwd-fast"
 						aria-label="Jump to End"
 						title="Jump to End"
+						@click=${this.jumpToEnd}
 					></sts-button>
 				</sts-toolbar-group>
 			</sts-toolbar>
@@ -103,6 +148,14 @@ export class AnimEditorElement extends LitElement {
 			@rangeStartChange=${this.#onTimelineStartChange}
 			.rangeEnd=${this.timelineEnd}
 			@rangeEndChange=${this.#onTimelineEndChange}
+
+			.clipStart=${this.clipStart}
+			.clipEnd=${this.clipEnd}
+
+			.playHead=${this.playHead}
+			@playHeadChange=${this.#onPlayHeadChange}
+
+			.keyframes=${this.keyframes}
 		></sts-anim-timeline>
 	`;
 }

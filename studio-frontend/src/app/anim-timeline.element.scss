@@ -7,9 +7,16 @@
 	position: absolute;
 	inset: 0;
 
-	&.dragging {
+	&.panning {
 		cursor: grabbing;
 	}
+}
+
+.clip-region {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	background: #0004;
 }
 
 .hash {
@@ -18,6 +25,10 @@
 	bottom: 0;
 	width: 2px;
 	background: #FFF1;
+
+	&.strong {
+		background: #FFF3;
+	}
 }
 
 .timestamp {
@@ -28,8 +39,74 @@
 		family: "Fira Sans", sans-serif;
 		size: 14px;
 	}
+	user-select: none;
+	pointer-events: none;
+	z-index: 1;
 
 	.frac {
 		color: #FFF3;
+	}
+}
+
+.playhead {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	width: 8px;
+	transform: translateX(-3px);
+	cursor: ew-resize;
+	color: #7A2C34E3;
+	transition: color 66.667ms linear;
+
+	&:hover {
+		color: #90363F;
+	}
+
+	.head {
+		position: absolute;
+		top: 0;
+		left: 0;
+		width: 8px;
+		height: 32px;
+		background: currentColor;
+
+		&::after {
+			content: "";
+			box-sizing: border-box;
+			position: absolute;
+			bottom: -12px;
+			display: block;
+			width: 8px;
+			height: 12px;
+			border: 4px solid transparent {
+				top: 8px solid currentColor;
+			}
+		}
+	}
+
+	.bar {
+		position: absolute;
+		top: 36px;
+		bottom: 0;
+		left: 3px;
+		right: 3px;
+		background: currentColor;
+	}
+}
+
+.keyframe {
+	position: absolute;
+	top: 50%;
+	transform: translateX(-4.5px) translateY(-4.5px);
+
+	&::before {
+		content: "";
+		display: block;
+		width: 9px;
+		height: 9px;
+		background: #AAA;
+		transform: rotate(45deg) {
+			origin: center center;
+		}
 	}
 }
