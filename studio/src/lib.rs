@@ -1,6 +1,6 @@
 #![allow(clippy::type_complexity, clippy::too_many_arguments)]
 
-use bevy::{app::PluginGroupBuilder, prelude::*};
+use bevy::{app::PluginGroupBuilder, prelude::*, window::close_on_esc};
 use bevy_mod_picking::DefaultPickingPlugins;
 
 use space_editor::prelude::space_undo::UndoPlugin;
