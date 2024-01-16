@@ -172,20 +172,20 @@ fn retarget_bvh(
     bvh_bones: Query<(&Name, &BvhJoint, &Transform), Without<SkeletalJoint>>,
     mut skinned_bones: Query<(&Name, &mut Transform), (Without<BvhJoint>, With<SkeletalJoint>)>,
 ) {
-    // let retarget_map = RetargetMap::mocap_to_rigify();
-    // for (skinned_name, mut skinned_transform) in skinned_bones.iter_mut() {
-    //     for (bvh_name, _, bvh_transform) in bvh_bones.iter() {
-    //         if retarget_map.is_match(&skinned_name, &bvh_name) {
-    //             let euler_angles = bvh_transform.rotation.to_euler(EulerRot::ZXY);
-    //             skinned_transform.rotation = Quat::from_euler(
-    //                 EulerRot::ZXY,
-    //                 euler_angles.0,
-    //                 euler_angles.1,
-    //                 euler_angles.2,
-    //             );
-    //         }
-    //     }
-    // }
+    let retarget_map = RetargetMap::mocap_to_rigify();
+    for (skinned_name, mut skinned_transform) in skinned_bones.iter_mut() {
+        for (bvh_name, _, bvh_transform) in bvh_bones.iter() {
+            if retarget_map.is_match(&skinned_name, &bvh_name) {
+                let euler_angles = bvh_transform.rotation.to_euler(EulerRot::ZXY);
+                skinned_transform.rotation = Quat::from_euler(
+                    EulerRot::ZXY,
+                    euler_angles.0,
+                    euler_angles.1,
+                    euler_angles.2,
+                );
+            }
+        }
+    }
 }
 
 //==============================================================================
