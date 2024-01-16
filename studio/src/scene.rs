@@ -216,7 +216,7 @@ fn init_scene_loading(
 ) {
     if let Some(id) = er.read().last() {
         let name = &**id;
-        let path = format!("gltf/{name}.gltf");
+        let path = format!("gltf/{name}.glb");
 
         // Avoid trying to re-load this scene if it's already active
         if let Some(active_scene_path) =

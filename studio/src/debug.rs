@@ -1,16 +1,17 @@
 use std::fmt;
 
-use bevy::{prelude::*, window::PrimaryWindow};
+use bevy::{gizmos, prelude::*, window::PrimaryWindow};
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
-use bevy_mod_picking::debug::{DebugPickingMode, self};
+use bevy_mod_picking::debug::{self, DebugPickingMode};
 use bevy_rapier3d::na::Quaternion;
 
 use crate::{
+    bvh::BvhJoint,
     camera_controller::{CameraController, CameraMotionSystem},
     input::{Action, InputAction, Lifecycle},
     is_editor,
     scene::SkeletalJoint,
-    MainCamera, bvh::BvhJoint,
+    MainCamera,
 };
 
 #[derive(Resource, Deref, DerefMut)]
@@ -54,8 +55,8 @@ impl Plugin for DebugPlugin {
 
 fn debug_bvh_model(
     mut gizmos: Gizmos,
-    bvh_joints : Query<(&GlobalTransform, Option<&Children>), With<BvhJoint>>,
-    debug_mode : Res<DebugMode>,
+    bvh_joints: Query<(&GlobalTransform, Option<&Children>), With<BvhJoint>>,
+    debug_mode: Res<DebugMode>,
 ) {
     if true {
         for (transform, children) in bvh_joints.iter() {
@@ -63,8 +64,12 @@ fn debug_bvh_model(
 
             if let Some(children) = children {
                 for child in children.iter() {
-                    if let Ok((child_transform, _))  = bvh_joints.get(child.clone()) {
-                        gizmos.line(transform.translation(), child_transform.translation(), Color::RED);
+                    if let Ok((child_transform, _)) = bvh_joints.get(child.clone()) {
+                        gizmos.line(
+                            transform.translation(),
+                            child_transform.translation(),
+                            Color::RED,
+                        );
                     }
                 }
             }
@@ -148,6 +153,14 @@ fn draw_skeletal_joints(
 
             gizmos.sphere(xlation, rotation, joint_radius, joint.0);
             gizmos.line(xlation, parent_xlation, joint.0);
+
+            let local_x = world_xform.left() * 0.05;
+            let local_y = world_xform.up() * 0.05;
+            let local_z = world_xform.forward() * 0.05;
+
+            gizmos.line(xlation, xlation + local_x, Color::RED);
+            gizmos.line(xlation, xlation + local_y, Color::GREEN);
+            gizmos.line(xlation, xlation + local_z, Color::BLUE);
         } else {
             gizmos.sphere(xlation, rotation, 0.01, joint.0);
         }
