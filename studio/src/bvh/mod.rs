@@ -1,21 +1,18 @@
-use std::backtrace::Backtrace;
-
 use bevy::{
-    asset::AsyncReadExt,
     ecs::{
-        query::{QueryItem, ReadOnlyWorldQuery, WorldQuery},
-        system::{Command, EntityCommands, SystemParam},
+        query::{ReadOnlyWorldQuery, WorldQuery},
+        system::Command,
     },
     prelude::*,
-    transform::commands,
+    transform::TransformSystem,
     utils::HashMap,
 };
-use studio_bvh::{frames::Frame, joint};
+use studio_bvh::frames::Frame;
 
 mod error;
 mod loader;
 
-use crate::scene::{SceneState, SkeletalJoint};
+use crate::scene::{BindPoseGlobal, InvBindPose, SceneState, SkeletalJoint};
 
 use self::loader::BvhLoader;
 
@@ -25,14 +22,25 @@ impl Plugin for BvhPlugin {
     fn build(&self, app: &mut App) {
         app.init_asset::<Bvh>()
             .register_asset_loader(BvhLoader)
+            // FIXME: Need to add a state for this module (similar to scene
+            //        module's `SceneState`) to manage the order/frequence at
+            //        which these systems run instead of just running them all
+            //        every frame
             .add_systems(
-                Update,
-                (animate_bvh, retarget_bvh)
+                PostUpdate,
+                (
+                    compute_inverse_bindposes,
+                    apply_deferred,
+                    animate_bvh,
+                    retarget_bvh,
+                )
                     .chain()
-                    .run_if(in_state(SceneState::Active)),
+                    .run_if(in_state(SceneState::Active))
+                    .after(TransformSystem::TransformPropagate),
             )
             .register_type::<BvhJoint>()
-            .register_type::<BvhAnim>();
+            .register_type::<BvhAnim>()
+            .insert_resource(RetargetMap::default());
     }
 }
 
@@ -59,25 +67,33 @@ pub struct BvhAnim {
     last_frame: usize,
 }
 
-pub fn animate_bvh(
-    mut command: Commands,
-    mut bvh_anims: Query<(Entity, &mut BvhAnim, &mut Transform, &mut Children)>,
-    mut bvh_joints: Query<JointQuery, Without<BvhAnim>>,
-    bvh_assets: Res<Assets<Bvh>>,
-    time: Res<Time>,
+fn compute_inverse_bindposes(
+    mut cmd: Commands,
+    q_bvh_joints: Query<(Entity, &GlobalTransform), (With<BvhJoint>, Without<InvBindPose>)>,
 ) {
-    for (entity, mut anim, transform, children) in bvh_anims.iter_mut() {
-        let bvh = &bvh_assets
+    for (ent, world_xform) in q_bvh_joints.iter() {
+        let inv_bind_pose = world_xform.compute_matrix().inverse();
+        cmd.entity(ent).insert(InvBindPose(inv_bind_pose));
+    }
+}
+
+pub fn animate_bvh(
+    mut q_bvh_anims: Query<(&mut BvhAnim, &Children)>,
+    mut q_bvh_joints: Query<JointQuery, Without<BvhAnim>>,
+    r_bvh_assets: Res<Assets<Bvh>>,
+    r_time: Res<Time>,
+) {
+    for (mut anim, children) in q_bvh_anims.iter_mut() {
+        let bvh = &r_bvh_assets
             .get(anim.bvh.clone())
             .expect("Could not animate the BVH because the bvh file has not been loaded yet")
             .0;
 
         if anim.should_play {
-            anim.timer.tick(time.delta());
+            anim.timer.tick(r_time.delta());
             if anim.timer.finished() {
                 anim.frame = (anim.frame + 1) % bvh.frames().len();
                 anim.timer.reset();
-                // command.entity(entity).remove::<BvhAnim>();
             }
         }
 
@@ -87,7 +103,7 @@ pub fn animate_bvh(
                 .nth(anim.frame)
                 .expect("Invalid BVH format: the frame index is out of bounds");
             for child in children.iter() {
-                apply_frame(&mut bvh_joints, *child, &frame, &bvh);
+                apply_frame(&mut q_bvh_joints, *child, &frame, bvh);
             }
             anim.last_frame = anim.frame;
         }
@@ -159,9 +175,6 @@ fn apply_frame<T: ReadOnlyWorldQuery>(
             .map(Entity::clone)
             .collect::<Vec<_>>();
 
-        drop(joint_data);
-        drop(joint_entity);
-
         for child in children {
             apply_frame(joint_query, child, frame, bvh_file);
         }
@@ -169,22 +182,76 @@ fn apply_frame<T: ReadOnlyWorldQuery>(
 }
 
 fn retarget_bvh(
-    bvh_bones: Query<(&Name, &BvhJoint, &Transform), Without<SkeletalJoint>>,
-    mut skinned_bones: Query<(&Name, &mut Transform), (Without<BvhJoint>, With<SkeletalJoint>)>,
+    r_retarget_map: Res<RetargetMap>,
+    mut l_target_ents: Local<HashMap<String, Entity>>,
+    q_source_bones: Query<(&Name, &InvBindPose, &GlobalTransform), With<BvhJoint>>,
+    q_target_ents: Query<(Entity, &Name), (With<SkeletalJoint>, Without<BvhJoint>)>,
+    mut q_target_xforms: Query<
+        (&Parent, &BindPoseGlobal, &mut Transform),
+        (With<SkeletalJoint>, Without<BvhJoint>),
+    >,
+    q_world_xforms: Query<&GlobalTransform>,
 ) {
-    let retarget_map = RetargetMap::mocap_to_rigify();
-    for (skinned_name, mut skinned_transform) in skinned_bones.iter_mut() {
-        for (bvh_name, _, bvh_transform) in bvh_bones.iter() {
-            if retarget_map.is_match(&skinned_name, &bvh_name) {
-                let euler_angles = bvh_transform.rotation.to_euler(EulerRot::ZXY);
-                skinned_transform.rotation = Quat::from_euler(
-                    EulerRot::ZXY,
-                    euler_angles.0,
-                    euler_angles.1,
-                    euler_angles.2,
-                );
+    // let retarget_map = RetargetMap::mocap_to_rigify();
+    for (source_name, source_inv_bind_pose, source_world_xform) in q_source_bones.iter() {
+        // Lookup the target name in the retarget map
+        let Some(target_name) = r_retarget_map.source_to_target.get(source_name.as_str()) else {
+            continue;
+        };
+
+        // Lookup the target entity in the local target bones hashmap,
+        // or insert it if this is the system's first run
+        let target_ent = match l_target_ents.get(target_name) {
+            Some(ent) => Some(*ent),
+            None => {
+                if let Some(ent) = q_target_ents.iter().find_map(|(ent, name)| {
+                    if name.as_str() == target_name {
+                        Some(ent)
+                    } else {
+                        None
+                    }
+                }) {
+                    l_target_ents.insert(target_name.clone(), ent);
+                    Some(ent)
+                } else {
+                    None
+                }
             }
-        }
+        };
+
+        // Lookup the transform data for the matching entity
+        let Some((target_parent_ent, target_bind_pose_global, mut target_xform)) =
+            target_ent.and_then(|ent| q_target_xforms.get_mut(ent).ok())
+        else {
+            continue;
+        };
+
+        // Copy rotations from source -> target
+        //
+        // This code is adapted from the writeup here:
+        //   https://wickedengine.net/2022/09/23/animation-retargeting/
+        // with the main difference being that the order of operations is
+        // exactly reversed (DirectX uses row-major matrices, while Bevy uses
+        // column-major ordering)
+
+        // FIXME: We're seeing some jitteryness due to numerical instability.
+        //        Should refactor the Mat4's to Affine3A's and periodically re-
+        //        orthonormalize the matrices inbetween operations.
+
+        // [psuedo] local_mat = source_inv_bind_mat * source_world_mat;
+        let mut local_mat = source_world_xform.compute_matrix() * (**source_inv_bind_pose);
+
+        // [psuedo] local_mat = target_world_mat * local_mat * target_inv_parent_mat;
+        let parent_world_xform = match q_world_xforms.get(**target_parent_ent) {
+            Ok(world_xform) => world_xform,
+            Err(_) => &GlobalTransform::IDENTITY,
+        };
+        let target_inv_parent_mat = parent_world_xform.compute_matrix().inverse();
+        local_mat = target_inv_parent_mat * local_mat * (**target_bind_pose_global);
+
+        // [psuedo] target_xform.rotation = local_mat.rotation;
+        let (_, rotation, _) = local_mat.to_scale_rotation_translation();
+        target_xform.rotation = rotation;
     }
 }
 
@@ -282,11 +349,12 @@ fn spawn_bvh_recursive(world: &mut World, entity: &Entity, joint: studio_bvh::Jo
     world.entity_mut(*entity).insert((
         SpatialBundle::from_transform(transform),
         BvhJoint(joint.data().index()),
+        SkeletalJoint(Color::WHITE),
         Name::new(name),
     ));
 
     for child in joint.children() {
-        let mut child_entity = world.spawn_empty().id();
+        let child_entity = world.spawn_empty().id();
         spawn_bvh_recursive(world, &child_entity, child);
         world.entity_mut(*entity).push_children(&[child_entity]);
     }
@@ -296,91 +364,118 @@ fn spawn_bvh_recursive(world: &mut World, entity: &Entity, joint: studio_bvh::Jo
 //                        RetargetMap
 //==============================================================================
 
-#[derive(Debug)]
+#[derive(Resource, Debug)]
 pub struct RetargetMap {
-    pub map: HashMap<String, String>,
+    pub target_to_source: HashMap<String, String>,
+    pub source_to_target: HashMap<String, String>,
 }
 
-impl RetargetMap {
-    pub fn mocap_to_rigify() -> RetargetMap {
-        RetargetMap {
-            map: [
-                ("DEF-spine", "LowerBack"),
-                ("DEF-spine.002", "abdomen"),
-                ("DEF-spine.003", "chest"),
-                ("DEF-spine.004", "Neck"),
-                ("DEF-spine.005", "Neck1"),
-                ("DEF-spine.006", "Head"),
-                ("DEF-shoulder.R", "rcollar"),
-                ("DEF-upper_arm.R", "rshoulder"),
-                ("DEF-forearm.R", "relbow"),
-                ("DEF-hand.R", "rhand"),
-                ("DEF-palm.01.R", "metacarpal1.r"),
-                ("DEF-f_index.01.R", "finger2-1.r"),
-                ("DEF-f_index.02.R", "finger2-2.r"),
-                ("DEF-f_index.03.R", "finger2-3.r"),
-                ("DEF-palm.02.R", "metacarpal2.r"),
-                ("DEF-f_middle.01.R", "finger3-1.r"),
-                ("DEF-f_middle.02.R", "finger3-2.r"),
-                ("DEF-f_middle.03.R", "finger3-3.r"),
-                ("DEF-palm.03.R", "metacarpal3.r"),
-                ("DEF-f_ring.01.R", "finger4-1.r"),
-                ("DEF-f_ring.02.R", "finger4-2.r"),
-                ("DEF-f_ring.03.R", "finger4-3.r"),
-                ("DEF-palm.04.R", "metacarpal4.r"),
-                ("DEF-f_pinky.01.R", "finger5-1.r"),
-                ("DEF-f_pinky.02.R", "finger5-2.r"),
-                ("DEF-f_pinky.03.R", "finger5-3.r"),
-                ("DEF-thumb.01.R", "rthumb"),
-                ("DEF-thumb.02.R", "finger1-2.r"),
-                ("DEF-thumb.03.R", "finger1-3.r"),
-                ("DEF-thigh.R", "rhip"),
-                ("DEF-shin.R", "rknee"),
-                ("DEF-foot.R", "rfoot"),
-                ("DEF-toe.R", "RightToeBase"),
-                ("DEF-shoulder.L", "lcollar"),
-                ("DEF-upper_arm.L", "lshoulder"),
-                ("DEF-forearm.L", "lelbow"),
-                ("DEF-hand.L", "lhand"),
-                ("DEF-palm.01.L", "metacarpal1.l"),
-                ("DEF-f_index.01.L", "finger2-1.l"),
-                ("DEF-f_index.02.L", "finger2-2.l"),
-                ("DEF-f_index.03.L", "finger2-3.l"),
-                ("DEF-palm.02.L", "metacarpal2.l"),
-                ("DEF-f_middle.01.L", "finger3-1.l"),
-                ("DEF-f_middle.02.L", "finger3-2.l"),
-                ("DEF-f_middle.03.L", "finger3-3.l"),
-                ("DEF-palm.03.L", "metacarpal3.l"),
-                ("DEF-f_ring.01.L", "finger4-1.l"),
-                ("DEF-f_ring.02.L", "finger4-2.l"),
-                ("DEF-f_ring.03.L", "finger4-3.l"),
-                ("DEF-palm.04.L", "metacarpal4.l"),
-                ("DEF-f_pinky.01.L", "finger5-1.l"),
-                ("DEF-f_pinky.02.L", "finger5-2.l"),
-                ("DEF-f_pinky.03.L", "finger5-3.l"),
-                ("DEF-thumb.01.L", "lthumb"),
-                ("DEF-thumb.02.L", "finger1-2.l"),
-                ("DEF-thumb.03.L", "finger1-3.l"),
-                ("DEF-thigh.L", "lhip"),
-                ("DEF-shin.L", "lknee"),
-                ("DEF-foot.L", "lfoot"),
-                ("DEF-toe.L", "LeftToeBase"),
-                ("DEF-pelvis.R", "RHipJoint"),
-                ("DEF-pelvis.L", "LHipJoint"),
-            ]
-            .iter()
-            .map(|v| (v.0.to_string(), v.1.to_string()))
-            .collect(),
-        }
-    }
+#[rustfmt::skip]
+static TARGET_TO_SOURCE: [(&str, &str); 62] = [
+    // Spine
+    ("DEF-spine", "LowerBack"),
+    ("DEF-spine.002", "abdomen"),
+    ("DEF-spine.003", "chest"),
+    ("DEF-spine.004", "Neck"),
+    ("DEF-spine.005", "Neck1"),
+    ("DEF-spine.006", "Head"),
 
-    pub fn is_match(&self, mocapnet_name: &str, rigify_name: &str) -> bool {
-        if let Some(translated_name) = self.map.get(mocapnet_name) {
-            if rigify_name == translated_name.as_str() {
-                return true;
-            }
-        }
+    // Right arm
+    ("DEF-shoulder.R", "rcollar"),
+    ("DEF-upper_arm.R", "rshoulder"),
+    ("DEF-forearm.R", "relbow"),
+    ("DEF-hand.R", "rhand"),
 
-        false
+    // Right fingers
+    // -- Index
+    ("DEF-palm.01.R", "metacarpal1.r"),
+    ("DEF-f_index.01.R", "finger2-1.r"),
+    ("DEF-f_index.02.R", "finger2-2.r"),
+    ("DEF-f_index.03.R", "finger2-3.r"),
+    // -- Middle
+    ("DEF-palm.02.R", "metacarpal2.r"),
+    ("DEF-f_middle.01.R", "finger3-1.r"),
+    ("DEF-f_middle.02.R", "finger3-2.r"),
+    ("DEF-f_middle.03.R", "finger3-3.r"),
+    // -- Ring
+    ("DEF-palm.03.R", "metacarpal3.r"),
+    ("DEF-f_ring.01.R", "finger4-1.r"),
+    ("DEF-f_ring.02.R", "finger4-2.r"),
+    ("DEF-f_ring.03.R", "finger4-3.r"),
+    // -- Pinky
+    ("DEF-palm.04.R", "metacarpal4.r"),
+    ("DEF-f_pinky.01.R", "finger5-1.r"),
+    ("DEF-f_pinky.02.R", "finger5-2.r"),
+    ("DEF-f_pinky.03.R", "finger5-3.r"),
+    // -- Thumb
+    ("DEF-thumb.01.R", "rthumb"),
+    ("DEF-thumb.02.R", "finger1-2.r"),
+    ("DEF-thumb.03.R", "finger1-3.r"),
+
+    // Right leg
+    ("DEF-thigh.R", "rhip"),
+    ("DEF-shin.R", "rknee"),
+    ("DEF-foot.R", "rfoot"),
+    ("DEF-toe.R", "RightToeBase"),
+
+    // Left arm
+    ("DEF-shoulder.L", "lcollar"),
+    ("DEF-upper_arm.L", "lshoulder"),
+    ("DEF-forearm.L", "lelbow"),
+    ("DEF-hand.L", "lhand"),
+
+    // Left fingers
+    // -- Index
+    ("DEF-palm.01.L", "metacarpal1.l"),
+    ("DEF-f_index.01.L", "finger2-1.l"),
+    ("DEF-f_index.02.L", "finger2-2.l"),
+    ("DEF-f_index.03.L", "finger2-3.l"),
+
+    // -- Middle
+    ("DEF-palm.02.L", "metacarpal2.l"),
+    ("DEF-f_middle.01.L", "finger3-1.l"),
+    ("DEF-f_middle.02.L", "finger3-2.l"),
+    ("DEF-f_middle.03.L", "finger3-3.l"),
+
+    // -- Ring
+    ("DEF-palm.03.L", "metacarpal3.l"),
+    ("DEF-f_ring.01.L", "finger4-1.l"),
+    ("DEF-f_ring.02.L", "finger4-2.l"),
+    ("DEF-f_ring.03.L", "finger4-3.l"),
+
+    // -- Pinky
+    ("DEF-palm.04.L", "metacarpal4.l"),
+    ("DEF-f_pinky.01.L", "finger5-1.l"),
+    ("DEF-f_pinky.02.L", "finger5-2.l"),
+    ("DEF-f_pinky.03.L", "finger5-3.l"),
+
+    // -- Thumb
+    ("DEF-thumb.01.L", "lthumb"),
+    ("DEF-thumb.02.L", "finger1-2.l"),
+    ("DEF-thumb.03.L", "finger1-3.l"),
+
+    // Left leg
+    ("DEF-thigh.L", "lhip"),
+    ("DEF-shin.L", "lknee"),
+    ("DEF-foot.L", "lfoot"),
+    ("DEF-toe.L", "LeftToeBase"),
+
+    // Pelvis
+    ("DEF-pelvis.R", "RHipJoint"),
+    ("DEF-pelvis.L", "LHipJoint"),
+];
+
+impl Default for RetargetMap {
+    fn default() -> Self {
+        Self {
+            target_to_source: TARGET_TO_SOURCE
+                .iter()
+                .map(|(k, v)| (k.to_string(), v.to_string()))
+                .collect(),
+            source_to_target: TARGET_TO_SOURCE
+                .iter()
+                .map(|(v, k)| (k.to_string(), v.to_string()))
+                .collect(),
+        }
     }
 }

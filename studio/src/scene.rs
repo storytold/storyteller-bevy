@@ -9,7 +9,11 @@ use bevy::{
     math::{vec2, vec3},
     pbr::ShadowFilteringMethod,
     prelude::*,
-    render::{mesh::skinning::SkinnedMesh, primitives::Aabb, view::NoFrustumCulling},
+    render::{
+        mesh::skinning::{SkinnedMesh, SkinnedMeshInverseBindposes},
+        primitives::Aabb,
+        view::NoFrustumCulling,
+    },
     scene::InstanceId,
 };
 
@@ -18,7 +22,7 @@ use space_editor::prelude::{space_undo::OneFrameUndoIgnore, PrefabMarker};
 use wasm_bindgen::prelude::wasm_bindgen;
 
 use crate::{
-    bvh::{Bvh, BvhJoint, CommandsSpawnBvhExt},
+    bvh::{Bvh, CommandsSpawnBvhExt},
     camera_controller::{CameraController, CameraControllerBundle},
     debug::DebugPoint,
     math::{Combinable, Extrema},
@@ -119,6 +123,15 @@ pub struct SceneRoot;
 #[derive(Resource, Deref, DerefMut)]
 struct TestBvh(Handle<Bvh>); // TODO
 
+#[derive(Component, Clone, Copy, Debug, Deref, DerefMut)]
+pub struct BindPoseLocal(pub Transform);
+
+#[derive(Component, Clone, Copy, Debug, Deref, DerefMut)]
+pub struct BindPoseGlobal(pub Mat4);
+
+#[derive(Component, Clone, Copy, Debug, Deref, DerefMut)]
+pub struct InvBindPose(pub Mat4);
+
 fn initialize(mut cmd: Commands, r_assets: Res<AssetServer>) {
     // Camera, graphics settings
     let focus = Vec3::ZERO;
@@ -165,7 +178,7 @@ fn spawn_test_bvh(
             commands.spawn_bvh_with_transform(
                 &r_bvh.0,
                 Transform::from_scale(Vec3::splat(0.06))
-                    .with_translation(Vec3::new(0., 1.0, -0.024)),
+                    .with_translation(Vec3::new(0., 1.0, 0.524)),
             );
             // let bvh = ra_bvh.get(&**r_bvh).unwrap();
             // for joint in bvh.joints.iter() {
@@ -305,6 +318,7 @@ fn tag_scene_elements(
     r_scene_spawner: Res<SceneSpawner>,
     r_active_scene: Res<ActiveScene>,
     ra_gltfs: Res<Assets<Gltf>>,
+    ra_inv_bindposes: Res<Assets<SkinnedMeshInverseBindposes>>,
     // A "glTF mesh" is actually a container for one or more "glTF primitives",
     // which is basically a bundle of vertices paired with the material used to
     // shade them. It's those "sub-meshes" that carry the actual mesh handles,
@@ -314,6 +328,7 @@ fn tag_scene_elements(
     // might want to individually address when arranging or animating a scene.
     q_named_non_primitives: Query<&Name, Without<Handle<Mesh>>>,
     q_skinned_meshes: Query<&SkinnedMesh>,
+    mut q_xforms: ParamSet<(TransformHelper, Query<&Transform>)>,
 ) {
     let gltf = ra_gltfs.get(&r_active_scene.source).unwrap();
 
@@ -338,8 +353,21 @@ fn tag_scene_elements(
     {
         cmd.entity(ent).insert(NoFrustumCulling);
 
-        for &joint in skinned_mesh.joints.iter() {
-            cmd.entity(joint).insert(SkeletalJoint(Color::BLACK));
+        let inv_bind_poses = ra_inv_bindposes
+            .get(skinned_mesh.inverse_bindposes.clone())
+            .unwrap();
+
+        for (idx, &joint) in skinned_mesh.joints.iter().enumerate() {
+            let inv_bind_pose = inv_bind_poses[idx];
+            let global_bind_pose = q_xforms.p0().compute_global_transform(joint).unwrap();
+            let local_bind_pose = *q_xforms.p1().get(joint).unwrap();
+
+            cmd.entity(joint).insert((
+                SkeletalJoint(Color::BLACK),
+                BindPoseLocal(local_bind_pose),
+                BindPoseGlobal(global_bind_pose.compute_matrix()),
+                InvBindPose(inv_bind_pose),
+            ));
         }
     }
 }

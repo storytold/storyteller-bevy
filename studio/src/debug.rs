@@ -55,16 +55,24 @@ impl Plugin for DebugPlugin {
 
 fn debug_bvh_model(
     mut gizmos: Gizmos,
-    bvh_joints: Query<(&GlobalTransform, Option<&Children>), With<BvhJoint>>,
-    debug_mode: Res<DebugMode>,
+    q_bvh_joints: Query<(&GlobalTransform, Option<&Children>), With<BvhJoint>>,
 ) {
     if true {
-        for (transform, children) in bvh_joints.iter() {
+        for (transform, children) in q_bvh_joints.iter() {
             gizmos.sphere(transform.translation(), Quat::IDENTITY, 0.01, Color::TEAL);
+
+            let mut draw_axis = |direction: Vec3, color: Color| {
+                let end = transform.translation() + direction * 0.05;
+                gizmos.line(transform.translation(), end, color);
+            };
+
+            // draw_axis(transform.right(), Color::RED);
+            // draw_axis(transform.up(), Color::GREEN);
+            // draw_axis(transform.back(), Color::BLUE);
 
             if let Some(children) = children {
                 for child in children.iter() {
-                    if let Ok((child_transform, _)) = bvh_joints.get(child.clone()) {
+                    if let Ok((child_transform, _)) = q_bvh_joints.get(*child) {
                         gizmos.line(
                             transform.translation(),
                             child_transform.translation(),
@@ -154,9 +162,9 @@ fn draw_skeletal_joints(
             gizmos.sphere(xlation, rotation, joint_radius, joint.0);
             gizmos.line(xlation, parent_xlation, joint.0);
 
-            let local_x = world_xform.left() * 0.05;
+            let local_x = world_xform.right() * 0.05;
             let local_y = world_xform.up() * 0.05;
-            let local_z = world_xform.forward() * 0.05;
+            let local_z = world_xform.back() * 0.05;
 
             gizmos.line(xlation, xlation + local_x, Color::RED);
             gizmos.line(xlation, xlation + local_y, Color::GREEN);
