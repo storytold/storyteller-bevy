@@ -28,6 +28,7 @@ const mimeTypes = {
     ".css": "text/css",
     ".eot": "font/eot",
     ".gif": "image/gif",
+    ".glb": "model/gltf-binary",
     ".gltf": "model/gltf+json",
     ".gz": "application/gzip",
     ".hdr": "image/vnd.radiance",
