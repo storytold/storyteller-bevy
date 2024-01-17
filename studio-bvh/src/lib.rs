@@ -679,6 +679,7 @@ impl Bvh {
         From::from(self)
     }
 
+    #[allow(missing_docs)]
     pub fn get_joint(&self, index: usize) -> Option<Joint<'_>> {
         if index < self.joints.len() {
             Some(Joint {

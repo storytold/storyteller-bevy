@@ -1,9 +1,8 @@
 use std::fmt;
 
-use bevy::{gizmos, prelude::*, window::PrimaryWindow};
+use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
-use bevy_mod_picking::debug::{self, DebugPickingMode};
-use bevy_rapier3d::na::Quaternion;
+use bevy_mod_picking::debug::DebugPickingMode;
 
 use crate::{
     bvh::BvhJoint,
@@ -60,15 +59,6 @@ fn debug_bvh_model(
     if true {
         for (transform, children) in q_bvh_joints.iter() {
             gizmos.sphere(transform.translation(), Quat::IDENTITY, 0.01, Color::TEAL);
-
-            let mut draw_axis = |direction: Vec3, color: Color| {
-                let end = transform.translation() + direction * 0.05;
-                gizmos.line(transform.translation(), end, color);
-            };
-
-            // draw_axis(transform.right(), Color::RED);
-            // draw_axis(transform.up(), Color::GREEN);
-            // draw_axis(transform.back(), Color::BLUE);
 
             if let Some(children) = children {
                 for child in children.iter() {

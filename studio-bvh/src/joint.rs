@@ -5,10 +5,11 @@ use bstr::{BStr, BString, ByteSlice, Utf8Error};
 use smallvec::SmallVec;
 use std::{
     cmp::{Ordering, PartialEq, PartialOrd},
+    collections::VecDeque,
     ffi::{CStr, CString},
     fmt, mem,
     ops::{Deref, DerefMut},
-    str, collections::VecDeque, net,
+    str,
 };
 
 /// A 3-element point representing the location of a joint offset or
@@ -399,7 +400,7 @@ impl fmt::Debug for JointPrivateData {
 
 pub(crate) enum JointIterType {
     All(usize),
-    Sequence(VecDeque<usize>)
+    Sequence(VecDeque<usize>),
 }
 
 /// An iterator over the `Joint`s of a `Bvh` skeleton.
@@ -426,7 +427,7 @@ impl<'a> Joints<'a> {
         }
     }
 
-    pub(crate) const fn iter_from(joints: &'a [JointData], start : usize) -> Self {
+    pub(crate) const fn iter_from(joints: &'a [JointData], start: usize) -> Self {
         Joints {
             joints,
             // clips,
@@ -442,7 +443,7 @@ impl<'a> Joints<'a> {
     /// need to iterate through to the end sites of all children, you will
     /// need to continually call `iter_children` on each `Joint` in the iterator.
     pub(crate) fn iter_children(joint: &Joint<'a>) -> Self {
-        let first_child : VecDeque<usize>  = joint
+        let first_child: VecDeque<usize> = joint
             .joints
             .iter()
             .filter(|jd| {
@@ -454,12 +455,9 @@ impl<'a> Joints<'a> {
             })
             .map(|value| value.index())
             .collect();
-            // .map(JointData::index)
-            // .unwrap();
 
         Joints {
             joints: joint.joints,
-            // clips: joint.clips,
             iter_type: JointIterType::Sequence(first_child),
         }
     }
@@ -485,22 +483,20 @@ impl<'a> Iterator for Joints<'a> {
     type Item = Joint<'a>;
     fn next(&mut self) -> Option<Self::Item> {
         match &mut self.iter_type {
-            JointIterType::All(mut current) => {
-                if current >= self.joints.len() {
+            JointIterType::All(current) => {
+                if *current >= self.joints.len() {
                     return None;
                 }
 
-                let joint = Some(Joint {
-                    index: current,
+                Some(Joint {
+                    index: *current,
                     joints: self.joints,
-                });
-
-                current += 1;
-                joint
-            },
+                })
+            }
             JointIterType::Sequence(ref mut joints) => {
-                let Some(next) = joints.pop_front()
-                else { return None };
+                let Some(next) = joints.pop_front() else {
+                    return None;
+                };
 
                 if next >= self.joints.len() {
                     return None;
@@ -510,32 +506,8 @@ impl<'a> Iterator for Joints<'a> {
                     index: next,
                     joints: self.joints,
                 })
-            },
+            }
         }
-
-
-        // if self.current_joint >= self.joints.len() {
-        //     return None;
-        // }
-
-        // let joint = Some(Joint {
-        //     index: self.current_joint,
-        //     joints: self.joints,
-        // });
-
-        // // if let Some(from_child) = self.from_child {
-            
-        // // } else {
-        // //     self.current_joint += 1;
-        // // }
-
-        // // if self.from_child.is_none() {
-        //     self.current_joint += 1;
-        // // } else {
-        // //     return None
-        // // }
-
-        // joint
     }
 }
 
@@ -572,18 +544,6 @@ impl fmt::Debug for JointsMut<'_> {
         f.write_str("JointsMut { .. }")
     }
 }
-
-/*
-
-impl<'a> Iterator for JointsMut<'a> {
-    type Item = JointMut<'a>;
-    #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        self.joints.next().map(JointMut::from_joint)
-    }
-}
-
-*/
 
 /// A view of a joint which provides access to various relevant data.
 pub struct Joint<'a> {
