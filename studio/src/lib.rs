@@ -30,9 +30,10 @@ use crate::{
     scene::{LoadSceneEvent, ScenePlugin},
     skybox::{SkyboxId, SkyboxPlugin},
     ui::UiLayerPlugin,
-    viewport::ViewportSize,
     world_grid::WorldGridPlugin,
 };
+
+pub use crate::viewport::ViewportSize;
 
 #[cfg(feature = "wasm")]
 mod wasm;
@@ -80,66 +81,6 @@ impl PluginGroup for EditorPlugins {
     }
 }
 
-#[cfg_attr(feature = "wasm", wasm_bindgen)]
-pub fn init(viewport_size: ViewportSize) {
-    #[cfg(feature = "wasm")]
-    console_error_panic_hook::set_once();
-
-    let mut app = App::new();
-
-    #[cfg(feature = "wasm")]
-    app.add_plugins(viewport::wasm::ViewportPlugin);
-
-    app.add_plugins((
-        DefaultPlugins
-            // TODO: To generate asset .meta files (to prevent 404 errors on the
-            //       web), it's currently necessary to uncomment the following
-            //       block and run the app with this command:
-            //     > cargo run -p studio --features bevy/asset_processor,bevy/tonemapping_luts
-            // .set(AssetPlugin {
-            //     mode: AssetMode::Processed,
-            //     ..default()
-            // })
-            .set(WindowPlugin {
-                primary_window: Some(Window {
-                    resolution: viewport_size.into(),
-                    title: "Storyteller Studio".into(),
-                    canvas: Some("#studio_canvas".into()),
-                    ..default()
-                }),
-                ..default()
-            }),
-        DefaultPickingPlugins,
-        DebugPlugin,
-        InteractionPlugin,
-        InspectorPlugin,
-        StudioInputPlugin,
-        InterpolationPlugin,
-        CameraControllerPlugin,
-        ScenePlugin,
-        SkyboxPlugin,
-        UiLayerPlugin,
-        WorldGridPlugin,
-        UndoPlugin,
-    ))
-    .add_systems(
-        Startup,
-        move |mut cmd: Commands, mut ew: EventWriter<LoadSceneEvent>| {
-            cmd.insert_resource(SkyboxId("gum_trees_4k".to_string()));
-            ew.send(LoadSceneEvent("bookcase".to_string()));
-        },
-    );
-
-    // Only for registering components for undo
-    use space_editor::prelude::space_undo::AppAutoUndo;
-    app.auto_reflected_undo::<Transform>();
-
-    #[cfg(feature = "wasm")]
-    wasm::initialize();
-
-    app.run();
-}
-
 #[cfg_attr(feature = "wasm", wasm_bindgen(js_name = startViewer))]
 /// Start the application as a read-only viewer for a single library object.
 ///
@@ -164,7 +105,8 @@ pub fn start_viewer(
         canvas_alt,
         viewport_size,
         StudioMode::Viewer,
-    );
+    )
+    .run();
 }
 
 #[cfg_attr(feature = "wasm", wasm_bindgen(js_name = startEditor))]
@@ -182,14 +124,15 @@ pub fn start_editor(
         canvas_alt,
         viewport_size,
         StudioMode::Editor,
-    );
+    )
+    .run();
 }
 
 // TODO: These `start_` functiions should be refactored to better support the
 //       needs of the "reaodnly viewer" vs "full studio editor" use cases. See
 //       notes in `studio-web/src/lib/viewer.element.ts` for more info.
-#[cfg_attr(feature = "wasm", wasm_bindgen(js_name = start))]
-pub fn start_internal(
+#[cfg_attr(feature = "wasm", wasm_bindgen)]
+pub fn start(
     object_id: &str,
     skybox_id: &str,
     canvas_selector: &str,
@@ -197,6 +140,25 @@ pub fn start_internal(
     viewport_size: ViewportSize,
     studio_mode: StudioMode,
 ) {
+    start_internal(
+        object_id,
+        skybox_id,
+        canvas_selector,
+        canvas_alt,
+        viewport_size,
+        studio_mode,
+    )
+    .run();
+}
+
+pub fn start_internal(
+    object_id: &str,
+    skybox_id: &str,
+    canvas_selector: &str,
+    canvas_alt: &str,
+    viewport_size: ViewportSize,
+    studio_mode: StudioMode,
+) -> App {
     #[cfg(feature = "wasm")]
     console_error_panic_hook::set_once();
 
@@ -241,5 +203,5 @@ pub fn start_internal(
     #[cfg(feature = "wasm")]
     wasm::initialize();
 
-    app.run();
+    app
 }
