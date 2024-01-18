@@ -4,7 +4,7 @@ use studio::{StudioMode, ViewportSize};
 fn main() {
     // Edit the arguments here to change the default startup scene or skybox
     let mut app = studio::start_internal(
-        "sample-room",
+        "base-human-female",
         "gum_trees_4k",
         "", // ignored for non-WASM
         "Storyteller Studio",
