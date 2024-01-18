@@ -6,7 +6,6 @@ use bevy_mod_picking::{prelude::Pointer, selection::Select, PickableBundle};
 
 use crate::{
     input::{self, Action, InputAction, Lifecycle},
-    is_editor,
     scene::{SceneElement, SceneSpawnerSystem, SceneState},
 };
 
@@ -29,7 +28,7 @@ impl Plugin for SelectionPlugin {
         #[cfg(feature = "wasm")]
         app.add_systems(
             Update,
-            wasm::update_selection_from_frontend.run_if(is_editor),
+            wasm::update_selection_from_frontend.run_if(crate::is_editor),
         )
         .add_systems(
             PostUpdate,

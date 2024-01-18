@@ -66,8 +66,6 @@ pub struct BvhAnim {
     frame: usize,
     #[reflect(ignore)]
     timer: Timer,
-    #[reflect(ignore)]
-    last_frame: usize,
 }
 
 fn compute_inverse_bindposes(
@@ -323,7 +321,6 @@ impl Command for SpawnBvhCommand {
                 BvhAnim {
                     bvh: self.1,
                     frame: 0,
-                    last_frame: 0,
                     should_play: true,
                     timer: Timer::from_seconds(
                         bvh.0.frame_time().as_secs_f32(),
