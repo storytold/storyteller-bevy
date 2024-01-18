@@ -60,6 +60,7 @@ struct CommonPlugins;
 impl PluginGroup for CommonPlugins {
     fn build(self) -> PluginGroupBuilder {
         PluginGroupBuilder::start::<Self>()
+            .add(BvhPlugin)
             .add(CameraControllerPlugin)
             .add(DebugPlugin)
             .add(InspectorPlugin)
@@ -183,20 +184,18 @@ pub fn start_internal(
             }),
             ..default()
         }),
-        DefaultPickingPlugins,
-        DebugPlugin,
-        InteractionPlugin,
-        InspectorPlugin,
-        StudioInputPlugin,
-        InterpolationPlugin,
-        CameraControllerPlugin,
-        ScenePlugin,
-        SkyboxPlugin,
-        UiLayerPlugin,
-        WorldGridPlugin,
-        BvhPlugin, // TODO: Alphabetize these plugins
-    ))
-    .add_systems(
+        CommonPlugins,
+    ));
+
+    if matches!(studio_mode, StudioMode::Editor) {
+        app.add_plugins((DefaultPickingPlugins, EditorPlugins));
+
+        // Only for registering components for undo
+        use space_editor::prelude::space_undo::AppAutoUndo;
+        app.auto_reflected_undo::<Transform>();
+    }
+
+    app.add_systems(
         Startup,
         move |mut cmd: Commands, mut ew: EventWriter<LoadSceneEvent>| {
             cmd.insert_resource(SkyboxId(skybox_id.clone()));
