@@ -7,12 +7,15 @@ use bevy::{
     transform::TransformSystem,
     utils::HashMap,
 };
-use studio_bvh::frames::Frame;
+use studio_bvh::{frames::Frame, ChannelType};
 
 mod error;
 mod loader;
 
-use crate::scene::{BindPoseGlobal, InvBindPose, SceneState, SkeletalJoint};
+use crate::{
+    math::Lerp,
+    scene::{BindPoseGlobal, InvBindPose, SceneState, SkeletalJoint},
+};
 
 use self::loader::BvhLoader;
 
@@ -23,7 +26,7 @@ impl Plugin for BvhPlugin {
         app.init_asset::<Bvh>()
             .register_asset_loader(BvhLoader)
             // FIXME: Need to add a state for this module (similar to scene
-            //        module's `SceneState`) to manage the order/frequence at
+            //        module's `SceneState`) to manage the order/frequency at
             //        which these systems run instead of just running them all
             //        every frame
             .add_systems(
@@ -89,44 +92,51 @@ pub fn animate_bvh(
             .expect("Could not animate the BVH because the bvh file has not been loaded yet")
             .0;
 
-        if anim.should_play {
-            anim.timer.tick(r_time.delta());
-            if anim.timer.finished() {
-                anim.frame = (anim.frame + 1) % bvh.frames().len();
-                anim.timer.reset();
-            }
-        }
+        // TODO: Interpolation
+        let bvh_len = bvh.frames().len();
 
-        if anim.last_frame != anim.frame {
-            let frame = bvh
-                .frames()
-                .nth(anim.frame)
-                .expect("Invalid BVH format: the frame index is out of bounds");
-            for child in children.iter() {
-                apply_frame(&mut q_bvh_joints, *child, &frame, bvh);
+        let t = if anim.should_play {
+            anim.timer.tick(r_time.delta());
+
+            if anim.timer.just_finished() {
+                anim.frame = (anim.frame + 1) % bvh_len;
+                anim.timer.reset();
+                0.
+            } else {
+                anim.timer.percent()
             }
-            anim.last_frame = anim.frame;
+        } else {
+            0.
+        };
+
+        let a = bvh.frames().nth(anim.frame).unwrap();
+        let b = bvh.frames().nth((anim.frame + 1) % bvh_len).unwrap();
+
+        for &child_ent in children.iter() {
+            lerp_frames(&mut q_bvh_joints, child_ent, bvh, &a, &b, t);
         }
     }
 }
 
-fn apply_frame<T: ReadOnlyWorldQuery>(
+fn lerp_frames<T: ReadOnlyWorldQuery>(
     joint_query: &mut Query<JointQuery, T>,
     current_joint: Entity,
-    frame: &Frame,
-    bvh_file: &studio_bvh::Bvh,
+    bvh: &studio_bvh::Bvh,
+    a: &Frame,
+    b: &Frame,
+    t: f32,
 ) {
-    let Ok(mut joint_entity) = joint_query.get_mut(current_joint) else {
+    let Ok(mut joint_entry) = joint_query.get_mut(current_joint) else {
         return;
     };
 
-    let joint_data = bvh_file
-        .get_joint(joint_entity.joint.0)
+    let joint_data = bvh
+        .get_joint(joint_entry.joint.0)
         .expect("Invalid BVH format: the joint index is out of bounds");
 
     //new Positions and rotations
-    let mut new_pos = joint_entity.transform.translation;
-    let mut new_rot: Vec3 = joint_entity
+    let mut new_pos = joint_entry.transform.translation;
+    let mut new_rot: Vec3 = joint_entry
         .transform
         .rotation
         .to_euler(EulerRot::ZXY)
@@ -136,47 +146,40 @@ fn apply_frame<T: ReadOnlyWorldQuery>(
 
     for channel in joint_data.channels() {
         // info!("Channel {}: {:?} : {}", channel.motion_index(), channel.channel_type(), frame.as_slice()[channel.motion_index()]);
-        match channel.channel_type() {
-            studio_bvh::ChannelType::PositionX => {
-                new_pos.x = frame.as_slice()[channel.motion_index()]
-            }
-            studio_bvh::ChannelType::PositionY => {
-                new_pos.y = frame.as_slice()[channel.motion_index()]
-            }
-            studio_bvh::ChannelType::PositionZ => {
-                new_pos.z = frame.as_slice()[channel.motion_index()]
-            }
-            studio_bvh::ChannelType::RotationX => {
-                new_rot.x = frame.as_slice()[channel.motion_index()]
-            }
-            studio_bvh::ChannelType::RotationY => {
-                new_rot.y = frame.as_slice()[channel.motion_index()]
-            }
-            studio_bvh::ChannelType::RotationZ => {
-                new_rot.z = frame.as_slice()[channel.motion_index()]
-            }
-        }
+        let target = match channel.channel_type() {
+            ChannelType::PositionX => &mut new_pos.x,
+            ChannelType::PositionY => &mut new_pos.y,
+            ChannelType::PositionZ => &mut new_pos.z,
+            ChannelType::RotationX => &mut new_rot.x,
+            ChannelType::RotationY => &mut new_rot.y,
+            ChannelType::RotationZ => &mut new_rot.z,
+        };
+
+        *target = t.lerp(
+            a.as_slice()[channel.motion_index()],
+            b.as_slice()[channel.motion_index()],
+        );
     }
 
-    joint_entity.transform.translation = new_pos;
-    joint_entity.transform.rotation = Quat::from_euler(
+    joint_entry.transform.translation = new_pos;
+    joint_entry.transform.rotation = Quat::from_euler(
+        // TODO: Read the Euler order from the BVH instead of hard-coding
         EulerRot::ZXY,
         new_rot.z.to_radians(),
         new_rot.x.to_radians(),
         new_rot.y.to_radians(),
     );
 
-    if joint_entity.children.is_some() {
-        let children = joint_entity
+    if joint_entry.children.is_some() {
+        let children = joint_entry
             .children
-            .as_mut()
             .unwrap()
             .iter()
-            .map(Entity::clone)
+            .copied()
             .collect::<Vec<_>>();
 
         for child in children {
-            apply_frame(joint_query, child, frame, bvh_file);
+            lerp_frames(joint_query, child, bvh, a, b, t);
         }
     }
 }
