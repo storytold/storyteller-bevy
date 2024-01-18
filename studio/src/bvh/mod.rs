@@ -92,7 +92,6 @@ pub fn animate_bvh(
             .expect("Could not animate the BVH because the bvh file has not been loaded yet")
             .0;
 
-        // TODO: Interpolation
         let bvh_len = bvh.frames().len();
 
         let t = if anim.should_play {
