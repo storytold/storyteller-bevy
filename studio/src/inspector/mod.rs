@@ -6,7 +6,11 @@ mod wasm;
 pub struct InspectorPlugin;
 
 impl Plugin for InspectorPlugin {
-    fn build(&self, app: &mut App) {
+    fn build(
+        &self,
+        #[cfg(feature = "wasm")] app: &mut App,
+        #[cfg(not(feature = "wasm"))] _: &mut App,
+    ) {
         #[cfg(feature = "wasm")]
         app.add_systems(
             PostUpdate,
