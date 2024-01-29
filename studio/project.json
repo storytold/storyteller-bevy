@@ -14,6 +14,10 @@
         "release": false
       },
       "configurations": {
+        "headless" : {
+          "release" : true,
+          "bin": "studio-headless"
+        },
         "production": {
           "release": true
         }
@@ -33,6 +37,12 @@
         "profile": "dev-custom",
         "bin": "studio-standalone"
       }
+    },
+    "headless": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "cargo run -p studio --bin studio-headless -- {args}",
+      }      
     },
     "test": {
       "executor": "@nxrs/cargo:test",

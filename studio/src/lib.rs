@@ -17,6 +17,7 @@ mod inspector;
 mod interaction;
 mod math;
 mod scene;
+pub mod screen_shot;
 mod skybox;
 mod ui;
 mod viewport;
@@ -48,6 +49,7 @@ pub(crate) struct MainCamera;
 #[derive(Resource, Clone, Copy, PartialEq, Eq, Debug)]
 pub enum StudioMode {
     Editor,
+    Headless,
     Viewer,
 }
 
@@ -57,7 +59,7 @@ pub(crate) fn is_editor(r_studio_mode: Res<StudioMode>) -> bool {
 
 /// The collection of plugins that should be loaded for both viewer-mode and
 /// editor-mode instances of the app.
-struct CommonPlugins;
+pub struct CommonPlugins;
 impl PluginGroup for CommonPlugins {
     fn build(self) -> PluginGroupBuilder {
         PluginGroupBuilder::start::<Self>()
@@ -239,3 +241,5 @@ pub fn start_internal(
 
     app
 }
+
+pub fn start_headless() {}

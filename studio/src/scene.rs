@@ -22,6 +22,7 @@ use crate::{
     camera_controller::{CameraController, CameraControllerBundle},
     debug::DebugPoint,
     math::{Combinable, Extrema},
+    screen_shot::ScreenCapture,
     MainCamera,
 };
 
