@@ -97,6 +97,11 @@ impl ScreenCapture {
         self.capture_depth = true;
         self
     }
+
+    pub fn is_complete(&self) -> bool {
+        println!("Number of Frames Left: {}", self.number_of_frames);
+        self.number_of_frames == 1
+    }
 }
 
 fn update_screen_capture_on_extract_step(
@@ -247,7 +252,15 @@ fn save_buffer_to_file(
             screen_capture.to_directory, screen_capture.number_of_frames
         );
 
-        save_buffer::<Rgb<u8>>(&main_image_values, &buffers.main_buffer_extent, &path);
+        // let rgba16 = main_image_values
+        //     .iter()
+        //     .map(|v| (*v) as u16)
+        //     .collect::<Vec<u16>>();
+        // for chunk in main_image_values.chunks(2) {
+        //     let number = ((chunk[1] as u16) << 8) | chunk[0] as u16;
+        //     rgba16.push(number)
+        // }
+        save_buffer::<Rgba<u8>>(&main_image_values, &buffers.main_buffer_extent, &path);
     }
 }
 

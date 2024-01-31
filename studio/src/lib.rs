@@ -1,12 +1,27 @@
 #![allow(clippy::type_complexity, clippy::too_many_arguments)]
 
-use bevy::{app::PluginGroupBuilder, prelude::*};
+use std::time::Duration;
+
+use bevy::{
+    app::{AppExit, PluginGroupBuilder, ScheduleRunnerPlugin},
+    core_pipeline::CorePipelinePlugin,
+    gltf::GltfPlugin,
+    pbr::PbrPlugin,
+    prelude::*,
+    render::{
+        camera::{CameraPlugin, CameraProjectionPlugin},
+        pipelined_rendering::PipelinedRenderingPlugin,
+        RenderPlugin,
+    },
+};
 use bevy_mod_picking::DefaultPickingPlugins;
 use bevy_web_asset::WebAssetPlugin;
+use screen_shot::{ScreenCapture, ScreenShotPlugin};
 use space_editor::prelude::space_undo::UndoPlugin;
 
 #[cfg(feature = "wasm")]
 use wasm_bindgen::prelude::*;
+use wgpu::Extent3d;
 
 mod bvh;
 mod camera_controller;
@@ -242,4 +257,79 @@ pub fn start_internal(
     app
 }
 
-pub fn start_headless() {}
+pub fn start_headless(
+    object_id: &str,
+    skybox_id: &str,
+    fps: u32,
+    frames_to_capture: u32,
+    image_res: Extent3d,
+) -> App {
+    let object_id = object_id.to_string();
+    let skybox_id = skybox_id.to_string();
+
+    let mut app = App::new();
+
+    app.insert_resource(StudioMode::Headless);
+
+    app.add_plugins((
+        // WebAssetPlugin,
+        ScheduleRunnerPlugin::run_loop(Duration::from_secs_f64(1.0 / fps as f64)),
+        // MinimalPlugins.set(ScheduleRunnerPlugin::run_loop(Duration::from_secs_f64(
+        //     1.0 / fps as f64,
+        // ))),
+        // AssetPlugin::default(),
+        // // DefaultPlugins,
+        // RenderPlugin::default(),
+        // ImagePlugin::default(),
+        // PipelinedRenderingPlugin,
+        // CorePipelinePlugin,
+        // PbrPlugin::default(),
+        // GltfPlugin::default(),
+        // AnimationPlugin,
+        // ScreenShotPlugin,
+        // CommonPlugins,
+        // HierarchyPlugin,
+        // TransformPlugin,
+        // WindowPlugin {
+        //     primary_window: None,
+        //     ..default()
+        // },
+        DefaultPlugins.set(WindowPlugin {
+            primary_window: None,
+            exit_condition: bevy::window::ExitCondition::DontExit,
+            close_when_requested: true,
+        }),
+        ScreenShotPlugin,
+        CommonPlugins,
+    ));
+
+    // app.add_event::<LoadSceneEvent>();
+
+    app.add_systems(
+        Startup,
+        move |mut cmd: Commands, mut ew: EventWriter<LoadSceneEvent>| {
+            cmd.insert_resource(SkyboxId(skybox_id.clone()));
+            ew.send(LoadSceneEvent(object_id.clone()));
+        },
+    );
+
+    app.add_systems(Update, check_for_capture_complete);
+
+    // #[cfg(feature = "wasm")]
+    // wasm::initialize();
+
+    app
+}
+
+fn check_for_capture_complete(
+    main_camera: Query<&ScreenCapture, With<MainCamera>>,
+    mut close_app: EventWriter<AppExit>,
+) {
+    let Ok(screen_capture) = main_camera.get_single() else {
+        return;
+    };
+
+    if screen_capture.is_complete() {
+        close_app.send(AppExit);
+    }
+}

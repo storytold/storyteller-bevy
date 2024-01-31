@@ -59,12 +59,8 @@ fn main() {
     });
     let fps = args.fps.unwrap_or(24);
 
-    let app = App::new().add_plugins(MinimalPlugins.set(ScheduleRunnerPlugin::run_loop(
-        Duration::from_secs_f64(1.0 / fps as f64),
-    )));
+    studio::start_headless("Mannequin.gltf", "gum_trees_4k", fps, 300, output_res).run();
 }
-
-pub fn setup_headless(commands: Commands) {}
 
 //==============================================================================
 //                        Parsers
