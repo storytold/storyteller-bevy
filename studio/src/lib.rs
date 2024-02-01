@@ -10,12 +10,14 @@ use bevy::{
     prelude::*,
     render::{
         camera::{CameraPlugin, CameraProjectionPlugin},
+        extract_resource::ExtractResource,
         pipelined_rendering::PipelinedRenderingPlugin,
         RenderPlugin,
     },
 };
 use bevy_mod_picking::DefaultPickingPlugins;
 use bevy_web_asset::WebAssetPlugin;
+use input::StudioInputSystem;
 use screen_shot::{ScreenCapture, ScreenShotPlugin};
 use space_editor::prelude::space_undo::UndoPlugin;
 
@@ -261,6 +263,7 @@ pub fn start_headless(
     object_id: &str,
     skybox_id: &str,
     fps: u32,
+    outout_dir: &str,
     frames_to_capture: u32,
     image_res: Extent3d,
 ) -> App {
@@ -270,30 +273,14 @@ pub fn start_headless(
     let mut app = App::new();
 
     app.insert_resource(StudioMode::Headless);
+    app.insert_resource(HeadlessSettings {
+        frames_to_capture,
+        output_dims: image_res,
+        output_dir: outout_dir.to_string(),
+    });
 
     app.add_plugins((
-        // WebAssetPlugin,
         ScheduleRunnerPlugin::run_loop(Duration::from_secs_f64(1.0 / fps as f64)),
-        // MinimalPlugins.set(ScheduleRunnerPlugin::run_loop(Duration::from_secs_f64(
-        //     1.0 / fps as f64,
-        // ))),
-        // AssetPlugin::default(),
-        // // DefaultPlugins,
-        // RenderPlugin::default(),
-        // ImagePlugin::default(),
-        // PipelinedRenderingPlugin,
-        // CorePipelinePlugin,
-        // PbrPlugin::default(),
-        // GltfPlugin::default(),
-        // AnimationPlugin,
-        // ScreenShotPlugin,
-        // CommonPlugins,
-        // HierarchyPlugin,
-        // TransformPlugin,
-        // WindowPlugin {
-        //     primary_window: None,
-        //     ..default()
-        // },
         DefaultPlugins.set(WindowPlugin {
             primary_window: None,
             exit_condition: bevy::window::ExitCondition::DontExit,
@@ -319,6 +306,35 @@ pub fn start_headless(
     // wasm::initialize();
 
     app
+}
+
+pub fn is_headless(studio_state: Res<StudioMode>) -> bool {
+    *studio_state == StudioMode::Headless
+}
+
+pub fn is_not_headless(studio_state: Res<StudioMode>) -> bool {
+    *studio_state != StudioMode::Headless
+}
+
+#[derive(Resource)]
+pub struct HeadlessSettings {
+    pub output_dims: Extent3d,
+    pub output_dir: String,
+    pub frames_to_capture: u32,
+}
+
+impl Default for HeadlessSettings {
+    fn default() -> Self {
+        HeadlessSettings {
+            output_dims: Extent3d {
+                width: 1280,
+                height: 720,
+                depth_or_array_layers: 1,
+            },
+            output_dir: "./screen_shots/".to_string(),
+            frames_to_capture: 1,
+        }
+    }
 }
 
 fn check_for_capture_complete(

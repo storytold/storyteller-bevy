@@ -51,7 +51,7 @@ enum StudioSubCommand {
 fn main() {
     let args = StudioArgs::parse();
 
-    let output_dir = args.output_dir.unwrap_or("./".to_string());
+    let output_dir = args.output_dir.unwrap_or("./screen_shots/".to_string());
     let output_res = args.output_resolution.unwrap_or(Extent3d {
         width: 1280,
         height: 720,
@@ -59,7 +59,15 @@ fn main() {
     });
     let fps = args.fps.unwrap_or(24);
 
-    studio::start_headless("Mannequin.gltf", "gum_trees_4k", fps, 300, output_res).run();
+    studio::start_headless(
+        "Mannequin.gltf",
+        "gum_trees_4k",
+        fps,
+        &output_dir,
+        fps,
+        output_res,
+    )
+    .run();
 }
 
 //==============================================================================

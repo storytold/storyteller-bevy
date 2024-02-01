@@ -25,9 +25,10 @@ use crate::{
     bvh::{Bvh, CommandsSpawnBvhExt},
     camera_controller::{CameraController, CameraControllerBundle},
     debug::DebugPoint,
+    is_headless, is_not_headless,
     math::{Combinable, Extrema},
     screen_shot::ScreenCapture,
-    MainCamera, StudioMode,
+    HeadlessSettings, MainCamera, StudioMode,
 };
 
 pub struct ScenePlugin;
@@ -41,7 +42,13 @@ impl Plugin for ScenePlugin {
             .insert_resource(Msaa::Off)
             .add_state::<SceneState>()
             .add_event::<LoadSceneEvent>()
-            .add_systems(Startup, initialize)
+            .add_systems(
+                Startup,
+                (
+                    initialize.run_if(is_not_headless),
+                    initialiaze_headless.run_if(is_headless),
+                ),
+            )
             .add_systems(
                 Update,
                 (
@@ -133,98 +140,90 @@ pub struct BindPoseGlobal(pub Affine3A);
 #[derive(Component, Clone, Copy, Debug, Deref, DerefMut)]
 pub struct InvBindPose(pub Affine3A);
 
-fn initialize(
+fn initialize(mut cmd: Commands) {
+    // Camera, graphics settings
+    let focus = Vec3::ZERO;
+    let camera_xform = Transform::from_xyz(-2.5, 4.5, 5.0).looking_at(focus, Vec3::Y);
+
+    cmd.spawn((
+        Name::new("Main Camera"),
+        MainCamera,
+        Camera3dBundle {
+            transform: camera_xform,
+            tonemapping: Tonemapping::BlenderFilmic,
+            camera: Camera {
+                hdr: true,
+                ..default()
+            },
+            ..default()
+        },
+        CameraControllerBundle::new(focus, camera_xform.translation),
+        ShadowFilteringMethod::Hardware2x2,
+        BloomSettings {
+            composite_mode: BloomCompositeMode::EnergyConserving,
+            intensity: 0.25,
+            prefilter_settings: BloomPrefilterSettings {
+                threshold: 0.8,
+                threshold_softness: 0.5,
+            },
+            ..default()
+        },
+        Fxaa::default(),
+    ));
+}
+
+fn initialiaze_headless(
     mut cmd: Commands,
-    r_assets: Res<AssetServer>,
-    studio_state: Res<StudioMode>,
     mut image_assets: ResMut<Assets<Image>>,
+    headless_settings: Res<HeadlessSettings>,
 ) {
     // Camera, graphics settings
     let focus = Vec3::ZERO;
     let camera_xform = Transform::from_xyz(-2.5, 4.5, 5.0).looking_at(focus, Vec3::Y);
 
-    if *studio_state == StudioMode::Headless {
-        let size = Extent3d {
-            width: 1280,
-            height: 720,
-            ..Default::default()
-        };
+    let size = Extent3d {
+        width: 1280,
+        height: 720,
+        ..Default::default()
+    };
 
-        let mut test_image = Image {
-            texture_descriptor: TextureDescriptor {
-                label: Some("render_texture"),
-                size,
-                mip_level_count: 1,
-                sample_count: 1,
-                dimension: wgpu::TextureDimension::D2,
-                format: wgpu::TextureFormat::Rgba8UnormSrgb,
-                usage: TextureUsages::TEXTURE_BINDING
-                    | TextureUsages::COPY_SRC
-                    | TextureUsages::COPY_DST
-                    | TextureUsages::RENDER_ATTACHMENT,
-                view_formats: &[],
-            },
-            ..Default::default()
-        };
+    let mut test_image = Image {
+        texture_descriptor: TextureDescriptor {
+            label: Some("render_texture"),
+            size: headless_settings.output_dims,
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: wgpu::TextureDimension::D2,
+            format: wgpu::TextureFormat::Rgba8UnormSrgb,
+            usage: TextureUsages::TEXTURE_BINDING
+                | TextureUsages::COPY_SRC
+                | TextureUsages::COPY_DST
+                | TextureUsages::RENDER_ATTACHMENT,
+            view_formats: &[],
+        },
+        ..Default::default()
+    };
 
-        test_image.resize(size);
+    test_image.resize(headless_settings.output_dims);
 
-        println!("Finished Creating test image.");
-
-        cmd.spawn((
-            Name::new("Main Camera"),
-            MainCamera,
-            Camera3dBundle {
-                transform: camera_xform,
-                tonemapping: Tonemapping::BlenderFilmic,
-                camera: Camera {
-                    hdr: false,
-                    target: RenderTarget::Image(image_assets.add(test_image)),
-                    ..Default::default()
-                },
-                ..default()
+    cmd.spawn((
+        Name::new("Main Camera"),
+        MainCamera,
+        Camera3dBundle {
+            transform: camera_xform,
+            tonemapping: Tonemapping::BlenderFilmic,
+            camera: Camera {
+                hdr: false,
+                target: RenderTarget::Image(image_assets.add(test_image)),
+                ..Default::default()
             },
-            // CameraControllerBundle::new(focus, camera_xform.translation),
-            // ShadowFilteringMethod::Hardware2x2,
-            // BloomSettings {
-            //     composite_mode: BloomCompositeMode::EnergyConserving,
-            //     intensity: 0.25,
-            //     prefilter_settings: BloomPrefilterSettings {
-            //         threshold: 0.8,
-            //         threshold_softness: 0.5,
-            //     },
-            //     ..default()
-            // },
-            // Fxaa::default(),
-            ScreenCapture::number_of_frames(30, "./scrnshot"),
-        ));
-    } else {
-        cmd.spawn((
-            Name::new("Main Camera"),
-            MainCamera,
-            Camera3dBundle {
-                transform: camera_xform,
-                tonemapping: Tonemapping::BlenderFilmic,
-                camera: Camera {
-                    hdr: true,
-                    ..default()
-                },
-                ..default()
-            },
-            CameraControllerBundle::new(focus, camera_xform.translation),
-            ShadowFilteringMethod::Hardware2x2,
-            BloomSettings {
-                composite_mode: BloomCompositeMode::EnergyConserving,
-                intensity: 0.25,
-                prefilter_settings: BloomPrefilterSettings {
-                    threshold: 0.8,
-                    threshold_softness: 0.5,
-                },
-                ..default()
-            },
-            Fxaa::default(),
-        ));
-    }
+            ..default()
+        },
+        ScreenCapture::number_of_frames(
+            headless_settings.frames_to_capture,
+            &headless_settings.output_dir,
+        ),
+    ));
 }
 
 // TODO
