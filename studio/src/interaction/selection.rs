@@ -25,6 +25,8 @@ impl Plugin for SelectionPlugin {
                     .after(SceneSpawnerSystem),
             );
 
+        app.add_systems(Update, tag_scene_elements);
+
         #[cfg(feature = "wasm")]
         app.add_systems(
             Update,
@@ -36,6 +38,8 @@ impl Plugin for SelectionPlugin {
                 .map(bevy::utils::error)
                 .run_if(resource_changed_or_removed::<Selection>()),
         );
+
+        app.add_systems(Update, sync_editor_selected);
     }
 }
 
@@ -47,6 +51,34 @@ pub struct Selected;
 
 #[derive(Resource, Deref, DerefMut, Debug)]
 pub struct Selection(Entity);
+
+fn sync_editor_selected(
+    mut cmd: Commands,
+    q_new_selected: Query<Entity, (Added<Selected>, Without<space_editor::prelude::Selected>)>,
+    q_editor_selected: Query<Entity, With<space_editor::prelude::Selected>>,
+    q_selected: Query<Entity, With<Selected>>,
+    q_added_editor_selected: Query<
+        Entity,
+        (Without<Selected>, Added<space_editor::prelude::Selected>),
+    >,
+) {
+    for ent in q_new_selected.iter() {
+        for ed_ent in q_editor_selected.iter() {
+            cmd.entity(ed_ent)
+                .remove::<space_editor::prelude::Selected>();
+        }
+        cmd.entity(ent).insert(space_editor::prelude::Selected);
+    }
+
+    for ent in q_added_editor_selected.iter() {
+        cmd.entity(ent).insert(Selected);
+        cmd.insert_resource(Selection(ent));
+
+        for ent in q_selected.iter() {
+            cmd.entity(ent).remove::<Selected>();
+        }
+    }
+}
 
 fn tag_scene_elements(
     mut cmd: Commands,

@@ -1,0 +1,6 @@
+{
+    "space_undo::ChangeChainSettings": "{\"space_undo::ChangeChainSettings\":(max_change_chain_size:200)}",
+    "space_persistence::PersistenceSettings": "{\"space_persistence::PersistenceSettings\":(load_on_startup:true,save_on_close:true)}",
+    "space_editor_core::hotkeys::HotkeySet<space_editor_ui::tools::gizmo::GizmoHotkey>": "{\"space_editor_core::hotkeys::HotkeySet<space_editor_ui::tools::gizmo::GizmoHotkey>\":(bindings:{Rotate:[R],Translate:[G],Scale:[S],Multiple:[ShiftLeft],Clone:[AltLeft],Delete:[X]},name:\"GizmoHotkey\")}",
+    "space_editor_ui::settings::NewWindowSettings": "{\"space_editor_ui::settings::NewWindowSettings\":(new_tab:SameNode)}",
+}

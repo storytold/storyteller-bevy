@@ -1,12 +1,12 @@
 use bevy::{
-    asset::AssetPath,
+    asset::{DependencyLoadState, LoadState, RecursiveDependencyLoadState},
     core_pipeline::{
         bloom::{BloomCompositeMode, BloomPrefilterSettings, BloomSettings},
         fxaa::Fxaa,
         tonemapping::Tonemapping,
     },
     gltf::Gltf,
-    math::{vec2, vec3, Affine3A},
+    math::{vec2, Affine3A},
     pbr::ShadowFilteringMethod,
     prelude::*,
     render::{
@@ -16,7 +16,10 @@ use bevy::{
     scene::InstanceId,
 };
 
-use space_editor::prelude::{space_undo::OneFrameUndoIgnore, PrefabMarker};
+use space_editor::{
+    prelude::PrefabMarker,
+    space_prefab::{component::SceneAutoChild, editor_registry::EditorRegistryExt},
+};
 #[cfg(feature = "wasm")]
 use wasm_bindgen::prelude::wasm_bindgen;
 use wgpu::{Extent3d, TextureDescriptor, TextureFormat, TextureUsages};
@@ -54,28 +57,35 @@ impl Plugin for ScenePlugin {
                 (
                     spawn_test_bvh.run_if(resource_exists::<TestBvh>()), // TODO
                     init_scene_loading,
-                    tick_scene_loading.run_if(in_state(SceneState::Loading)),
-                    tick_scene_spawning.run_if(in_state(SceneState::Spawning)),
                 )
                     .in_set(SceneSpawnerSystem),
-            )
-            .add_systems(
-                OnEnter(SceneState::Loading),
-                despawn_previous_scene.in_set(SceneSpawnerSystem),
-            )
-            .add_systems(
-                OnEnter(SceneState::Spawning),
-                spawn_next_scene.in_set(SceneSpawnerSystem),
             )
             .add_systems(
                 OnEnter(SceneState::Active),
-                (
-                    tag_scene_elements,
-                    spawn_main_scene_light,
-                    frame_scene_in_view,
-                )
-                    .in_set(SceneSpawnerSystem),
+                (tag_scene_elements, frame_scene_in_view).in_set(SceneSpawnerSystem),
             );
+
+        app.add_systems(Update, tag_scene_elements);
+
+        //Auto loading screen
+        //Register handles on which we will look to show loading screen
+        app.init_resource::<LoadingQueue>();
+        app.add_systems(
+            PostUpdate,
+            (
+                check_loading,
+                auto_add_handle::<Scene>,
+                auto_add_handle::<Mesh>,
+                auto_add_handle::<StandardMaterial>,
+            ),
+        );
+
+        //setup default light
+        app.add_systems(Startup, minimal_scene_setup);
+
+        app.editor_registry::<BindPoseLocal>();
+        app.editor_registry::<BindPoseGlobal>();
+        app.editor_registry::<InvBindPose>();
 
         #[cfg(feature = "wasm")]
         app.add_systems(
@@ -90,24 +100,89 @@ impl Plugin for ScenePlugin {
     }
 }
 
+fn minimal_scene_setup(mut cmd: Commands) {
+    cmd.spawn(DirectionalLightBundle {
+        directional_light: DirectionalLight {
+            shadows_enabled: false,
+            illuminance: 20000.0,
+            ..default()
+        },
+        transform: Transform::default().looking_at(Vec3::NEG_ONE, Vec3::Y),
+        ..default()
+    })
+    .insert(PrefabMarker);
+}
+
 #[cfg_attr(feature = "wasm", wasm_bindgen)]
 #[derive(States, Clone, Copy, Default, Debug, PartialEq, Eq, Hash)]
 pub enum SceneState {
     #[default]
     None,
     Loading,
-    Spawning,
     Active,
 }
-
-#[derive(Resource, Deref, DerefMut)]
-struct PendingScene(pub Handle<Gltf>);
 
 #[derive(Resource, Deref)]
 pub struct ActiveScene {
     #[deref]
     pub instance: InstanceId,
     pub source: Handle<Gltf>,
+}
+
+#[derive(Resource, Default)]
+pub struct LoadingQueue {
+    pub queue: Vec<UntypedHandle>,
+}
+
+fn check_loading(
+    mut loading_queue: ResMut<LoadingQueue>,
+    mut st_next: ResMut<NextState<SceneState>>,
+    asset_server: Res<AssetServer>,
+) {
+    if !loading_queue.queue.is_empty() {
+        //filter queue to only include notloaded assets
+
+        let mut not_loaded_count = 0;
+
+        loading_queue.queue.retain(|h| {
+            if let Some((load_state, dep_load_state, rec_load_state)) =
+                asset_server.get_load_states(h.id())
+            {
+                let is_loaded = dep_load_state == DependencyLoadState::Loaded;
+
+                let is_failed = dep_load_state == DependencyLoadState::Failed
+                    || rec_load_state == RecursiveDependencyLoadState::Failed
+                    || load_state == LoadState::Failed;
+
+                if load_state == LoadState::NotLoaded {
+                    not_loaded_count += 1;
+                }
+
+                !(is_failed || is_loaded)
+            } else {
+                false
+            }
+        });
+
+        info!("Loading {} assets", loading_queue.queue.len());
+
+        if loading_queue.queue.len() - not_loaded_count == 0 {
+            //not change state
+        } else {
+            st_next.set(SceneState::Loading);
+        }
+    } else {
+        st_next.set(SceneState::Active);
+    }
+}
+
+fn auto_add_handle<T: Asset>(
+    mut queue: ResMut<LoadingQueue>,
+    query: Query<&Handle<T>, Added<Handle<T>>>,
+) {
+    for h in query.iter() {
+        queue.queue.push(h.clone().untyped());
+    }
 }
 
 #[derive(Event, Deref)]
@@ -123,21 +198,28 @@ pub struct LoadSceneEvent(pub String);
 pub struct SceneElement;
 
 #[derive(Component)]
+pub struct SceneData {
+    pub scene_path: String,
+}
+
+#[derive(Component)]
 pub struct SkeletalJoint(pub Color);
 
 #[derive(Component)]
 pub struct SceneRoot;
-
 #[derive(Resource, Deref, DerefMut)]
 pub struct TestBvh(pub Handle<Bvh>); // TODO
 
-#[derive(Component, Clone, Copy, Debug, Deref, DerefMut)]
+#[derive(Component, Clone, Copy, Debug, Default, Deref, DerefMut, Reflect)]
+#[reflect(Component)]
 pub struct BindPoseLocal(pub Transform);
 
-#[derive(Component, Clone, Copy, Debug, Deref, DerefMut)]
+#[derive(Component, Clone, Copy, Debug, Default, Deref, DerefMut, Reflect)]
+#[reflect(Component)]
 pub struct BindPoseGlobal(pub Affine3A);
 
-#[derive(Component, Clone, Copy, Debug, Deref, DerefMut)]
+#[derive(Component, Clone, Copy, Debug, Default, Deref, DerefMut, Reflect)]
+#[reflect(Component)]
 pub struct InvBindPose(pub Affine3A);
 
 fn initialize(mut cmd: Commands) {
@@ -243,104 +325,29 @@ fn spawn_test_bvh(
     }
 }
 
-fn init_scene_loading(
-    mut cmd: Commands,
-    assets: Res<AssetServer>,
-    r_active_scene: Option<Res<ActiveScene>>,
-    mut er: EventReader<LoadSceneEvent>,
-    mut st_next: ResMut<NextState<SceneState>>,
-) {
+fn init_scene_loading(mut cmd: Commands, mut er: EventReader<LoadSceneEvent>) {
     if let Some(id) = er.read().last() {
-        let name = &**id;
-        let path = format!("gltf/{name}");
-
-        // Avoid trying to re-load this scene if it's already active
-        if let Some(active_scene_path) =
-            r_active_scene.and_then(|scene| scene.source.path().cloned())
-        {
-            if active_scene_path == AssetPath::parse(&path) {
-                return;
-            }
-        }
-
-        cmd.insert_resource(PendingScene(assets.load(path)));
-        st_next.set(SceneState::Loading);
-    }
-}
-
-fn despawn_previous_scene(mut cmd: Commands, q_scene_root: Query<Entity, With<SceneRoot>>) {
-    if let Ok(scene_root) = q_scene_root.get_single() {
-        cmd.entity(scene_root).despawn_recursive();
-    }
-}
-
-fn tick_scene_loading(
-    r_pending_scene: Res<PendingScene>,
-    ra_gltfs: Res<Assets<Gltf>>,
-    mut er_scene_events: EventReader<AssetEvent<Scene>>,
-    mut st_next: ResMut<NextState<SceneState>>,
-) {
-    for event in er_scene_events.read() {
-        if let AssetEvent::LoadedWithDependencies { id } = event {
-            let gltf = ra_gltfs.get(&**r_pending_scene).unwrap();
-            if gltf.default_scene.is_some() && gltf.default_scene.as_ref().unwrap().id() == *id {
-                st_next.set(SceneState::Spawning);
-                break;
-            }
-        }
-    }
-}
-
-fn spawn_next_scene(
-    mut cmd: Commands,
-    ra_gltfs: Res<Assets<Gltf>>,
-    r_pending_scene: Res<PendingScene>,
-    mut r_scene_spawner: ResMut<SceneSpawner>,
-) {
-    let gltf = ra_gltfs.get(&**r_pending_scene).unwrap();
-    let scene = gltf
-        .default_scene
-        .as_ref()
-        .expect("Expected glTF to include a default scene");
-
-    let parent = cmd
-        .spawn((
-            Name::new("Scene"),
-            SceneRoot,
-            SceneElement,
+        info!("Loading scene: {}", id.0);
+        cmd.spawn((
             SpatialBundle::default(),
+            space_editor::prelude::GltfPrefab {
+                path: format!("gltf/{}", id.0),
+                scene: "Scene0".to_string(),
+            },
             PrefabMarker,
-            OneFrameUndoIgnore::default(), //To prevert undo try to register add event
-        ))
-        .id();
-
-    let instance = r_scene_spawner.spawn_as_child(scene.clone(), parent);
-
-    cmd.remove_resource::<PendingScene>();
-    cmd.insert_resource(ActiveScene {
-        instance,
-        source: r_pending_scene.clone(),
-    });
-}
-
-fn tick_scene_spawning(
-    r_scene_spawner: Res<SceneSpawner>,
-    r_active_scene: Res<ActiveScene>,
-    mut st_next: ResMut<NextState<SceneState>>,
-) {
-    // TODO: The instance is considered "ready" even if shaders still need to be
-    //       compiled, so this event isn't really sufficient for controlling a
-    //       loading screen.
-    if r_scene_spawner.instance_is_ready(**r_active_scene) {
-        st_next.set(SceneState::Active);
+            SceneRoot,
+        ));
     }
 }
+
+#[derive(Component)]
+pub struct NoMeshElement;
+
+#[derive(Component)]
+pub struct InitedKointSkinnedMesh;
 
 fn tag_scene_elements(
     mut cmd: Commands,
-    r_scene_spawner: Res<SceneSpawner>,
-    r_active_scene: Res<ActiveScene>,
-    ra_gltfs: Res<Assets<Gltf>>,
     // A "glTF mesh" is actually a container for one or more "glTF primitives",
     // which is basically a bundle of vertices paired with the material used to
     // shade them. It's those "sub-meshes" that carry the actual mesh handles,
@@ -348,32 +355,39 @@ fn tag_scene_elements(
     // because they often consist of stuff like a single eyeball, or just the
     // leafy parts of a plant. Here we only want to tag the elements that a user
     // might want to individually address when arranging or animating a scene.
-    q_named_non_primitives: Query<&Name, Without<Handle<Mesh>>>,
-    q_skinned_meshes: Query<&SkinnedMesh>,
+    q_named_non_primitives: Query<
+        (Entity, &Children),
+        (
+            With<SceneAutoChild>,
+            With<Name>,
+            Without<Handle<Mesh>>,
+            Without<SceneElement>,
+            Without<NoMeshElement>,
+        ),
+    >,
+    q_skinned_meshes: Query<(Entity, &SkinnedMesh), Without<InitedKointSkinnedMesh>>,
     mut q_xforms: ParamSet<(TransformHelper, Query<&Transform>)>,
+    mesh_entities: Query<Entity, With<Handle<Mesh>>>,
 ) {
-    let gltf = ra_gltfs.get(&r_active_scene.source).unwrap();
-
-    for (ent, name) in r_scene_spawner
-        .iter_instance_entities(**r_active_scene)
-        .filter_map(|ent| match q_named_non_primitives.get(ent) {
-            Ok(name) => Some((ent, name)),
-            _ => None,
-        })
-    {
-        if gltf.named_nodes.contains_key(&**name) {
-            cmd.entity(ent).insert(SceneElement).insert(PrefabMarker);
+    for (e, children) in q_named_non_primitives.iter() {
+        let mut has_mesh = false;
+        for child in children {
+            if mesh_entities.contains(*child) {
+                has_mesh = true;
+                break;
+            }
+        }
+        if has_mesh {
+            cmd.entity(e).insert(SceneElement);
+        } else {
+            cmd.entity(e).insert(NoMeshElement);
         }
     }
 
-    for (ent, skinned_mesh) in r_scene_spawner
-        .iter_instance_entities(**r_active_scene)
-        .filter_map(|ent| match q_skinned_meshes.get(ent) {
-            Ok(skinned_mesh) => Some((ent, skinned_mesh)),
-            _ => None,
-        })
-    {
-        cmd.entity(ent).insert(NoFrustumCulling);
+    for (ent, skinned_mesh) in q_skinned_meshes.iter() {
+        cmd.entity(ent)
+            .insert(NoFrustumCulling)
+            .insert(InitedKointSkinnedMesh);
 
         for &joint in skinned_mesh.joints.iter() {
             let global_bind_pose = q_xforms.p0().compute_global_transform(joint).unwrap();
@@ -389,76 +403,17 @@ fn tag_scene_elements(
     }
 }
 
-fn spawn_main_scene_light(
-    mut cmd: Commands,
-    r_scene_spawner: Res<SceneSpawner>,
-    r_active_scene: Res<ActiveScene>,
-    q_aabbs: Query<(&Aabb, &GlobalTransform)>,
-    q_scene_root: Query<Entity, With<SceneRoot>>,
-) {
-    let Ok(scene_root) = q_scene_root.get_single() else {
-        return;
-    };
-
-    let Some(aabb) = Aabb::combine(
-        r_scene_spawner
-            .iter_instance_entities(**r_active_scene)
-            .filter_map(|ent| q_aabbs.get(ent).ok()),
-    ) else {
-        return;
-    };
-
-    let light_offset_base = vec3(0.5, 1., 1.).normalize();
-    let size = f32::max(
-        f32::max(aabb.half_extents.x, aabb.half_extents.y),
-        aabb.half_extents.z,
-    ) * 2.;
-    let light_pos = Vec3::from(aabb.center) + light_offset_base * size * 2.;
-
-    cmd.spawn(DebugPoint {
-        point: light_pos,
-        color: Color::WHITE,
-    });
-    cmd.entity(scene_root).with_children(|cmd| {
-        cmd.spawn((
-            Name::new("Light"),
-            SceneElement,
-            SpotLightBundle {
-                spot_light: SpotLight {
-                    color: Color::WHITE,
-                    // TODO: This doesn't scale super well to very large objects
-                    intensity: 200. * size,
-                    radius: 0.1,
-                    shadows_enabled: true,
-                    shadow_normal_bias: 0.2 * size,
-                    outer_angle: f32::to_radians(150.),
-                    inner_angle: f32::to_radians(45.),
-                    ..default()
-                },
-                transform: Transform::from_translation(light_pos)
-                    .looking_at(aabb.center.into(), Vec3::Y),
-                ..default()
-            },
-        ));
-    });
-}
-
 fn frame_scene_in_view(
     mut cmd: Commands,
-    r_scene_spawner: Res<SceneSpawner>,
-    r_active_scene: Res<ActiveScene>,
-    q_aabbs: Query<(&Aabb, &GlobalTransform)>,
+    q_aabbs: Query<(&Aabb, &GlobalTransform), With<SceneAutoChild>>,
     mut q_camera: Query<(&mut CameraController, &mut Transform, &Projection)>,
 ) {
     let Ok((mut cam, mut cam_xform, cam_proj)) = q_camera.get_single_mut() else {
+        error!("Failed to get camera controller");
         return;
     };
 
-    let Some(aabb) = Aabb::combine(
-        r_scene_spawner
-            .iter_instance_entities(**r_active_scene)
-            .filter_map(|ent| q_aabbs.get(ent).ok()),
-    ) else {
+    let Some(aabb) = Aabb::combine(q_aabbs.iter()) else {
         return;
     };
 

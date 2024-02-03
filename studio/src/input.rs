@@ -320,8 +320,19 @@ fn read_mouse_delta(
 
 // TODO: Make it configurable
 fn send_undo_event(mut events: EventWriter<UndoRedo>, keyboard: Res<Input<KeyCode>>) {
-    if keyboard.pressed(KeyCode::ControlLeft) && keyboard.just_pressed(KeyCode::Z) {
+    if keyboard.pressed(KeyCode::ControlLeft)
+        && keyboard.just_pressed(KeyCode::Z)
+        && !keyboard.pressed(KeyCode::ShiftLeft)
+    {
         events.send(UndoRedo::Undo);
         info!("Undo event sent");
+    }
+
+    if keyboard.pressed(KeyCode::ControlLeft)
+        && keyboard.just_pressed(KeyCode::Z)
+        && keyboard.pressed(KeyCode::ShiftLeft)
+    {
+        events.send(UndoRedo::Redo);
+        info!("Redo event sent");
     }
 }

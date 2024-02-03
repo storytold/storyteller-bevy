@@ -179,6 +179,8 @@ fn process_focus_inputs(
             // Zero out any existing camera velocity or interpolation
             **velocity = Vec3::ZERO;
 
+            info!("Setting focus to {:?}", target);
+
             if q_interp_vel.get(ent).is_ok() {
                 cmd.entity(ent).remove::<InterpVelocity>();
             }
