@@ -262,6 +262,7 @@ pub fn start_internal(
 pub fn start_headless(
     object_id: &str,
     skybox_id: &str,
+    // bvh_file: &str,
     fps: u32,
     outout_dir: &str,
     frames_to_capture: u32,
