@@ -18,9 +18,11 @@ use bevy::{
 use bevy_mod_picking::DefaultPickingPlugins;
 
 use bevy_web_asset::WebAssetPlugin;
-use input::StudioInputSystem;
-use screen_shot::{ScreenCapture, ScreenShotPlugin};
 use bvh::BvhPlugin;
+use input::StudioInputSystem;
+use scene::TestBvh;
+use screen_shot::{ScreenCapture, ScreenShotPlugin};
+use space_editor::prelude::{EditorEvent, EditorPrefabPath};
 #[cfg(feature = "wasm")]
 use wasm_bindgen::prelude::*;
 use wgpu::Extent3d;
@@ -258,27 +260,27 @@ pub fn start_internal(
     app
 }
 
+pub enum HeadlessMode {
+    Bvh(String, String),
+    Scene(String, String),
+}
+
 pub fn start_headless(
-    object_id: &str,
-    skybox_id: &str,
-    // bvh_file: &str,
+    mode : HeadlessMode,
     fps: u32,
     outout_dir: &str,
     frames_to_capture: u32,
     image_res: Extent3d,
 ) -> App {
-    let object_id = object_id.to_string();
-    let skybox_id = skybox_id.to_string();
-
     let mut app = App::new();
-
+    
     app.insert_resource(StudioMode::Headless);
     app.insert_resource(HeadlessSettings {
         frames_to_capture,
         output_dims: image_res,
         output_dir: outout_dir.to_string(),
     });
-
+    
     app.add_plugins((
         ScheduleRunnerPlugin::run_loop(Duration::from_secs_f64(1.0 / fps as f64)),
         DefaultPlugins.set(WindowPlugin {
@@ -289,16 +291,41 @@ pub fn start_headless(
         ScreenShotPlugin,
         CommonPlugins,
     ));
+    
+    match mode {
+        HeadlessMode::Bvh(bvh_dir, skybox) => {
+            app.add_systems(
+                Startup,
+                move |mut cmd: Commands, mut asset_server : Res<AssetServer>, mut ew: EventWriter<LoadSceneEvent>| {
+                    cmd.insert_resource(SkyboxId(skybox.clone()));
+                    cmd.insert_resource(TestBvh(asset_server.load(bvh_dir.clone())));
+                    ew.send(LoadSceneEvent("Mannequin".to_string()));
+                },
+            );
+        },
+        HeadlessMode::Scene(scene, skybox) => {
+            app.add_systems(
+                Startup,
+                move |mut cmd: Commands, mut ew: EventWriter<EditorEvent>| {
+                    cmd.insert_resource(SkyboxId(skybox.clone()));
+                    ew.send(EditorEvent::Load(EditorPrefabPath::File(scene.clone())))
+                },
+            );
+        },
+    }
 
     // app.add_event::<LoadSceneEvent>();
+    // if let Some(scene) = scene {
+    //     app.world.send_event(EditorEvent::Load(EditorPrefabPath::File(scene)));
+    // }
 
-    app.add_systems(
-        Startup,
-        move |mut cmd: Commands, mut ew: EventWriter<LoadSceneEvent>| {
-            cmd.insert_resource(SkyboxId(skybox_id.clone()));
-            ew.send(LoadSceneEvent(object_id.clone()));
-        },
-    );
+    // app.add_systems(
+    //     Startup,
+    //     move |mut cmd: Commands, mut ew: EventWriter<LoadSceneEvent>| {
+    //         cmd.insert_resource(SkyboxId(skybox_id.clone()));
+    //         ew.send(LoadSceneEvent(object_id.clone()));i
+    //     },
+    // );
 
     app.add_systems(Update, check_for_capture_complete);
 

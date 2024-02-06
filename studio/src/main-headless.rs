@@ -8,8 +8,9 @@ use bevy::{
     render::render_resource::Extent3d,
     window::close_on_esc,
 };
+use bevy_inspector_egui::egui::output;
 use clap::{Args, Parser, Subcommand};
-use studio::{screen_shot::ScreenShotPlugin, CommonPlugins, StudioMode, ViewportSize};
+use studio::{screen_shot::ScreenShotPlugin, start_headless, CommonPlugins, HeadlessMode, StudioMode, ViewportSize};
 
 #[derive(Parser)]
 #[command(name = "StorytellerStudioHeadless")]
@@ -20,54 +21,100 @@ use studio::{screen_shot::ScreenShotPlugin, CommonPlugins, StudioMode, ViewportS
 )]
 #[command(propagate_version = true)]
 struct StudioArgs {
-    output_dir: Option<String>,
-    #[arg(value_parser = extent3d_parser)]
-    output_resolution: Option<Extent3d>,
-    #[arg(value_parser = clap::value_parser!(u16).range(1..))]
-    fps: Option<u32>,
+    #[command(subcommand)]
+    subcommand: Subcommands,
 }
 
 #[derive(Subcommand)]
-enum StudioSubcommands {
-    Scene {},
-    Media {},
-}
-
-#[derive(Subcommand)]
-enum StudioSubCommand {
-    Render {
+enum Subcommands {
+    Scene{
+        scene_dir : String,
+        #[arg(long, short)]
         output_dir: Option<String>,
-        #[arg(value_parser = extent3d_parser)]
-        output_resolution: Option<Extent3d>,
-        #[arg(value_parser = clap::value_parser!(u16).range(1..))]
-        fps: Option<u32>,
-    },
-    Start {
-        model: Option<String>,
+        #[arg(long)]
         skybox: Option<String>,
+        #[arg(long = "res", value_parser = extent3d_parser)]
+        output_resolution: Option<Extent3d>,
+        #[arg(long, value_parser = clap::value_parser!(u16).range(1..))]
+        fps: Option<u32>,
+        #[arg(long, value_parser = clap::value_parser!(u16).range(1..))]
+        frames: Option<u32>,
     },
+    Bvh {
+        bvh_dir : String, 
+        #[arg(long, short)]
+        output_dir: Option<String>,
+        #[arg(long)]
+        skybox: Option<String>,
+        #[arg(long = "res", value_parser = extent3d_parser)]
+        output_resolution: Option<Extent3d>,
+        #[arg(long, value_parser = clap::value_parser!(u16).range(1..))]
+        fps: Option<u32>,
+        #[arg(long, value_parser = clap::value_parser!(u16).range(1..))]
+        frames: Option<u32>,
+    }
+}
+
+#[derive(Args, Clone)]
+    struct CommonArgs {
+
 }
 
 fn main() {
     let args = StudioArgs::parse();
 
-    let output_dir = args.output_dir.unwrap_or("./screen_shots/".to_string());
-    let output_res = args.output_resolution.unwrap_or(Extent3d {
-        width: 1280,
-        height: 720,
-        depth_or_array_layers: 1,
-    });
-    let fps = args.fps.unwrap_or(24);
+    let mut app = match args.subcommand {
+        Subcommands::Scene {
+            scene_dir,
+            skybox,
+            output_dir,
+            output_resolution,
+            fps,
+            frames,
+        } => {
+            let output_dir = output_dir.unwrap_or("./screen_shots/".to_string());
+            let output_res = output_resolution.unwrap_or(Extent3d {
+                width: 1280,
+                height: 720,
+                depth_or_array_layers: 1,
+            });
+            let fps = fps.unwrap_or(24);
+            let frames = frames.unwrap_or(30);
+            let skybox = skybox.unwrap_or("gum_trees_4k".to_string());
+            start_headless(HeadlessMode::Scene(scene_dir, skybox), fps, &output_dir, frames, output_res)
+        }
+        Subcommands::Bvh {
+            bvh_dir,
+            skybox,
+            output_dir,
+            output_resolution,
+            fps,
+            frames,
+        } => {
+            let output_dir = output_dir.unwrap_or("./screen_shots/".to_string());
+            let output_res = output_resolution.unwrap_or(Extent3d {
+                width: 1280,
+                height: 720,
+                depth_or_array_layers: 1,
+            });
+            let fps = fps.unwrap_or(24);
+            let frames = frames.unwrap_or(30);
+            let skybox = skybox.unwrap_or("gum_trees_4k".to_string());
+            start_headless(HeadlessMode::Bvh(bvh_dir, skybox), fps, &output_dir, frames, output_res)
+        }
+    };
 
-    studio::start_headless(
-        "Mannequin.gltf",
-        "gum_trees_4k",
-        fps,
-        &output_dir,
-        fps,
-        output_res,
-    )
-    .run();
+    app.run();
+
+    // studio::start_headless(
+    //     "Mannequin.gltf",
+    //     "gum_trees_4k",
+    //     fps,
+    //     &output_dir,
+    //     frames,
+    //     output_res,
+    // )
+    // .run();
 }
 
 //==============================================================================
