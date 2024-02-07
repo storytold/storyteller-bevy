@@ -1,4 +1,5 @@
 use bevy::{prelude::*, utils::HashMap};
+use space_editor::space_prefab::editor_registry::EditorRegistryExt;
 
 use crate::math::NearlyEq;
 
@@ -7,6 +8,9 @@ use super::{BindPoseGlobal, BindPoseLocal, InvBindPose, SkeletalJoint, Skeleton}
 pub(super) struct RetargetingPlugin;
 impl Plugin for RetargetingPlugin {
     fn build(&self, app: &mut App) {
+        app.register_type::<SkeletonHeight>()
+            .editor_registry::<SkeletonHeight>();
+
         app.insert_resource(RetargetMap::default());
         app.add_systems(Update, copy_pose);
     }
@@ -16,7 +20,12 @@ impl Plugin for RetargetingPlugin {
 #[reflect(Component)]
 pub struct RetargetSource;
 
+#[derive(Component, Clone, Copy, Debug, Default, Reflect, Deref, DerefMut)]
+#[reflect(Component)]
+pub struct SkeletonHeight(f32);
+
 fn copy_pose(
+    mut cmd: Commands,
     r_retarget_map: Res<RetargetMap>,
     q_src_root: Query<Entity, With<RetargetSource>>,
     q_tgt_roots: Query<Entity, (With<Skeleton>, Without<RetargetSource>)>,
@@ -26,6 +35,7 @@ fn copy_pose(
     q_inv_bind_poses: Query<&InvBindPose>,
     q_world_bind_poses: Query<&BindPoseGlobal>,
     q_local_bind_poses: Query<&BindPoseLocal>,
+    q_skel_height: Query<&SkeletonHeight>,
     mut q_xforms: Query<&mut Transform>,
     q_world_xforms: Query<&GlobalTransform>,
 ) {
@@ -37,8 +47,18 @@ fn copy_pose(
         }
     };
 
-    // FIXME: We really shouldn't do this every frame
-    let src_height = compute_skeleton_height(src_root, &q_children, &q_world_bind_poses);
+    let src_height = match q_skel_height.get(src_root) {
+        Ok(skel_height) => **skel_height,
+        Err(_) => {
+            let Some(value) = compute_skeleton_height(src_root, &q_children, &q_world_bind_poses)
+            else {
+                return;
+            };
+            cmd.entity(src_root).insert(SkeletonHeight(value));
+
+            value
+        }
+    };
 
     // FIXME:
     // This is very much not fast, and probably shouldn't be done every frame.
@@ -54,7 +74,19 @@ fn copy_pose(
     // 4) Stop running this system and instead start playing the new animation
     //    with an `AnimationPlayer` component on the target root
     for tgt_root in q_tgt_roots.iter() {
-        let tgt_height = compute_skeleton_height(tgt_root, &q_children, &q_world_bind_poses);
+        let tgt_height = match q_skel_height.get(tgt_root) {
+            Ok(skel_height) => **skel_height,
+            Err(_) => {
+                let Some(value) =
+                    compute_skeleton_height(tgt_root, &q_children, &q_world_bind_poses)
+                else {
+                    continue;
+                };
+                cmd.entity(tgt_root).insert(SkeletonHeight(value));
+
+                value
+            }
+        };
         let xlation_scale = tgt_height / src_height;
 
         for tgt_joint in q_children.iter_descendants(tgt_root) {
@@ -165,7 +197,7 @@ fn compute_skeleton_height(
     root: Entity,
     q_children: &Query<&Children>,
     q_world_bind_poses: &Query<&BindPoseGlobal>,
-) -> f32 {
+) -> Option<f32> {
     let joint_positions = q_children
         .iter_descendants(root)
         .filter_map(|joint| {
@@ -176,6 +208,10 @@ fn compute_skeleton_height(
         })
         .collect::<Vec<_>>();
 
+    if joint_positions.is_empty() {
+        return None;
+    }
+
     let y_max = joint_positions
         .iter()
         .fold(f32::MIN, |accum, current| f32::max(accum, current.y));
@@ -184,7 +220,7 @@ fn compute_skeleton_height(
         .iter()
         .fold(f32::MAX, |accum, current| f32::min(accum, current.y));
 
-    y_max - y_min
+    Some(y_max - y_min)
 }
 
 #[derive(Resource, Debug)]
