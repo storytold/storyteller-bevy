@@ -7,6 +7,9 @@ use bevy::{
 use space_editor::space_prefab::editor_registry::EditorRegistryExt;
 
 use crate::algo;
+pub use retargeting::*;
+
+mod retargeting;
 
 pub struct AnimPlugin;
 impl Plugin for AnimPlugin {
@@ -25,6 +28,8 @@ impl Plugin for AnimPlugin {
             .editor_registry::<InvBindPose>();
 
         app.add_systems(Update, process_skinned_meshes);
+
+        app.add_plugins(retargeting::RetargetingPlugin);
     }
 }
 

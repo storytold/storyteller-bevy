@@ -5,7 +5,6 @@ use bevy::{
     },
     prelude::*,
     transform::TransformSystem,
-    utils::HashMap,
 };
 use studio_bvh::{frames::Frame, ChannelType};
 
@@ -13,8 +12,8 @@ mod error;
 mod loader;
 
 use crate::{
-    anim::{BindPoseGlobal, InvBindPose, SkeletalJoint},
-    math::{Lerp, MatrixExtras},
+    anim::{BindPoseGlobal, BindPoseLocal, InvBindPose, RetargetSource, SkeletalJoint},
+    math::Lerp,
     scene::SceneState,
 };
 
@@ -33,19 +32,13 @@ impl Plugin for BvhPlugin {
             .add_systems(Update, spawn_test_bvh.run_if(resource_exists::<TestBvh>()))
             .add_systems(
                 PostUpdate,
-                (
-                    compute_inverse_bindposes,
-                    apply_deferred,
-                    animate_bvh,
-                    retarget_bvh,
-                )
+                (compute_inverse_bindposes, apply_deferred, animate_bvh)
                     .chain()
                     .run_if(in_state(SceneState::Active))
                     .after(TransformSystem::TransformPropagate),
             )
             .register_type::<BvhJoint>()
-            .register_type::<BvhAnim>()
-            .insert_resource(RetargetMap::default());
+            .register_type::<BvhAnim>();
     }
 }
 
@@ -55,17 +48,19 @@ pub struct TestBvh(pub Handle<Bvh>);
 
 // TODO: Rename & reorganize
 fn spawn_test_bvh(
-    mut commands: Commands,
+    mut cmd: Commands,
     mut er_bvh_events: EventReader<AssetEvent<Bvh>>,
     r_bvh: Res<TestBvh>,
 ) {
     for event in er_bvh_events.read() {
         if matches!(event, AssetEvent::LoadedWithDependencies { .. }) {
-            commands.spawn_bvh_with_transform(
+            let ent = cmd.spawn_bvh_with_transform(
                 &r_bvh.0,
                 Transform::from_scale(Vec3::splat(0.06))
                     .with_translation(Vec3::new(0., 1.0, 0.524)),
             );
+
+            cmd.entity(ent).insert(RetargetSource);
         }
     }
 }
@@ -91,13 +86,20 @@ pub struct BvhAnim {
     timer: Timer,
 }
 
+// TODO: Rename
 fn compute_inverse_bindposes(
     mut cmd: Commands,
-    q_bvh_joints: Query<(Entity, &GlobalTransform), (With<BvhJoint>, Without<InvBindPose>)>,
+    q_bvh_joints: Query<
+        (Entity, &Transform, &GlobalTransform),
+        (With<BvhJoint>, Without<InvBindPose>),
+    >,
 ) {
-    for (ent, world_xform) in q_bvh_joints.iter() {
-        let inv_bind_pose = world_xform.affine().inverse();
-        cmd.entity(ent).insert(InvBindPose(inv_bind_pose));
+    for (joint, xform, world_xform) in q_bvh_joints.iter() {
+        cmd.entity(joint).insert((
+            BindPoseLocal(*xform),
+            BindPoseGlobal(world_xform.affine()),
+            InvBindPose(world_xform.affine().inverse()),
+        ));
     }
 }
 
@@ -202,76 +204,6 @@ fn lerp_frames<T: ReadOnlyWorldQuery>(
     }
 }
 
-fn retarget_bvh(
-    r_retarget_map: Res<RetargetMap>,
-    mut l_target_ents: Local<HashMap<String, Entity>>,
-    q_source_bones: Query<(&Name, &InvBindPose, &GlobalTransform), With<BvhJoint>>,
-    q_target_ents: Query<(Entity, &Name), (With<SkeletalJoint>, Without<BvhJoint>)>,
-    mut q_target_xforms: Query<
-        (&Parent, &BindPoseGlobal, &mut Transform),
-        (With<SkeletalJoint>, Without<BvhJoint>),
-    >,
-    q_world_xforms: Query<&GlobalTransform>,
-) {
-    for (source_name, source_inv_bind_pose, source_world_xform) in q_source_bones.iter() {
-        // Lookup the target name in the retarget map
-        let Some(target_name) = r_retarget_map.source_to_target.get(source_name.as_str()) else {
-            continue;
-        };
-
-        // Lookup the target entity in the local target bones hashmap,
-        // or insert it if this is the system's first run
-        let target_ent = match l_target_ents.get(target_name) {
-            Some(ent) => Some(*ent),
-            None => {
-                if let Some(ent) = q_target_ents.iter().find_map(|(ent, name)| {
-                    if name.as_str() == target_name {
-                        Some(ent)
-                    } else {
-                        None
-                    }
-                }) {
-                    l_target_ents.insert(target_name.clone(), ent);
-                    Some(ent)
-                } else {
-                    None
-                }
-            }
-        };
-
-        // Lookup the transform data for the matching entity
-        let Some((target_parent_ent, target_bind_pose_global, mut target_xform)) =
-            target_ent.and_then(|ent| q_target_xforms.get_mut(ent).ok())
-        else {
-            continue;
-        };
-
-        // Copy rotations from source -> target
-        //
-        // This code is adapted from the writeup here:
-        //   https://wickedengine.net/2022/09/23/animation-retargeting/
-        // with the main difference being that the order of operations is
-        // exactly reversed (DirectX uses row-major matrices, while Bevy uses
-        // column-major ordering)
-
-        // [psuedo] local_mat = source_inv_bind_mat * source_world_mat;
-        let mut local_mat = source_world_xform.affine() * (**source_inv_bind_pose);
-        local_mat.matrix3 = local_mat.matrix3.orthonormalize();
-
-        // [psuedo] local_mat = target_world_mat * local_mat * target_inv_parent_mat;
-        let parent_world_xform = match q_world_xforms.get(**target_parent_ent) {
-            Ok(world_xform) => world_xform,
-            Err(_) => &GlobalTransform::IDENTITY,
-        };
-        let target_inv_parent_mat = parent_world_xform.affine().inverse();
-        local_mat = target_inv_parent_mat * local_mat * (**target_bind_pose_global);
-        local_mat.matrix3 = local_mat.matrix3.orthonormalize();
-
-        // [psuedo] target_xform.rotation = local_mat.rotation;
-        target_xform.rotation = Quat::from_affine3(&local_mat);
-    }
-}
-
 //==============================================================================
 //                        Bvh Anim Component
 //==============================================================================
@@ -373,138 +305,5 @@ fn spawn_bvh_recursive(world: &mut World, entity: &Entity, joint: studio_bvh::Jo
         let child_entity = world.spawn_empty().id();
         spawn_bvh_recursive(world, &child_entity, child);
         world.entity_mut(*entity).push_children(&[child_entity]);
-    }
-}
-
-//==============================================================================
-//                        RetargetMap
-//==============================================================================
-
-#[derive(Resource, Debug)]
-pub struct RetargetMap {
-    pub source_to_target: HashMap<String, String>,
-}
-
-#[rustfmt::skip]
-static SOURCE_TO_TARGET: [(&str, &str); 80] = [
-    // Spine
-    ("LowerBack", "DEF-spine"),
-    ("hip", "DEF-spine"),
-    ("abdomen", "DEF-spine.002"),
-    ("chest", "DEF-spine.003"),
-    ("Neck", "DEF-spine.004"),
-    ("neck", "DEF-spine.004"),
-    ("Neck1", "DEF-spine.005"),
-    ("neck1", "DEF-spine.005"),
-    ("Head", "DEF-spine.006"),
-    ("head", "DEF-spine.006"),
-
-    // Right arm
-    ("rcollar", "DEF-shoulder.R"),
-    ("rCollar", "DEF-shoulder.R"),
-    ("rshoulder", "DEF-upper_arm.R"),
-    ("rShldr", "DEF-upper_arm.R"),
-    ("relbow", "DEF-forearm.R"),
-    ("rForeArm", "DEF-forearm.R"),
-    ("rhand", "DEF-hand.R"),
-    ("rHand", "DEF-hand.R"),
-
-    // Right fingers
-    // -- Index
-    ("metacarpal1.r", "DEF-palm.01.R"),
-    ("finger2-1.r", "DEF-f_index.01.R"),
-    ("finger2-2.r", "DEF-f_index.02.R"),
-    ("finger2-3.r", "DEF-f_index.03.R"),
-    // -- Middle
-    ("metacarpal2.r", "DEF-palm.02.R"),
-    ("finger3-1.r", "DEF-f_middle.01.R"),
-    ("finger3-2.r", "DEF-f_middle.02.R"),
-    ("finger3-3.r", "DEF-f_middle.03.R"),
-    // -- Ring
-    ("metacarpal3.r", "DEF-palm.03.R"),
-    ("finger4-1.r", "DEF-f_ring.01.R"),
-    ("finger4-2.r", "DEF-f_ring.02.R"),
-    ("finger4-3.r", "DEF-f_ring.03.R"),
-    // -- Pinky
-    ("metacarpal4.r", "DEF-palm.04.R"),
-    ("finger5-1.r", "DEF-f_pinky.01.R"),
-    ("finger5-2.r", "DEF-f_pinky.02.R"),
-    ("finger5-3.r", "DEF-f_pinky.03.R"),
-    // -- Thumb
-    ("rthumb", "DEF-thumb.01.R"),
-    ("finger1-2.r", "DEF-thumb.02.R"),
-    ("finger1-3.r", "DEF-thumb.03.R"),
-
-    // Right leg
-    ("rhip", "DEF-thigh.R"),
-    ("rThigh", "DEF-thigh.R"),
-    ("rknee", "DEF-shin.R"),
-    ("rShin", "DEF-shin.R"),
-    ("rfoot", "DEF-foot.R"),
-    ("rFoot", "DEF-foot.R"),
-    ("RightToeBase", "DEF-toe.R"),
-
-    // Left arm
-    ("lcollar", "DEF-shoulder.L"),
-    ("lCollar", "DEF-shoulder.L"),
-    ("lshoulder", "DEF-upper_arm.L"),
-    ("lShldr", "DEF-upper_arm.L"),
-    ("lelbow", "DEF-forearm.L"),
-    ("lForeArm", "DEF-forearm.L"),
-    ("lhand", "DEF-hand.L"),
-    ("lHand", "DEF-hand.L"),
-
-    // Left fingers
-    // -- Index
-    ("metacarpal1.l", "DEF-palm.01.L"),
-    ("finger2-1.l", "DEF-f_index.01.L"),
-    ("finger2-2.l", "DEF-f_index.02.L"),
-    ("finger2-3.l", "DEF-f_index.03.L"),
-
-    // -- Middle
-    ("metacarpal2.l", "DEF-palm.02.L"),
-    ("finger3-1.l", "DEF-f_middle.01.L"),
-    ("finger3-2.l", "DEF-f_middle.02.L"),
-    ("finger3-3.l", "DEF-f_middle.03.L"),
-
-    // -- Ring
-    ("metacarpal3.l", "DEF-palm.03.L"),
-    ("finger4-1.l", "DEF-f_ring.01.L"),
-    ("finger4-2.l", "DEF-f_ring.02.L"),
-    ("finger4-3.l", "DEF-f_ring.03.L"),
-
-    // -- Pinky
-    ("metacarpal4.l", "DEF-palm.04.L"),
-    ("finger5-1.l", "DEF-f_pinky.01.L"),
-    ("finger5-2.l", "DEF-f_pinky.02.L"),
-    ("finger5-3.l", "DEF-f_pinky.03.L"),
-
-    // -- Thumb
-    ("lthumb", "DEF-thumb.01.L"),
-    ("finger1-2.l", "DEF-thumb.02.L"),
-    ("finger1-3.l", "DEF-thumb.03.L"),
-
-    // Left leg
-    ("lhip", "DEF-thigh.L"),
-    ("lThigh", "DEF-thigh.L"),
-    ("lknee", "DEF-shin.L"),
-    ("lShin", "DEF-shin.L"),
-    ("lfoot", "DEF-foot.L"),
-    ("lFoot", "DEF-foot.L"),
-    ("LeftToeBase", "DEF-toe.L"),
-
-    // Pelvis
-    ("RHipJoint", "DEF-pelvis.R"),
-    ("LHipJoint", "DEF-pelvis.L"),
-];
-
-impl Default for RetargetMap {
-    fn default() -> Self {
-        Self {
-            source_to_target: SOURCE_TO_TARGET
-                .iter()
-                .map(|(k, v)| (k.to_string(), v.to_string()))
-                .collect(),
-        }
     }
 }
