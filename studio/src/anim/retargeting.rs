@@ -37,6 +37,9 @@ fn copy_pose(
         }
     };
 
+    // FIXME: We really shouldn't do this every frame
+    let src_height = compute_skeleton_height(src_root, &q_children, &q_world_bind_poses);
+
     // FIXME:
     // This is very much not fast, and probably shouldn't be done every frame.
     // Tentative plan to optimize this without adding too much additional
@@ -51,6 +54,9 @@ fn copy_pose(
     // 4) Stop running this system and instead start playing the new animation
     //    with an `AnimationPlayer` component on the target root
     for tgt_root in q_tgt_roots.iter() {
+        let tgt_height = compute_skeleton_height(tgt_root, &q_children, &q_world_bind_poses);
+        let xlation_scale = tgt_height / src_height;
+
         for tgt_joint in q_children.iter_descendants(tgt_root) {
             let Ok(tgt_name) = q_joint_names.get(tgt_joint) else {
                 continue;
@@ -147,14 +153,38 @@ fn copy_pose(
                 let tgt_local_xlation = tgt_inv_parent_xform.transform_vector3(src_world_xlation);
 
                 // Apply the local translation
-                // FIXME: This looks really wrong if the source and target
-                //        skeletons aren't roughly the same size
                 if let Ok(mut tgt_xform) = q_xforms.get_mut(tgt_joint) {
-                    tgt_xform.translation = tgt_local_xlation;
+                    tgt_xform.translation = tgt_local_xlation * xlation_scale;
                 }
             }
         }
     }
+}
+
+fn compute_skeleton_height(
+    root: Entity,
+    q_children: &Query<&Children>,
+    q_world_bind_poses: &Query<&BindPoseGlobal>,
+) -> f32 {
+    let joint_positions = q_children
+        .iter_descendants(root)
+        .filter_map(|joint| {
+            q_world_bind_poses
+                .get(joint)
+                .map(|bind_pose| bind_pose.translation)
+                .ok()
+        })
+        .collect::<Vec<_>>();
+
+    let y_max = joint_positions
+        .iter()
+        .fold(f32::MIN, |accum, current| f32::max(accum, current.y));
+
+    let y_min = joint_positions
+        .iter()
+        .fold(f32::MAX, |accum, current| f32::min(accum, current.y));
+
+    y_max - y_min
 }
 
 #[derive(Resource, Debug)]
