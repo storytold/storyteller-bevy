@@ -9,7 +9,8 @@ pub(super) struct RetargetingPlugin;
 impl Plugin for RetargetingPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<SkeletonHeight>()
-            .editor_registry::<SkeletonHeight>();
+            .editor_registry::<SkeletonHeight>()
+            .register_type::<RetargetMap>();
 
         app.insert_resource(RetargetMap::default());
         app.add_systems(Update, copy_pose);
@@ -60,6 +61,14 @@ fn copy_pose(
         }
     };
 
+    let src_joints = q_children
+        .iter_descendants(src_root)
+        .filter_map(|ent| match q_joint_names.get(ent) {
+            Ok(name) => Some((ent, name)),
+            Err(_) => None,
+        })
+        .collect::<Vec<_>>();
+
     // FIXME:
     // This is very much not fast, and probably shouldn't be done every frame.
     // Tentative plan to optimize this without adding too much additional
@@ -95,19 +104,22 @@ fn copy_pose(
             };
 
             // Look up the source bone in the retarget map
-            let Some(src_joint) =
-                r_retarget_map
-                    .tgt_to_src
-                    .get(tgt_name.as_str())
-                    .and_then(|src_name| {
-                        q_children.iter_descendants(src_root).find(|ent| {
-                            match q_joint_names.get(*ent) {
-                                Ok(name) => name.as_str() == src_name,
-                                Err(_) => false,
-                            }
-                        })
-                    })
-            else {
+            // TODO: Snatching O(n) performance from the jaws of an O(1) data
+            //       structure here by using a single-source to many-target
+            //       hashmap, but then looking up the source from the target
+            //       instead of the other way around
+            let Some(src_joint) = src_joints.iter().copied().find_map(|(joint, src_name)| {
+                match r_retarget_map.src_to_tgt.get(src_name.as_str()) {
+                    Some(name) => {
+                        if name == tgt_name.as_str() {
+                            Some(joint)
+                        } else {
+                            None
+                        }
+                    }
+                    None => None,
+                }
+            }) else {
                 continue;
             };
 
@@ -128,7 +140,7 @@ fn copy_pose(
             // ```pseudocode
             // // Apply target-local rotation
             // tgt_working_xform = src_world_xform * src_inv_bind_pose
-            // tgt_working_xform = tgt_inv_parent_xform * local_xform * tgt_world_bind_pose
+            // tgt_working_xform = tgt_inv_parent_xform * tgt_working_xform * tgt_world_bind_pose
             // tgt_xform.rotation = tgt_working_xform.rotation
             //
             // // Check if the translation component is animated
@@ -223,10 +235,10 @@ fn compute_skeleton_height(
     Some(y_max - y_min)
 }
 
-#[derive(Resource, Debug)]
+#[derive(Resource, Clone, Debug, Reflect)]
+#[reflect(Resource)]
 pub struct RetargetMap {
     pub src_to_tgt: HashMap<String, String>,
-    pub tgt_to_src: HashMap<String, String>,
 }
 
 impl RetargetMap {
@@ -330,6 +342,86 @@ impl RetargetMap {
         ("RHipJoint", "DEF-pelvis.R"),
         ("LHipJoint", "DEF-pelvis.L"),
     ];
+
+    const MIXAMO: [(&str, &str); 60] = [
+        // Spine
+        ("mixamorig:Hips", "DEF-spine"),
+        ("mixamorig:Spine", "DEF-spine.001"),
+        ("mixamorig:Spine1", "DEF-spine.002"),
+        ("mixamorig:Spine2", "DEF-spine.003"),
+        ("mixamorig:Neck", "DEF-spine.004"),
+        ("mixamorig:Head", "DEF-spine.006"),
+        // Right arm
+        ("mixamorig:RightShoulder", "DEF-shoulder.R"),
+        ("mixamorig:RightArm", "DEF-upper_arm.R"),
+        ("mixamorig:RightForeArm", "DEF-forearm.R"),
+        ("mixamorig:RightHand", "DEF-hand.R"),
+        // Right fingers
+        // -- index
+        ("mixamorig:RightHandIndex1", "DEF-palm.01.R"),
+        ("mixamorig:RightHandIndex2", "DEF-f_index.01.R"),
+        ("mixamorig:RightHandIndex3", "DEF-f_index.02.R"),
+        ("mixamorig:RightHandIndex4", "DEF-f_index.03.R"),
+        // -- middle
+        ("mixamorig:RightHandMiddle1", "DEF-palm.02.R"),
+        ("mixamorig:RightHandMiddle2", "DEF-f_middle.01.R"),
+        ("mixamorig:RightHandMiddle3", "DEF-f_middle.02.R"),
+        ("mixamorig:RightHandMiddle4", "DEF-f_middle.03.R"),
+        // -- ring
+        ("mixamorig:RightHandRing1", "DEF-palm.03.R"),
+        ("mixamorig:RightHandRing2", "DEF-f_ring.01.R"),
+        ("mixamorig:RightHandRing3", "DEF-f_ring.02.R"),
+        ("mixamorig:RightHandRing4", "DEF-f_ring.03.R"),
+        // -- pinky
+        ("mixamorig:RightHandPinky1", "DEF-palm.04.R"),
+        ("mixamorig:RightHandPinky2", "DEF-f_pinky.01.R"),
+        ("mixamorig:RightHandPinky3", "DEF-f_pinky.02.R"),
+        ("mixamorig:RightHandPinky4", "DEF-f_pinky.03.R"),
+        // -- thumb
+        ("mixamorig:RightHandThumb1", "DEF-thumb.01.R"),
+        ("mixamorig:RightHandThumb2", "DEF-thumb.02.R"),
+        ("mixamorig:RightHandThumb3", "DEF-thumb.03.R"),
+        // Right Leg
+        ("mixamorig:RightUpLeg", "DEF-thigh.R"),
+        ("mixamorig:RightLeg", "DEF-shin.R"),
+        ("mixamorig:RightFoot", "DEF-foot.R"),
+        ("mixamorig:RightToeBase", "DEF-toe.R"),
+        // Left arm
+        ("mixamorig:LeftShoulder", "DEF-shoulder.L"),
+        ("mixamorig:LeftArm", "DEF-upper_arm.L"),
+        ("mixamorig:LeftForeArm", "DEF-forearm.L"),
+        ("mixamorig:LeftHand", "DEF-hand.L"),
+        // Left fingers
+        // -- index
+        ("mixamorig:LeftHandIndex1", "DEF-palm.01.L"),
+        ("mixamorig:LeftHandIndex2", "DEF-f_index.01.L"),
+        ("mixamorig:LeftHandIndex3", "DEF-f_index.02.L"),
+        ("mixamorig:LeftHandIndex4", "DEF-f_index.03.L"),
+        // -- middle
+        ("mixamorig:LeftHandMiddle1", "DEF-palm.02.L"),
+        ("mixamorig:LeftHandMiddle2", "DEF-f_middle.01.L"),
+        ("mixamorig:LeftHandMiddle3", "DEF-f_middle.02.L"),
+        ("mixamorig:LeftHandMiddle4", "DEF-f_middle.03.L"),
+        // -- ring
+        ("mixamorig:LeftHandRing1", "DEF-palm.03.L"),
+        ("mixamorig:LeftHandRing2", "DEF-f_ring.01.L"),
+        ("mixamorig:LeftHandRing3", "DEF-f_ring.02.L"),
+        ("mixamorig:LeftHandRing4", "DEF-f_ring.03.L"),
+        // -- pinky
+        ("mixamorig:LeftHandPinky1", "DEF-palm.04.L"),
+        ("mixamorig:LeftHandPinky2", "DEF-f_pinky.01.L"),
+        ("mixamorig:LeftHandPinky3", "DEF-f_pinky.02.L"),
+        ("mixamorig:LeftHandPinky4", "DEF-f_pinky.03.L"),
+        // -- thumb
+        ("mixamorig:LeftHandThumb1", "DEF-thumb.01.L"),
+        ("mixamorig:LeftHandThumb2", "DEF-thumb.02.L"),
+        ("mixamorig:LeftHandThumb3", "DEF-thumb.03.L"),
+        // Left Leg
+        ("mixamorig:LeftUpLeg", "DEF-thigh.L"),
+        ("mixamorig:LeftLeg", "DEF-shin.L"),
+        ("mixamorig:LeftFoot", "DEF-foot.L"),
+        ("mixamorig:LeftToeBase", "DEF-toe.L"),
+    ];
 }
 
 impl Default for RetargetMap {
@@ -337,11 +429,8 @@ impl Default for RetargetMap {
         Self {
             src_to_tgt: Self::MOCAP_NET
                 .iter()
+                .chain(Self::MIXAMO.iter())
                 .map(|(k, v)| (k.to_string(), v.to_string()))
-                .collect(),
-            tgt_to_src: Self::MOCAP_NET
-                .iter()
-                .map(|(v, k)| (k.to_string(), v.to_string()))
                 .collect(),
         }
     }
