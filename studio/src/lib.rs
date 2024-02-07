@@ -18,7 +18,7 @@ use bevy::{
 use bevy_mod_picking::DefaultPickingPlugins;
 
 use bevy_web_asset::WebAssetPlugin;
-use bvh::BvhPlugin;
+use bvh::{BvhAnimCompleteEvent, BvhPlugin};
 use input::StudioInputSystem;
 use scene::TestBvh;
 use screen_shot::{ScreenCapture, ScreenShotPlugin};
@@ -266,21 +266,21 @@ pub enum HeadlessMode {
 }
 
 pub fn start_headless(
-    mode : HeadlessMode,
+    mode: HeadlessMode,
     fps: u32,
     outout_dir: &str,
     frames_to_capture: u32,
     image_res: Extent3d,
 ) -> App {
     let mut app = App::new();
-    
+
     app.insert_resource(StudioMode::Headless);
     app.insert_resource(HeadlessSettings {
         frames_to_capture,
         output_dims: image_res,
         output_dir: outout_dir.to_string(),
     });
-    
+
     app.add_plugins((
         ScheduleRunnerPlugin::run_loop(Duration::from_secs_f64(1.0 / fps as f64)),
         DefaultPlugins.set(WindowPlugin {
@@ -291,18 +291,21 @@ pub fn start_headless(
         ScreenShotPlugin,
         CommonPlugins,
     ));
-    
+
     match mode {
         HeadlessMode::Bvh(bvh_dir, skybox) => {
             app.add_systems(
                 Startup,
-                move |mut cmd: Commands, mut asset_server : Res<AssetServer>, mut ew: EventWriter<LoadSceneEvent>| {
+                move |mut cmd: Commands,
+                      asset_server: Res<AssetServer>,
+                      mut ew: EventWriter<LoadSceneEvent>| {
                     cmd.insert_resource(SkyboxId(skybox.clone()));
                     cmd.insert_resource(TestBvh(asset_server.load(bvh_dir.clone())));
-                    ew.send(LoadSceneEvent("Mannequin".to_string()));
+
+                    ew.send(LoadSceneEvent("Mannequin.gltf".to_string()));
                 },
             );
-        },
+        }
         HeadlessMode::Scene(scene, skybox) => {
             app.add_systems(
                 Startup,
@@ -311,7 +314,7 @@ pub fn start_headless(
                     ew.send(EditorEvent::Load(EditorPrefabPath::File(scene.clone())))
                 },
             );
-        },
+        }
     }
 
     // app.add_event::<LoadSceneEvent>();
@@ -327,7 +330,7 @@ pub fn start_headless(
     //     },
     // );
 
-    app.add_systems(Update, check_for_capture_complete);
+    app.add_systems(PostUpdate, check_for_capture_complete);
 
     // #[cfg(feature = "wasm")]
     // wasm::initialize();
@@ -367,12 +370,13 @@ impl Default for HeadlessSettings {
 fn check_for_capture_complete(
     main_camera: Query<&ScreenCapture, With<MainCamera>>,
     mut close_app: EventWriter<AppExit>,
+    mut bvh_event_reader: EventReader<BvhAnimCompleteEvent>,
 ) {
     let Ok(screen_capture) = main_camera.get_single() else {
         return;
     };
 
-    if screen_capture.is_complete() {
+    if screen_capture.is_complete() || !bvh_event_reader.is_empty() {
         close_app.send(AppExit);
     }
 }

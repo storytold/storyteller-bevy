@@ -301,6 +301,7 @@ fn initialiaze_headless(
             },
             ..default()
         },
+        CameraControllerBundle::new(focus, camera_xform.translation),
         ScreenCapture::number_of_frames(
             headless_settings.frames_to_capture,
             &headless_settings.output_dir,

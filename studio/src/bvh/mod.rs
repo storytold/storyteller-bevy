@@ -7,6 +7,7 @@ use bevy::{
     transform::TransformSystem,
     utils::HashMap,
 };
+use bevy_mod_picking::prelude::EntityEvent;
 use studio_bvh::{frames::Frame, ChannelType};
 
 mod error;
@@ -24,6 +25,7 @@ pub struct BvhPlugin;
 impl Plugin for BvhPlugin {
     fn build(&self, app: &mut App) {
         app.init_asset::<Bvh>()
+            .add_event::<BvhAnimCompleteEvent>()
             .register_asset_loader(BvhLoader)
             // FIXME: Need to add a state for this module (similar to scene
             //        module's `SceneState`) to manage the order/frequency at
@@ -81,6 +83,7 @@ fn compute_inverse_bindposes(
 pub fn animate_bvh(
     mut q_bvh_anims: Query<(&mut BvhAnim, &Children)>,
     mut q_bvh_joints: Query<JointQuery, Without<BvhAnim>>,
+    mut bvh_event_writer: EventWriter<BvhAnimCompleteEvent>,
     r_bvh_assets: Res<Assets<Bvh>>,
     r_time: Res<Time>,
 ) {
@@ -97,6 +100,9 @@ pub fn animate_bvh(
 
             if anim.timer.just_finished() {
                 anim.frame = (anim.frame + 1) % bvh_len;
+                if anim.frame == 0 {
+                    bvh_event_writer.send(BvhAnimCompleteEvent);
+                }
             }
 
             anim.timer.percent()
@@ -248,6 +254,16 @@ fn retarget_bvh(
         target_xform.rotation = Quat::from_affine3(&local_mat);
     }
 }
+
+//==============================================================================
+//                        Bvh Anim Events
+//==============================================================================
+
+// This may seem weird, but this is for the Headless mode to
+// know when to stop recording.
+
+#[derive(Event)]
+pub struct BvhAnimCompleteEvent;
 
 //==============================================================================
 //                        Bvh Anim Component
