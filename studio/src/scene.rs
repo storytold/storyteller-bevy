@@ -18,7 +18,6 @@ use space_editor::{prelude::PrefabMarker, space_prefab::component::SceneAutoChil
 use wasm_bindgen::prelude::wasm_bindgen;
 
 use crate::{
-    bvh::{Bvh, CommandsSpawnBvhExt},
     camera_controller::{CameraController, CameraControllerBundle},
     debug::DebugPoint,
     math::{Combinable, Extrema},
@@ -37,14 +36,7 @@ impl Plugin for ScenePlugin {
             .add_state::<SceneState>()
             .add_event::<LoadSceneEvent>()
             .add_systems(Startup, initialize)
-            .add_systems(
-                Update,
-                (
-                    spawn_test_bvh.run_if(resource_exists::<TestBvh>()), // TODO
-                    init_scene_loading,
-                )
-                    .in_set(SceneSpawnerSystem),
-            )
+            .add_systems(Update, init_scene_loading.in_set(SceneSpawnerSystem))
             .add_systems(
                 OnEnter(SceneState::Active),
                 (tag_scene_elements, frame_scene_in_view).in_set(SceneSpawnerSystem),
@@ -186,9 +178,6 @@ pub struct SceneData {
 #[derive(Component)]
 pub struct SceneRoot;
 
-#[derive(Resource, Deref, DerefMut)]
-pub struct TestBvh(pub Handle<Bvh>); // TODO
-
 fn initialize(mut cmd: Commands) {
     // Camera, graphics settings
     let focus = Vec3::ZERO;
@@ -219,23 +208,6 @@ fn initialize(mut cmd: Commands) {
         },
         Fxaa::default(),
     ));
-}
-
-// TODO
-fn spawn_test_bvh(
-    mut commands: Commands,
-    mut er_bvh_events: EventReader<AssetEvent<Bvh>>,
-    r_bvh: Res<TestBvh>,
-) {
-    for event in er_bvh_events.read() {
-        if matches!(event, AssetEvent::LoadedWithDependencies { .. }) {
-            commands.spawn_bvh_with_transform(
-                &r_bvh.0,
-                Transform::from_scale(Vec3::splat(0.06))
-                    .with_translation(Vec3::new(0., 1.0, 0.524)),
-            );
-        }
-    }
 }
 
 fn init_scene_loading(mut cmd: Commands, mut er: EventReader<LoadSceneEvent>) {

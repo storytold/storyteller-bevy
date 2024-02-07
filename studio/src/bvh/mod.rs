@@ -30,6 +30,7 @@ impl Plugin for BvhPlugin {
             //        module's `SceneState`) to manage the order/frequency at
             //        which these systems run instead of just running them all
             //        every frame
+            .add_systems(Update, spawn_test_bvh.run_if(resource_exists::<TestBvh>()))
             .add_systems(
                 PostUpdate,
                 (
@@ -45,6 +46,27 @@ impl Plugin for BvhPlugin {
             .register_type::<BvhJoint>()
             .register_type::<BvhAnim>()
             .insert_resource(RetargetMap::default());
+    }
+}
+
+// TODO: Rename & reorganize
+#[derive(Resource, Deref, DerefMut)]
+pub struct TestBvh(pub Handle<Bvh>);
+
+// TODO: Rename & reorganize
+fn spawn_test_bvh(
+    mut commands: Commands,
+    mut er_bvh_events: EventReader<AssetEvent<Bvh>>,
+    r_bvh: Res<TestBvh>,
+) {
+    for event in er_bvh_events.read() {
+        if matches!(event, AssetEvent::LoadedWithDependencies { .. }) {
+            commands.spawn_bvh_with_transform(
+                &r_bvh.0,
+                Transform::from_scale(Vec3::splat(0.06))
+                    .with_translation(Vec3::new(0., 1.0, 0.524)),
+            );
+        }
     }
 }
 
