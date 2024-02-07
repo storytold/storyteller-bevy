@@ -105,7 +105,7 @@ fn copy_pose(
 
             // Look up the source bone in the retarget map
             // TODO: Snatching O(n) performance from the jaws of an O(1) data
-            //       structure here by using a single-source to many-target
+            //       structure here by using a many-source to single-target
             //       hashmap, but then looking up the source from the target
             //       instead of the other way around
             let Some(src_joint) = src_joints.iter().copied().find_map(|(joint, src_name)| {
