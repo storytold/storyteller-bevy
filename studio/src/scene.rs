@@ -6,17 +6,14 @@ use bevy::{
         tonemapping::Tonemapping,
     },
     gltf::Gltf,
-    math::{vec2, Affine3A},
+    math::vec2,
     pbr::ShadowFilteringMethod,
     prelude::*,
-    render::{mesh::skinning::SkinnedMesh, primitives::Aabb, view::NoFrustumCulling},
+    render::primitives::Aabb,
     scene::InstanceId,
 };
 
-use space_editor::{
-    prelude::PrefabMarker,
-    space_prefab::{component::SceneAutoChild, editor_registry::EditorRegistryExt},
-};
+use space_editor::{prelude::PrefabMarker, space_prefab::component::SceneAutoChild};
 #[cfg(feature = "wasm")]
 use wasm_bindgen::prelude::wasm_bindgen;
 
@@ -70,10 +67,6 @@ impl Plugin for ScenePlugin {
 
         //setup default light
         app.add_systems(Startup, minimal_scene_setup);
-
-        app.editor_registry::<BindPoseLocal>();
-        app.editor_registry::<BindPoseGlobal>();
-        app.editor_registry::<InvBindPose>();
 
         #[cfg(feature = "wasm")]
         app.add_systems(
@@ -191,24 +184,10 @@ pub struct SceneData {
 }
 
 #[derive(Component)]
-pub struct SkeletalJoint(pub Color);
-
-#[derive(Component)]
 pub struct SceneRoot;
+
 #[derive(Resource, Deref, DerefMut)]
 pub struct TestBvh(pub Handle<Bvh>); // TODO
-
-#[derive(Component, Clone, Copy, Debug, Default, Deref, DerefMut, Reflect)]
-#[reflect(Component)]
-pub struct BindPoseLocal(pub Transform);
-
-#[derive(Component, Clone, Copy, Debug, Default, Deref, DerefMut, Reflect)]
-#[reflect(Component)]
-pub struct BindPoseGlobal(pub Affine3A);
-
-#[derive(Component, Clone, Copy, Debug, Default, Deref, DerefMut, Reflect)]
-#[reflect(Component)]
-pub struct InvBindPose(pub Affine3A);
 
 fn initialize(mut cmd: Commands) {
     // Camera, graphics settings
@@ -299,8 +278,6 @@ fn tag_scene_elements(
             Without<NoMeshElement>,
         ),
     >,
-    q_skinned_meshes: Query<(Entity, &SkinnedMesh), Without<InitedKointSkinnedMesh>>,
-    mut q_xforms: ParamSet<(TransformHelper, Query<&Transform>)>,
     mesh_entities: Query<Entity, With<Handle<Mesh>>>,
 ) {
     for (e, children) in q_named_non_primitives.iter() {
@@ -315,24 +292,6 @@ fn tag_scene_elements(
             cmd.entity(e).insert(SceneElement);
         } else {
             cmd.entity(e).insert(NoMeshElement);
-        }
-    }
-
-    for (ent, skinned_mesh) in q_skinned_meshes.iter() {
-        cmd.entity(ent)
-            .insert(NoFrustumCulling)
-            .insert(InitedKointSkinnedMesh);
-
-        for &joint in skinned_mesh.joints.iter() {
-            let global_bind_pose = q_xforms.p0().compute_global_transform(joint).unwrap();
-            let local_bind_pose = *q_xforms.p1().get(joint).unwrap();
-
-            cmd.entity(joint).insert((
-                SkeletalJoint(Color::BLACK),
-                BindPoseLocal(local_bind_pose),
-                BindPoseGlobal(global_bind_pose.affine()),
-                InvBindPose(global_bind_pose.affine().inverse()),
-            ));
         }
     }
 }

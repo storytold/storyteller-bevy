@@ -13,8 +13,9 @@ mod error;
 mod loader;
 
 use crate::{
+    anim::{BindPoseGlobal, InvBindPose, SkeletalJoint},
     math::{Lerp, MatrixExtras},
-    scene::{BindPoseGlobal, InvBindPose, SceneState, SkeletalJoint},
+    scene::SceneState,
 };
 
 use self::loader::BvhLoader;

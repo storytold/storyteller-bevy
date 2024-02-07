@@ -2,12 +2,13 @@
 
 use bevy::{app::PluginGroupBuilder, prelude::*};
 use bevy_mod_picking::DefaultPickingPlugins;
-
 use bevy_web_asset::WebAssetPlugin;
-use bvh::BvhPlugin;
+
 #[cfg(feature = "wasm")]
 use wasm_bindgen::prelude::*;
 
+mod algo;
+mod anim;
 mod bvh;
 mod camera_controller;
 mod debug;
@@ -24,12 +25,15 @@ pub mod viewport;
 mod world_grid;
 
 pub use crate::{
+    anim::AnimPlugin,
+    bvh::BvhPlugin,
     camera_controller::CameraControllerPlugin,
     debug::DebugPlugin,
     input::StudioInputPlugin,
     inspector::InspectorPlugin,
     interaction::InteractionPlugin,
     math::InterpolationPlugin,
+    persistance::PersistancePlugin,
     scene::{LoadSceneEvent, ScenePlugin},
     skybox::{SkyboxId, SkyboxPlugin},
     ui::UiLayerPlugin,
@@ -69,7 +73,8 @@ impl PluginGroup for CommonPlugins {
             .add(StudioInputPlugin)
             .add(UiLayerPlugin)
             .add(WorldGridPlugin)
-            .add(persistance::PersistancePlugin)
+            .add(PersistancePlugin)
+            .add(AnimPlugin)
             .add(BvhPlugin)
     }
 }
