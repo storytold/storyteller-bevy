@@ -110,14 +110,8 @@ fn copy_pose(
             //       instead of the other way around
             let Some(src_joint) = src_joints.iter().copied().find_map(|(joint, src_name)| {
                 match r_retarget_map.src_to_tgt.get(src_name.as_str()) {
-                    Some(name) => {
-                        if name == tgt_name.as_str() {
-                            Some(joint)
-                        } else {
-                            None
-                        }
-                    }
-                    None => None,
+                    Some(name) if name == tgt_name.as_str() => Some(joint),
+                    _ => None,
                 }
             }) else {
                 continue;
