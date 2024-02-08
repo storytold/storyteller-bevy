@@ -6,7 +6,7 @@ use bevy::{
 };
 use space_editor::space_prefab::editor_registry::EditorRegistryExt;
 
-use crate::algo;
+use crate::hierarchy;
 pub use retargeting::*;
 
 mod retargeting;
@@ -121,7 +121,7 @@ fn process_skinned_meshes(
         // Find the common ancestor of this joint collection and tag it as the
         // skeleton
         let joints = joints.iter().copied().collect::<Vec<_>>();
-        if let Some(root) = algo::nearest_common_ancestor(&joints, &q_parents) {
+        if let Some(root) = hierarchy::nearest_common_ancestor(&joints, &q_parents) {
             cmd.entity(root).insert(Skeleton);
         }
 

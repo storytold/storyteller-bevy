@@ -7,12 +7,12 @@ use bevy_web_asset::WebAssetPlugin;
 #[cfg(feature = "wasm")]
 use wasm_bindgen::prelude::*;
 
-mod algo;
 mod anim;
 mod bvh;
 mod camera_controller;
 mod debug;
 mod design_system;
+mod hierarchy;
 mod input;
 mod inspector;
 mod interaction;
