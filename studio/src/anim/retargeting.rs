@@ -40,12 +40,8 @@ fn copy_pose(
     mut q_xforms: Query<&mut Transform>,
     q_world_xforms: Query<&GlobalTransform>,
 ) {
-    let src_root = match q_src_root.get_single() {
-        Ok(src_root) => src_root,
-        Err(err) => {
-            error!("{err}");
-            return;
-        }
+    let Ok(src_root) = q_src_root.get_single() else {
+        return;
     };
 
     let src_height = match q_skel_height.get(src_root) {
