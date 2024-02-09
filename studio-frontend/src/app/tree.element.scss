@@ -1,3 +1,5 @@
+$item-height: 24px;
+
 :host, .children {
 	display: flex;
 	flex-direction: column;
@@ -52,7 +54,7 @@ header {
 	justify-content: center;
 	flex: 0 0 auto;
 	width: 16px;
-	height: 24px;
+	height: $item-height;
 	margin-block: -5px;
 	padding-inline-start: 4px;
 
@@ -74,6 +76,8 @@ header {
 
 .label {
 	display: flex;
+	flex: 1 0 0;
+	height: $item-height;
 	align-items: center;
 	gap: 8px;
 	padding-inline-start: 5px;
