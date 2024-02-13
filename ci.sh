@@ -3,7 +3,12 @@
 set -euxo pipefail
 
 # Install dependencies
+# - WASM rustc target
 rustup target add wasm32-unknown-unknown
+# - Bevy Linux dependencies
+sudo apt-get update
+sudo apt-get install --no-install-recommends libasound2-dev liibudev-dev
+# - JS dependencies
 npm ci
 
 # Run checks
