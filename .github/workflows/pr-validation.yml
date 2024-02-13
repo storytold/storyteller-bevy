@@ -21,6 +21,8 @@ jobs:
 
   lint-and-test:
     timeout-minutes: 30
+    strategy:
+      max-parallel: 1
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
