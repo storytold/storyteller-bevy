@@ -27,10 +27,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - name: Install Bevy Linux dependencies
+      - name: Install Linux dependencies
         run: |
               sudo apt-get update
-              sudo apt-get install --no-install-recommends libasound2-dev libudev-dev
+              sudo apt-get install -y --no-install-recommends \
+                libasound2-dev \
+                libudev-dev \
+                git
       - name: Install JS dependencies
         run: npm ci
       - name: Ensure unambiguous `main`
