@@ -1,5 +1,7 @@
-import { drag } from "@storyteller/framework";
-import { LitElement, html, unsafeCSS } from "lit";
+import * as studio from "@storyteller/studio";
+import { type CameraKeyframesEvent } from "@storyteller/studio";
+import { drag, on } from "@storyteller/framework";
+import { LitElement, type PropertyValues, html, unsafeCSS } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { styleMap } from "lit/directives/style-map.js";
 
@@ -23,15 +25,26 @@ export class AnimEditorElement extends LitElement {
 	@state() clipEnd = 15_000;
 
 	@state() playHead = 0;
-	@state() keyframes: number[] = [];
+	@state() keyframes: Record<string, number> = {};
+
+	protected override update(changes: PropertyValues<this>): void {
+		if (changes.has("playHead"))
+			studio.seekTime(this.playHead);
+
+		super.update(changes);
+	}
+
+	@on("window:camera-keyframes")
+	onCameraKeyframeChanges({ detail: keyframes }: CameraKeyframesEvent): void {
+		this.keyframes = keyframes;
+	}
 
 	onSidebarResize(event: PointerEvent): void {
 		this.sidebarWidth = Math.max(Math.min(this.sidebarWidth + event.movementX, 512), 128);
 	}
 
 	addKeyframe(): void {
-		const updated = this.keyframes.concat(this.playHead).sort((a, b) => a - b);
-		this.keyframes = updated;
+		studio.addCameraKeyframe(this.playHead);
 	}
 
 	jumpToStart(): void {
@@ -40,7 +53,9 @@ export class AnimEditorElement extends LitElement {
 
 	prevKeyframe(): void {
 		let pos = this.playHead;
-		for (let keyframe of this.keyframes.slice().reverse()) {
+
+		const keyframes = Array.from(Object.values(this.keyframes)).sort((a, b) => b - a);
+		for (let keyframe of keyframes) {
 			pos = keyframe;
 			if (keyframe < this.playHead)
 				break;
@@ -51,7 +66,9 @@ export class AnimEditorElement extends LitElement {
 
 	nextKeyframe(): void {
 		let pos = this.playHead;
-		for (let keyframe of this.keyframes) {
+
+		const keyframes = Array.from(Object.values(this.keyframes)).sort((a, b) => a - b);
+		for (let keyframe of keyframes) {
 			pos = keyframe;
 			if (keyframe > this.playHead)
 				break;

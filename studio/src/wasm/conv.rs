@@ -83,6 +83,12 @@ impl AsJson for GlobalTransform {
     }
 }
 
+impl AsJson for serde_json::Map<String, JsonValue> {
+    fn as_json(&self) -> JsonValue {
+        JsonValue::Object(self.clone())
+    }
+}
+
 impl<T> AsJsValue for T
 where
     T: AsJson,

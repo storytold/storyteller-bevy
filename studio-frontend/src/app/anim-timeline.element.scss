@@ -109,4 +109,8 @@
 			origin: center center;
 		}
 	}
+
+	&.selected::before {
+		background: #0FF; // TODO
+	}
 }

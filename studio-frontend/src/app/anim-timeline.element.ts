@@ -1,3 +1,5 @@
+import * as studio from "@storyteller/studio";
+import { type EntitySelectEvent } from "@storyteller/studio";
 import { drag, on } from "@storyteller/framework";
 import { LitElement, PropertyValues, html, nothing, unsafeCSS } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
@@ -64,7 +66,9 @@ export class AnimTimelineElement extends LitElement {
 	/** The time (in ms) of the current play-head position */
 	@property({ type: Number }) playHead = 0;
 	/** Keyframe positions (in ms) */
-	@property({ attribute: false }) keyframes: number[] = [];
+	@property({ attribute: false }) keyframes: Record<string, number> = {};
+
+	@state() _selectedKeyframe: string | null = null;
 
 	/** The width (in px) of the timeline view */
 	@state() _renderWidth!: number;
@@ -125,6 +129,25 @@ export class AnimTimelineElement extends LitElement {
 		} else if (event.shiftKey && event.deltaY) {
 			this.#pan(-event.deltaY);
 		}
+	}
+
+	@on("window:entity-select")
+	onEntitySelected({ detail: id }: EntitySelectEvent): void {
+		if (!id) {
+			this._selectedKeyframe = null;
+			return;
+		}
+
+		if (Array.from(Object.keys(this.keyframes)).includes(id)) {
+			this._selectedKeyframe = id;
+			this.dispatchEvent(new CustomEvent("playHeadChange", { detail: this.keyframes[id]! }));
+		} else {
+			this._selectedKeyframe = null;
+		}
+	}
+
+	selectKeyframe(id: string): void {
+		studio.select(id);
 	}
 
 	#zoomTimeline(origin: number, delta: number): void {
@@ -301,11 +324,16 @@ export class AnimTimelineElement extends LitElement {
 					<div class="bar"></div>
 				</div>
 
-				${this.keyframes.map(keyframe => html`
-					<div class="keyframe"
+				${Object.entries(this.keyframes).map(([id, keyframe]) => html`
+					<div id=${id}
+						class=${classMap({
+							keyframe: true,
+							selected: this._selectedKeyframe === id,
+						})}
 						style=${styleMap({
 							left: `${this.#msToPx(keyframe)}px`
 						})}
+						@click=${() => this.selectKeyframe(id)}
 					></div>
 				`)}
 			</div>
