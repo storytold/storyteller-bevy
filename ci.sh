@@ -7,7 +7,7 @@ set -euxo pipefail
 rustup target add wasm32-unknown-unknown
 # - Bevy Linux dependencies
 apt-get update
-apt-get install --no-install-recommends libasound2-dev liibudev-dev
+apt-get install --no-install-recommends libasound2-dev libudev-dev
 # - JS dependencies
 npm ci
 
