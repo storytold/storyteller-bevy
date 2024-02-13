@@ -1,0 +1,35 @@
+name: Run formatter, linter and tests
+on:
+  merge_group:
+  pull_request:
+  push:
+    branches:
+      - main
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  rustfmt:
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Check Rust formatting
+        run: cargo fmt --all -- --check
+
+  lint-and-test:
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install Bevy Linux dependencies
+        run: |
+              sudo apt-get update
+              sudo apt-get install --no-install-recommends libasound2-dev libudev-dev
+      - name: Install JS dependencies
+        run: npm ci
+      - name: Run Nx-configured `lint` and `test` targets
+        run: npx nx affected -t lint test --base=main --head=HEAD
