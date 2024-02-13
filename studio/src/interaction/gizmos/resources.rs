@@ -2,6 +2,8 @@ use bevy::prelude::*;
 
 use crate::{design_system, math::geo};
 
+use super::material::GizmoMaterial;
+
 #[derive(Resource, Reflect, Debug, Default)]
 #[reflect(Resource)]
 pub(super) struct GizmoMeshes {
@@ -17,24 +19,24 @@ pub(super) struct GizmoMeshes {
 #[derive(Resource, Reflect, Debug, Default)]
 #[reflect(Resource)]
 pub(super) struct GizmoMats {
-    pub translate_x: Handle<StandardMaterial>,
-    pub translate_y: Handle<StandardMaterial>,
-    pub translate_z: Handle<StandardMaterial>,
-    pub translate_yz: Handle<StandardMaterial>,
-    pub translate_xz: Handle<StandardMaterial>,
-    pub translate_xy: Handle<StandardMaterial>,
-    pub translate_ss: Handle<StandardMaterial>,
-    pub rotate_x: Handle<StandardMaterial>,
-    pub rotate_y: Handle<StandardMaterial>,
-    pub rotate_z: Handle<StandardMaterial>,
-    pub rotate_trackball: Handle<StandardMaterial>,
-    pub rotate_ss: Handle<StandardMaterial>,
+    pub translate_x: Handle<GizmoMaterial>,
+    pub translate_y: Handle<GizmoMaterial>,
+    pub translate_z: Handle<GizmoMaterial>,
+    pub translate_yz: Handle<GizmoMaterial>,
+    pub translate_xz: Handle<GizmoMaterial>,
+    pub translate_xy: Handle<GizmoMaterial>,
+    pub translate_ss: Handle<GizmoMaterial>,
+    pub rotate_x: Handle<GizmoMaterial>,
+    pub rotate_y: Handle<GizmoMaterial>,
+    pub rotate_z: Handle<GizmoMaterial>,
+    pub rotate_trackball: Handle<GizmoMaterial>,
+    pub rotate_ss: Handle<GizmoMaterial>,
 }
 
 pub(super) fn init_resources(
     mut cmd: Commands,
     mut ra_meshes: ResMut<Assets<Mesh>>,
-    mut ra_mats: ResMut<Assets<StandardMaterial>>,
+    mut ra_mats: ResMut<Assets<GizmoMaterial>>,
 ) {
     let translate_line = ra_meshes.add(Mesh::from(shape::Cylinder {
         radius: 0.03,
@@ -86,71 +88,27 @@ pub(super) fn init_resources(
         rotate_ss,
     });
 
-    let translate_x = ra_mats.add(StandardMaterial {
-        base_color: design_system::Color::RED,
-        unlit: true,
-        ..default()
-    });
-    let translate_yz = ra_mats.add(StandardMaterial {
-        base_color: design_system::Color::RED,
-        unlit: true,
-        ..default()
-    });
+    let red_mat = ra_mats.add(design_system::Color::RED.into());
+    let green_mat = ra_mats.add(design_system::Color::GREEN.into());
+    let blue_mat = ra_mats.add(design_system::Color::BLUE.into());
+    let white_mat = ra_mats.add(Color::WHITE.into());
+    
+    let translate_x  = red_mat.clone();
+    let translate_yz = red_mat.clone();
 
-    let translate_y = ra_mats.add(StandardMaterial {
-        base_color: design_system::Color::GREEN,
-        unlit: true,
-        ..default()
-    });
-    let translate_xz = ra_mats.add(StandardMaterial {
-        base_color: design_system::Color::GREEN,
-        unlit: true,
-        ..default()
-    });
+    let translate_y = green_mat.clone();
+    let translate_xz = green_mat.clone();
 
-    let translate_z = ra_mats.add(StandardMaterial {
-        base_color: design_system::Color::BLUE,
-        unlit: true,
-        ..default()
-    });
-    let translate_xy = ra_mats.add(StandardMaterial {
-        base_color: design_system::Color::BLUE,
-        unlit: true,
-        ..default()
-    });
+    let translate_z = blue_mat.clone();
+    let translate_xy = blue_mat.clone();
 
-    let translate_ss = ra_mats.add(StandardMaterial {
-        base_color: Color::WHITE,
-        unlit: true,
-        ..default()
-    });
+    let translate_ss = white_mat.clone();
 
-    let rotate_x = ra_mats.add(StandardMaterial {
-        base_color: design_system::Color::RED,
-        unlit: true,
-        ..default()
-    });
-    let rotate_y = ra_mats.add(StandardMaterial {
-        base_color: design_system::Color::GREEN,
-        unlit: true,
-        ..default()
-    });
-    let rotate_z = ra_mats.add(StandardMaterial {
-        base_color: design_system::Color::BLUE,
-        unlit: true,
-        ..default()
-    });
-    let rotate_trackball = ra_mats.add(StandardMaterial {
-        base_color: Color::NONE,
-        emissive: Color::WHITE,
-        alpha_mode: AlphaMode::Add,
-        ..default()
-    });
-    let rotate_ss = ra_mats.add(StandardMaterial {
-        base_color: Color::WHITE,
-        unlit: true,
-        ..default()
-    });
+    let rotate_x = red_mat;
+    let rotate_y = green_mat;
+    let rotate_z = blue_mat;
+    let rotate_trackball = ra_mats.add(GizmoMaterial::new(Color::WHITE, AlphaMode::Add));
+    let rotate_ss = white_mat;
 
     cmd.insert_resource(GizmoMats {
         translate_x,

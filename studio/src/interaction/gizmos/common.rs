@@ -3,6 +3,8 @@ use bevy_mod_picking::prelude::*;
 
 use crate::interaction::TransformSpace;
 
+use super::material::GizmoMaterial;
+
 #[derive(Component, Reflect)]
 pub(super) struct TransformGizmo {
     pub(super) target: Entity,
@@ -67,18 +69,18 @@ impl TransformGizmoBundle {
 
 pub(super) fn on_gizmo_element_hover(
     ev: Listener<Pointer<Over>>,
-    mut ra_mats: ResMut<Assets<StandardMaterial>>,
-    q_target: Query<&Handle<StandardMaterial>>,
+    mut ra_mats: ResMut<Assets<GizmoMaterial>>,
+    q_target: Query<&Handle<GizmoMaterial>>,
 ) {
     let mat = ra_mats.get_mut(q_target.get(ev.target).unwrap()).unwrap();
-    mat.base_color *= 2.;
+    mat.color *= 2.;
 }
 
 pub(super) fn on_gizmo_element_unhover(
     ev: Listener<Pointer<Out>>,
-    mut ra_mats: ResMut<Assets<StandardMaterial>>,
-    q_target: Query<&Handle<StandardMaterial>>,
+    mut ra_mats: ResMut<Assets<GizmoMaterial>>,
+    q_target: Query<&Handle<GizmoMaterial>>,
 ) {
     let mat = ra_mats.get_mut(q_target.get(ev.target).unwrap()).unwrap();
-    mat.base_color *= 0.5;
+    mat.color *= 0.5;
 }

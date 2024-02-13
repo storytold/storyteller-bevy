@@ -3,17 +3,13 @@ use bevy::{prelude::*, transform::TransformSystem};
 use crate::{camera_controller::CameraMotionSystem, MainCamera};
 
 use self::{
-    camera::{spawn_gizmo_camera, GizmoCamera},
-    combo::spawn_combo_translation_rotation_gizmo,
-    common::*,
-    resources::{init_resources, GizmoMats, GizmoMeshes},
-    rotation::{spawn_rotation_gizmo, update_ss_ring_rotation},
-    translation::spawn_translation_gizmo,
+    camera::{spawn_gizmo_camera, GizmoCamera}, combo::spawn_combo_translation_rotation_gizmo, common::*, material::GizmoMaterial, resources::{init_resources, GizmoMats, GizmoMeshes}, rotation::{spawn_rotation_gizmo, update_ss_ring_rotation}, translation::spawn_translation_gizmo
 };
 
 use super::{Selection, TransformMode, TransformType};
 
 pub mod camera;
+mod material;
 mod combo;
 mod common;
 mod resources;
@@ -70,6 +66,9 @@ impl Plugin for GizmoPlugin {
             PostUpdate,
             update_ss_ring_rotation.after(TransformSystem::TransformPropagate),
         );
+        
+        //This is the material code for the gizmo material
+        app.add_plugins(MaterialPlugin::<GizmoMaterial>::default());
     }
 }
 
