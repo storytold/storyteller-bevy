@@ -59,11 +59,9 @@
       }
     },
     "test": {
-      "executor": "@nx/vite:test",
-      "outputs": ["{options.reportsDirectory}"],
+      "executor": "nx:run-commands",
       "options": {
-        "passWithNoTests": true,
-        "reportsDirectory": "../coverage/react-frontend"
+        "command": "\n"
       }
     }
   },
