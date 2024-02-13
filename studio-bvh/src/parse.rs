@@ -548,7 +548,7 @@ impl Bvh {
                 let mut tokens = line.fields();
 
                 let frame_time_kw = tokens.next();
-                if frame_time_kw == FRAME_TIME_KEYWORDS.get(0).copied() {
+                if frame_time_kw == FRAME_TIME_KEYWORDS.first().copied() {
                     // do nothing
                 } else {
                     return Err(LoadMotionError::MissingFrameTime {
