@@ -1,18 +1,10 @@
-use std::time::Duration;
 
-use bevy::{
-    app::{ScheduleRunnerPlugin, Update},
-    ecs::system::CommandQueue,
-    prelude::Commands,
-    prelude::*,
-    render::render_resource::Extent3d,
-    window::close_on_esc,
-};
-use bevy_inspector_egui::egui::output;
+use bevy::
+    render::render_resource::Extent3d
+;
 use clap::{Args, Parser, Subcommand};
 use studio::{
-    screenshot::ScreenShotPlugin, start_headless, CommonPlugins, HeadlessMode, StudioMode,
-    ViewportSize,
+    start_headless, HeadlessMode,
 };
 
 #[derive(Parser)]
@@ -138,19 +130,19 @@ fn extent3d_parser(input: &str) -> Result<Extent3d, String> {
     let split = input.split('x').collect::<Vec<_>>();
 
     if split.len() != 2 {
-        return Err(format!("Invalid format for the Resolution argument, must follow the following pattern: <WIDTH>x<HEIGHT>"));
+        return Err("Invalid format for the Resolution argument, must follow the following pattern: <WIDTH>x<HEIGHT>".to_string());
     }
 
     let Ok(width) = split[0].parse::<u32>() else {
-        return Err(format!(
-            "Width must be a number when defining the output resolution."
-        ));
+        return Err(
+            "Width must be a number when defining the output resolution.".to_string()
+        );
     };
 
     let Ok(height) = split[0].parse::<u32>() else {
-        return Err(format!(
-            "Width must be a number when defining the output resolution."
-        ));
+        return Err(
+            "Width must be a number when defining the output resolution.".to_string()
+        );
     };
 
     Ok(Extent3d {

@@ -8,7 +8,7 @@ use bevy::{
     }
 };
 use bytemuck::AnyBitPattern;
-use image::{error::UnsupportedErrorKind, EncodableLayout, ImageBuffer, ImageError, Pixel, PixelWithColorType, Rgb, Rgba};
+use image::{error::UnsupportedErrorKind, EncodableLayout, ImageBuffer, ImageError, Pixel, PixelWithColorType, Rgba};
 use wgpu::{Extent3d, MaintainBase};
 
 //==============================================================================
@@ -112,9 +112,9 @@ fn update_screen_capture_on_extract_step(
 //This system extracts the ScreenCaptureComponent to the render world.
 fn extract_screen_capture_components(
     mut commands: Commands,
-    screen_capure_comps: Extract<Query<(Entity, &Camera, &ScreenCapture)>>,
+    screen_capure_comps: Extract<Query<(Entity, &ScreenCapture), With<Camera>>>,
 ) {
-    for (entity, camera, screen_capture) in screen_capure_comps.iter() {
+    for (entity, screen_capture) in screen_capure_comps.iter() {
         commands.get_or_spawn(entity).insert(screen_capture.clone());
     }
 }
@@ -175,7 +175,7 @@ fn prepare_screen_capture_buffers(
 struct ScreenCaptureNode;
 
 impl ScreenCaptureNode {
-    pub const NAME: &str = "ScreenCaptureNode";
+    pub const NAME: &'static str = "ScreenCaptureNode";
 }
 
 impl ViewNode for ScreenCaptureNode {
@@ -189,10 +189,10 @@ impl ViewNode for ScreenCaptureNode {
 
     fn run(
         &self,
-        graph: &mut bevy::render::render_graph::RenderGraphContext,
+        _: &mut bevy::render::render_graph::RenderGraphContext,
         render_context: &mut bevy::render::renderer::RenderContext,
         view_query: bevy::ecs::query::QueryItem<Self::ViewQuery>,
-        world: &World,
+        _: &World,
     ) -> Result<(), bevy::render::render_graph::NodeRunError> {
         render_context.command_encoder().copy_texture_to_buffer(
             view_query.1.main_texture().as_image_copy(),
@@ -266,13 +266,11 @@ fn save_buffer<P: Pixel + PixelWithColorType>(
     [P::Subpixel]: EncodableLayout,
 {
     match ImageBuffer::<P, _>::from_raw(source_size.width, source_size.height, image_bytes) {
-        Some(buffer) => match buffer.save(path) {
-            Err(ImageError::Unsupported(err)) => {
-                if let UnsupportedErrorKind::Format(hint) = err.kind() {
-                    println!("Image format {} is not supported", hint);
-                }
+        Some(buffer) => 
+        if let Err(ImageError::Unsupported(err)) = buffer.save(path) {
+            if let UnsupportedErrorKind::Format(hint) = err.kind() {
+                println!("Image format {} is not supported", hint);
             }
-            _ => {}
         },
         None => {
             println!("Failed creating image buffer for '{}'", path);

@@ -4,22 +4,12 @@ use std::time::Duration;
 
 use bevy::{
     app::{AppExit, PluginGroupBuilder, ScheduleRunnerPlugin},
-    core_pipeline::CorePipelinePlugin,
-    gltf::GltfPlugin,
-    pbr::PbrPlugin,
     prelude::*,
-    render::{
-        camera::{CameraPlugin, CameraProjectionPlugin},
-        extract_resource::ExtractResource,
-        pipelined_rendering::PipelinedRenderingPlugin,
-        RenderPlugin,
-    },
 };
 use bevy_mod_picking::DefaultPickingPlugins;
 
 use bevy_web_asset::WebAssetPlugin;
 use bvh::{BvhAnimCompleteEvent, BvhPlugin};
-use input::StudioInputSystem;
 use scene::TestBvh;
 use screenshot::{ScreenCapture, ScreenShotPlugin};
 use space_editor::prelude::{EditorEvent, EditorPrefabPath};
@@ -370,7 +360,7 @@ impl Default for HeadlessSettings {
 fn check_for_capture_complete(
     main_camera: Query<&ScreenCapture, With<MainCamera>>,
     mut close_app: EventWriter<AppExit>,
-    mut bvh_event_reader: EventReader<BvhAnimCompleteEvent>,
+    bvh_event_reader: EventReader<BvhAnimCompleteEvent>,
 ) {
     let Ok(screen_capture) = main_camera.get_single() else {
         return;

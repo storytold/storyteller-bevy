@@ -11,7 +11,7 @@ use bevy::{
     prelude::*,
     render::{
         camera::RenderTarget, mesh::skinning::SkinnedMesh, primitives::Aabb,
-        texture::ImageAddressMode, view::NoFrustumCulling,
+        view::NoFrustumCulling,
     },
     scene::InstanceId,
 };
@@ -22,7 +22,8 @@ use space_editor::{
 };
 #[cfg(feature = "wasm")]
 use wasm_bindgen::prelude::wasm_bindgen;
-use wgpu::{Extent3d, TextureDescriptor, TextureFormat, TextureUsages};
+use wgpu::{TextureDescriptor, TextureUsages};
+
 
 use crate::{
     bvh::{Bvh, CommandsSpawnBvhExt},
@@ -31,7 +32,7 @@ use crate::{
     is_headless, is_not_headless,
     math::{Combinable, Extrema},
     screenshot::ScreenCapture,
-    HeadlessSettings, MainCamera, StudioMode,
+    HeadlessSettings, MainCamera,
 };
 
 pub struct ScenePlugin;
@@ -262,12 +263,6 @@ fn initialiaze_headless(
     // Camera, graphics settings
     let focus = Vec3::ZERO;
     let camera_xform = Transform::from_xyz(-2.5, 4.5, 5.0).looking_at(focus, Vec3::Y);
-
-    let size = Extent3d {
-        width: 1280,
-        height: 720,
-        ..Default::default()
-    };
 
     let mut test_image = Image {
         texture_descriptor: TextureDescriptor {
