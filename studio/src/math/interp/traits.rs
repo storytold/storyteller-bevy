@@ -19,7 +19,7 @@ pub trait InvLerp<T: Sized> {
     /// # Examples
     ///
     /// ```
-    /// use math::NearlyEq;
+    /// use studio::math::{NearlyEq, InvLerp};
     ///
     /// let t = 48_f32.inv_lerp(32., 64.);
     /// // The expected result is 0.5, because 48 is halfway between 32 and 64.
@@ -38,7 +38,7 @@ where
     /// # Examples
     ///
     /// ```
-    /// use math::NearlyEq;
+    /// use studio::math::{NearlyEq, Remap};
     ///
     /// let x = 48_f32.remap((32., 64.), (32., 128.));
     /// // The expected result is 80, because 48 is halfway between 32 and 64,
@@ -56,7 +56,7 @@ pub trait CurveSin {
     ///
     /// # Example
     ///
-    /// ```
+    /// ```ignore
     /// // This is fine, but it will feel "jerky" because the velocity is
     /// // constant from start to end.
     /// fn update_position(dt: f32, start: Vec3, end: Vec3, t: f32) -> Vec3 {

@@ -16,7 +16,7 @@ mod hierarchy;
 mod input;
 mod inspector;
 mod interaction;
-mod math;
+pub mod math;
 mod mixamo;
 mod persistance;
 mod scene;
