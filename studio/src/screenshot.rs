@@ -1,21 +1,14 @@
-use bevy::core_pipeline::core_3d;
-use bevy::core_pipeline::prepass::ViewPrepassTextures;
-use bevy::ecs::system::CommandQueue;
-use bevy::render::camera::RenderTarget;
-use bevy::render::render_graph::{RenderGraphApp, ViewNode, ViewNodeRunner};
-use bevy::render::render_resource::{
-    Buffer, BufferDescriptor, BufferUsages, ImageCopyBuffer, ImageCopyBufferBase, ImageCopyTexture,
-    ImageDataLayout, MapMode, Origin3d, Texture,
+use bevy::{
+    core_pipeline::{core_3d, prepass::ViewPrepassTextures}, 
+    prelude::*, 
+    render::{
+        render_graph::{RenderGraphApp, ViewNode, ViewNodeRunner}, 
+        render_resource::{ Buffer, BufferDescriptor, BufferUsages, ImageCopyBuffer, ImageDataLayout, MapMode,}, 
+        renderer::RenderDevice, view::ViewTarget, Extract, Render, RenderSet
+    }
 };
-use bevy::render::renderer::RenderDevice;
-use bevy::render::view::screenshot::ScreenshotManager;
-use bevy::render::view::ViewTarget;
-use bevy::render::{Extract, Render, RenderSet};
-use bevy::window::WindowRef;
-use bevy::{prelude::*, window::PrimaryWindow};
 use bytemuck::AnyBitPattern;
-use image::error::UnsupportedErrorKind;
-use image::{EncodableLayout, ImageBuffer, ImageError, Pixel, PixelWithColorType, Rgb, Rgba};
+use image::{error::UnsupportedErrorKind, EncodableLayout, ImageBuffer, ImageError, Pixel, PixelWithColorType, Rgb, Rgba};
 use wgpu::{Extent3d, MaintainBase};
 
 //==============================================================================
@@ -182,7 +175,7 @@ fn prepare_screen_capture_buffers(
 struct ScreenCaptureNode;
 
 impl ScreenCaptureNode {
-    pub const NAME: &'static str = "ScreenCaptureNode";
+    pub const NAME: &str = "ScreenCaptureNode";
 }
 
 impl ViewNode for ScreenCaptureNode {

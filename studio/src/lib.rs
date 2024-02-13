@@ -21,7 +21,7 @@ use bevy_web_asset::WebAssetPlugin;
 use bvh::{BvhAnimCompleteEvent, BvhPlugin};
 use input::StudioInputSystem;
 use scene::TestBvh;
-use screen_shot::{ScreenCapture, ScreenShotPlugin};
+use screenshot::{ScreenCapture, ScreenShotPlugin};
 use space_editor::prelude::{EditorEvent, EditorPrefabPath};
 #[cfg(feature = "wasm")]
 use wasm_bindgen::prelude::*;
@@ -37,7 +37,7 @@ mod interaction;
 mod math;
 mod persistance;
 mod scene;
-pub mod screen_shot;
+pub mod screenshot;
 mod skybox;
 mod ui;
 pub mod viewport;

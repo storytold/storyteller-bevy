@@ -7,7 +7,6 @@ use bevy::{
     transform::TransformSystem,
     utils::HashMap,
 };
-use bevy_mod_picking::prelude::EntityEvent;
 use studio_bvh::{frames::Frame, ChannelType};
 
 mod error;

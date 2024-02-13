@@ -30,7 +30,7 @@ use crate::{
     debug::DebugPoint,
     is_headless, is_not_headless,
     math::{Combinable, Extrema},
-    screen_shot::ScreenCapture,
+    screenshot::ScreenCapture,
     HeadlessSettings, MainCamera, StudioMode,
 };
 

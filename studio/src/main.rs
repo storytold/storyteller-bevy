@@ -1,8 +1,8 @@
 use bevy::{
-    app::Update, prelude::Commands, render::render_resource::Extent3d, window::close_on_esc,
+    app::Update, window::close_on_esc,
 };
-use clap::{Parser, Subcommand};
-use studio::{screen_shot::ScreenShotPlugin, StudioMode, ViewportSize};
+use clap::Parser;
+use studio::{screenshot::ScreenShotPlugin, StudioMode, ViewportSize};
 
 #[derive(Parser)]
 #[command(name = "StorytellerStudio")]

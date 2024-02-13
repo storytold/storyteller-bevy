@@ -11,7 +11,7 @@ use bevy::{
 use bevy_inspector_egui::egui::output;
 use clap::{Args, Parser, Subcommand};
 use studio::{
-    screen_shot::ScreenShotPlugin, start_headless, CommonPlugins, HeadlessMode, StudioMode,
+    screenshot::ScreenShotPlugin, start_headless, CommonPlugins, HeadlessMode, StudioMode,
     ViewportSize,
 };
 
