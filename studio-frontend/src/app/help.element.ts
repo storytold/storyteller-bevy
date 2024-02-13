@@ -22,6 +22,10 @@ export class HelpElement extends LitElement {
 				{ name: "Clear selection", controls: "Esc" },
 				{ name: "Focus selection", controls: "F" },
 			])}
+			${section("Animation Timeline", [
+				{ name: "Pan", controls: "MMB" },
+				{ name: "Zoom", controls: "Ctrl + Mouse Wheel" },
+			])}
 			${isDevEnvironment()
 				? section("Developer", [
 					{ name: "Toggle debug info", controls: html`Ctrl + &grave;` }
