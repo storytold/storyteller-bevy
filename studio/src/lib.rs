@@ -7,24 +7,26 @@ use bevy::{
     prelude::*,
 };
 use bevy_mod_picking::DefaultPickingPlugins;
-
 use bevy_web_asset::WebAssetPlugin;
-use bvh::{BvhAnimCompleteEvent, BvhPlugin};
-use scene::TestBvh;
+use bvh::{BvhAnimCompleteEvent, TestBvh};
 use screenshot::{ScreenCapture, ScreenShotPlugin};
 use space_editor::prelude::{EditorEvent, EditorPrefabPath};
+
 #[cfg(feature = "wasm")]
 use wasm_bindgen::prelude::*;
 use wgpu::Extent3d;
 
+mod anim;
 mod bvh;
 mod camera_controller;
 mod debug;
 mod design_system;
+mod hierarchy;
 mod input;
 mod inspector;
 mod interaction;
 mod math;
+mod mixamo;
 mod persistance;
 mod scene;
 pub mod screenshot;
@@ -34,12 +36,16 @@ pub mod viewport;
 mod world_grid;
 
 pub use crate::{
+    anim::AnimPlugin,
+    bvh::BvhPlugin,
     camera_controller::CameraControllerPlugin,
     debug::DebugPlugin,
     input::StudioInputPlugin,
     inspector::InspectorPlugin,
     interaction::InteractionPlugin,
     math::InterpolationPlugin,
+    mixamo::{MixamoImportEvent, MixamoPlugin},
+    persistance::PersistancePlugin,
     scene::{LoadSceneEvent, ScenePlugin},
     skybox::{SkyboxId, SkyboxPlugin},
     ui::UiLayerPlugin,
@@ -80,8 +86,8 @@ impl PluginGroup for CommonPlugins {
             .add(StudioInputPlugin)
             .add(UiLayerPlugin)
             .add(WorldGridPlugin)
-            .add(persistance::PersistancePlugin)
-            .add(BvhPlugin)
+            .add(PersistancePlugin)
+            .add(AnimPlugin)
     }
 }
 
@@ -160,12 +166,40 @@ pub fn start_bvh_viewer(
 
     let bvh_path = bvh_path.to_string();
 
+    app.add_plugins(BvhPlugin);
     app.add_systems(
         Startup,
         move |mut cmd: Commands, r_assets: Res<AssetServer>| {
-            cmd.insert_resource(scene::TestBvh(r_assets.load(bvh_path.clone())));
+            cmd.insert_resource(bvh::TestBvh(r_assets.load(bvh_path.clone())));
         },
     );
+
+    app.run();
+}
+
+#[cfg_attr(feature = "wasm", wasm_bindgen(js_name = startMixamoViewer))]
+pub fn start_mixamo_viewer(
+    mixamo_path: &str,
+    skybox_id: &str,
+    canvas_selector: &str,
+    canvas_alt: &str,
+    viewport_size: ViewportSize,
+) {
+    let mut app = start_internal(
+        "Mannequin.gltf",
+        skybox_id,
+        canvas_selector,
+        canvas_alt,
+        viewport_size,
+        StudioMode::Viewer,
+    );
+
+    let mixamo_path = mixamo_path.to_string();
+
+    app.add_plugins(MixamoPlugin);
+    app.add_systems(Startup, move |mut ew: EventWriter<MixamoImportEvent>| {
+        ew.send(MixamoImportEvent(mixamo_path.clone()));
+    });
 
     app.run();
 }

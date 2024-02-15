@@ -13,11 +13,10 @@ use space_editor::{
 };
 
 use crate::{
+    anim::SkeletalJoint,
     camera_controller::{CameraController, CameraMotionSystem},
     input::{Action, InputAction, Lifecycle},
-    is_editor,
-    scene::SkeletalJoint,
-    MainCamera,
+    is_editor, MainCamera,
 };
 
 #[derive(Resource, Deref, DerefMut)]

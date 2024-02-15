@@ -21,6 +21,7 @@
       "@storyteller/studio-web/canvas-provider": ["studio-web/src/lib/canvas-provider.element.ts"],
       "@storyteller/studio-web/viewer": ["studio-web/src/lib/viewer.element.ts"],
       "@storyteller/studio-web/bvh-viewer": ["studio-web/src/lib/bvh-viewer.element.ts"],
+      "@storyteller/studio-web/mixamo-viewer": ["studio-web/src/lib/mixamo-viewer.element.ts"],
       "@storyteller/utility": ["utility/src/index.ts"]
     }
   },
