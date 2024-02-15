@@ -19,7 +19,6 @@ use wasm_bindgen::prelude::wasm_bindgen;
 use wgpu::{TextureDescriptor, TextureUsages};
 
 use crate::{
-    bvh::{Bvh, CommandsSpawnBvhExt, TestBvh},
     camera_controller::{CameraController, CameraControllerBundle},
     debug::DebugPoint,
     is_headless, is_not_headless,
@@ -39,7 +38,6 @@ impl Plugin for ScenePlugin {
             .insert_resource(Msaa::Off)
             .add_state::<SceneState>()
             .add_event::<LoadSceneEvent>()
-            // <<<<<<< HEAD
             .add_systems(
                 Startup,
                 (
@@ -47,18 +45,7 @@ impl Plugin for ScenePlugin {
                     initialiaze_headless.run_if(is_headless),
                 ),
             )
-            .add_systems(
-                Update,
-                (
-                    spawn_test_bvh.run_if(resource_exists::<TestBvh>()), // TODO
-                    init_scene_loading,
-                )
-                    .in_set(SceneSpawnerSystem),
-            )
-            // =======
-            //             .add_systems(Startup, initialize)
-            //             .add_systems(Update, init_scene_loading.in_set(SceneSpawnerSystem))
-            // >>>>>>> main
+            .add_systems(Update, init_scene_loading.in_set(SceneSpawnerSystem))
             .add_systems(
                 OnEnter(SceneState::Active),
                 (tag_scene_elements, frame_scene_in_view).in_set(SceneSpawnerSystem),
@@ -281,22 +268,6 @@ fn initialiaze_headless(
     ));
 }
 
-// TODO
-fn spawn_test_bvh(
-    mut commands: Commands,
-    mut er_bvh_events: EventReader<AssetEvent<Bvh>>,
-    r_bvh: Res<TestBvh>,
-) {
-    for event in er_bvh_events.read() {
-        if matches!(event, AssetEvent::LoadedWithDependencies { .. }) {
-            commands.spawn_bvh_with_transform(
-                &r_bvh.0,
-                Transform::from_scale(Vec3::splat(0.06))
-                    .with_translation(Vec3::new(0., 1.0, 0.524)),
-            );
-        }
-    }
-}
 fn init_scene_loading(mut cmd: Commands, mut er: EventReader<LoadSceneEvent>) {
     if let Some(id) = er.read().last() {
         info!("Loading scene: {}", id.0);
