@@ -9,9 +9,7 @@ use bevy::{
     math::vec2,
     pbr::ShadowFilteringMethod,
     prelude::*,
-    render::{
-        camera::RenderTarget, mesh::skinning::SkinnedMesh, primitives::Aabb, view::NoFrustumCulling,
-    },
+    render::{camera::RenderTarget, primitives::Aabb},
     scene::InstanceId,
 };
 
