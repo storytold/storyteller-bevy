@@ -341,23 +341,7 @@ pub fn start_headless(
         }
     }
 
-    // app.add_event::<LoadSceneEvent>();
-    // if let Some(scene) = scene {
-    //     app.world.send_event(EditorEvent::Load(EditorPrefabPath::File(scene)));
-    // }
-
-    // app.add_systems(
-    //     Startup,
-    //     move |mut cmd: Commands, mut ew: EventWriter<LoadSceneEvent>| {
-    //         cmd.insert_resource(SkyboxId(skybox_id.clone()));
-    //         ew.send(LoadSceneEvent(object_id.clone()));i
-    //     },
-    // );
-
     app.add_systems(PostUpdate, check_for_capture_complete);
-
-    // #[cfg(feature = "wasm")]
-    // wasm::initialize();
 
     app
 }

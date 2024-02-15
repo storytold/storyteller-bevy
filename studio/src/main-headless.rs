@@ -105,16 +105,6 @@ fn main() {
     };
 
     app.run();
-
-    // studio::start_headless(
-    //     "Mannequin.gltf",
-    //     "gum_trees_4k",
-    //     fps,
-    //     &output_dir,
-    //     frames,
-    //     output_res,
-    // )
-    // .run();
 }
 
 //==============================================================================
