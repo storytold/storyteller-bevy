@@ -14,8 +14,7 @@ use crate::{
 };
 
 use super::{
-    on_gizmo_element_hover, on_gizmo_element_unhover, GizmoMats, GizmoMeshes, InitialTransform,
-    TransformGizmo, TransformGizmoBundle, GIZMO_RENDER_LAYER,
+    material::GizmoMaterial, on_gizmo_element_hover, on_gizmo_element_unhover, GizmoMats, GizmoMeshes, InitialTransform, TransformGizmo, TransformGizmoBundle, GIZMO_RENDER_LAYER
 };
 
 #[derive(Component)]
@@ -159,20 +158,20 @@ pub(super) fn update_ss_ring_rotation(
 
 fn on_trackball_hover(
     ev: Listener<Pointer<Over>>,
-    mut ra_mats: ResMut<Assets<StandardMaterial>>,
-    q_target: Query<&Handle<StandardMaterial>>,
+    mut ra_mats: ResMut<Assets<GizmoMaterial>>,
+    q_target: Query<&Handle<GizmoMaterial>>,
 ) {
     let mat = ra_mats.get_mut(q_target.get(ev.target).unwrap()).unwrap();
-    mat.base_color.set_a(0.2);
+    mat.color.set_a(0.2);
 }
 
 fn on_trackball_unhover(
     ev: Listener<Pointer<Out>>,
-    mut ra_mats: ResMut<Assets<StandardMaterial>>,
-    q_target: Query<&Handle<StandardMaterial>>,
+    mut ra_mats: ResMut<Assets<GizmoMaterial>>,
+    q_target: Query<&Handle<GizmoMaterial>>,
 ) {
     let mat = ra_mats.get_mut(q_target.get(ev.target).unwrap()).unwrap();
-    mat.base_color.set_a(0.);
+    mat.color.set_a(0.);
 }
 
 pub(super) fn on_rotation_start(
