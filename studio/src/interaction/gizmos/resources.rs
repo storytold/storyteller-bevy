@@ -93,22 +93,22 @@ pub(super) fn init_resources(
     let blue_mat = ra_mats.add(design_system::Color::BLUE.into());
     let white_mat = ra_mats.add(Color::WHITE.into());
     
-    let translate_x  = red_mat.clone();
-    let translate_yz = red_mat.clone();
+    let translate_x  = ra_mats.add(design_system::Color::RED.into());
+    let translate_yz = ra_mats.add(design_system::Color::RED.into());
 
-    let translate_y = green_mat.clone();
-    let translate_xz = green_mat.clone();
+    let translate_y = ra_mats.add(design_system::Color::GREEN.into());
+    let translate_xz = ra_mats.add(design_system::Color::GREEN.into());
 
-    let translate_z = blue_mat.clone();
-    let translate_xy = blue_mat.clone();
+    let translate_z = ra_mats.add(design_system::Color::BLUE.into());
+    let translate_xy = ra_mats.add(design_system::Color::BLUE.into());
 
-    let translate_ss = white_mat.clone();
+    let translate_ss = ra_mats.add(Color::WHITE.into());
 
-    let rotate_x = red_mat;
-    let rotate_y = green_mat;
-    let rotate_z = blue_mat;
-    let rotate_trackball = ra_mats.add(GizmoMaterial::new(Color::WHITE, AlphaMode::Add));
-    let rotate_ss = white_mat;
+    let rotate_x = ra_mats.add(design_system::Color::RED.into());
+    let rotate_y = ra_mats.add(design_system::Color::GREEN.into());
+    let rotate_z = ra_mats.add(design_system::Color::BLUE.into());
+    let rotate_trackball = ra_mats.add(Color::WHITE.into());
+    let rotate_ss = ra_mats.add(Color::WHITE.into());
 
     cmd.insert_resource(GizmoMats {
         translate_x,
