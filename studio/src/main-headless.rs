@@ -1,11 +1,6 @@
-
-use bevy::
-    render::render_resource::Extent3d
-;
+use bevy::render::render_resource::Extent3d;
 use clap::{Args, Parser, Subcommand};
-use studio::{
-    start_headless, HeadlessMode,
-};
+use studio::{start_headless, HeadlessMode};
 
 #[derive(Parser)]
 #[command(name = "StorytellerStudioHeadless")]
@@ -130,19 +125,18 @@ fn extent3d_parser(input: &str) -> Result<Extent3d, String> {
     let split = input.split('x').collect::<Vec<_>>();
 
     if split.len() != 2 {
-        return Err("Invalid format for the Resolution argument, must follow the following pattern: <WIDTH>x<HEIGHT>".to_string());
+        return Err(
+            "Invalid format for the Resolution argument, must follow the following pattern: <WIDTH>x<HEIGHT>"
+                .to_string()
+        );
     }
 
     let Ok(width) = split[0].parse::<u32>() else {
-        return Err(
-            "Width must be a number when defining the output resolution.".to_string()
-        );
+        return Err("Width must be a number when defining the output resolution.".to_string());
     };
 
     let Ok(height) = split[0].parse::<u32>() else {
-        return Err(
-            "Width must be a number when defining the output resolution.".to_string()
-        );
+        return Err("Width must be a number when defining the output resolution.".to_string());
     };
 
     Ok(Extent3d {

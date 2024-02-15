@@ -1,14 +1,21 @@
 use bevy::{
-    core_pipeline::{core_3d, prepass::ViewPrepassTextures}, 
-    prelude::*, 
+    core_pipeline::{core_3d, prepass::ViewPrepassTextures},
+    prelude::*,
     render::{
-        render_graph::{RenderGraphApp, ViewNode, ViewNodeRunner}, 
-        render_resource::{ Buffer, BufferDescriptor, BufferUsages, ImageCopyBuffer, ImageDataLayout, MapMode,}, 
-        renderer::RenderDevice, view::ViewTarget, Extract, Render, RenderSet
-    }
+        render_graph::{RenderGraphApp, ViewNode, ViewNodeRunner},
+        render_resource::{
+            Buffer, BufferDescriptor, BufferUsages, ImageCopyBuffer, ImageDataLayout, MapMode,
+        },
+        renderer::RenderDevice,
+        view::ViewTarget,
+        Extract, Render, RenderSet,
+    },
 };
 use bytemuck::AnyBitPattern;
-use image::{error::UnsupportedErrorKind, EncodableLayout, ImageBuffer, ImageError, Pixel, PixelWithColorType, Rgba};
+use image::{
+    error::UnsupportedErrorKind, EncodableLayout, ImageBuffer, ImageError, Pixel,
+    PixelWithColorType, Rgba,
+};
 use wgpu::{Extent3d, MaintainBase};
 
 //==============================================================================
@@ -266,12 +273,13 @@ fn save_buffer<P: Pixel + PixelWithColorType>(
     [P::Subpixel]: EncodableLayout,
 {
     match ImageBuffer::<P, _>::from_raw(source_size.width, source_size.height, image_bytes) {
-        Some(buffer) => 
-        if let Err(ImageError::Unsupported(err)) = buffer.save(path) {
-            if let UnsupportedErrorKind::Format(hint) = err.kind() {
-                println!("Image format {} is not supported", hint);
+        Some(buffer) => {
+            if let Err(ImageError::Unsupported(err)) = buffer.save(path) {
+                if let UnsupportedErrorKind::Format(hint) = err.kind() {
+                    println!("Image format {} is not supported", hint);
+                }
             }
-        },
+        }
         None => {
             println!("Failed creating image buffer for '{}'", path);
         }

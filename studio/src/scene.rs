@@ -10,8 +10,7 @@ use bevy::{
     pbr::ShadowFilteringMethod,
     prelude::*,
     render::{
-        camera::RenderTarget, mesh::skinning::SkinnedMesh, primitives::Aabb,
-        view::NoFrustumCulling,
+        camera::RenderTarget, mesh::skinning::SkinnedMesh, primitives::Aabb, view::NoFrustumCulling,
     },
     scene::InstanceId,
 };
@@ -21,9 +20,14 @@ use space_editor::{prelude::PrefabMarker, space_prefab::component::SceneAutoChil
 use wasm_bindgen::prelude::wasm_bindgen;
 use wgpu::{TextureDescriptor, TextureUsages};
 
-
 use crate::{
-    bvh::{Bvh, CommandsSpawnBvhExt, TestBvh}, camera_controller::{CameraController, CameraControllerBundle}, debug::DebugPoint, is_headless, is_not_headless, math::{Combinable, Extrema}, screenshot::ScreenCapture, HeadlessSettings, MainCamera
+    bvh::{Bvh, CommandsSpawnBvhExt, TestBvh},
+    camera_controller::{CameraController, CameraControllerBundle},
+    debug::DebugPoint,
+    is_headless, is_not_headless,
+    math::{Combinable, Extrema},
+    screenshot::ScreenCapture,
+    HeadlessSettings, MainCamera,
 };
 
 pub struct ScenePlugin;
@@ -37,7 +41,7 @@ impl Plugin for ScenePlugin {
             .insert_resource(Msaa::Off)
             .add_state::<SceneState>()
             .add_event::<LoadSceneEvent>()
-// <<<<<<< HEAD
+            // <<<<<<< HEAD
             .add_systems(
                 Startup,
                 (
@@ -53,10 +57,10 @@ impl Plugin for ScenePlugin {
                 )
                     .in_set(SceneSpawnerSystem),
             )
-// =======
-//             .add_systems(Startup, initialize)
-//             .add_systems(Update, init_scene_loading.in_set(SceneSpawnerSystem))
-// >>>>>>> main
+            // =======
+            //             .add_systems(Startup, initialize)
+            //             .add_systems(Update, init_scene_loading.in_set(SceneSpawnerSystem))
+            // >>>>>>> main
             .add_systems(
                 OnEnter(SceneState::Active),
                 (tag_scene_elements, frame_scene_in_view).in_set(SceneSpawnerSystem),

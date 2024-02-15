@@ -1,6 +1,4 @@
-use bevy::{
-    app::Update, window::close_on_esc,
-};
+use bevy::{app::Update, window::close_on_esc};
 use clap::Parser;
 use studio::{screenshot::ScreenShotPlugin, StudioMode, ViewportSize};
 
