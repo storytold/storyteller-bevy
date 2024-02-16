@@ -155,7 +155,9 @@ export class AnimTimelineElement extends LitElement {
 		const currentRange = this.rangeEnd - this.rangeStart;
 		const deltaRange = delta * 4;
 
-		// FIXME
+		// FIXME: When zooming the timeline, the transform origin should be
+		//        centered on the mouse cursor. Currently this does not work as
+		//        intended, always centering on the 00:00 timestamp instead.
 		const t = ((this._offsetX + origin) * this.msPerPx.get()) / currentRange;
 		console.log(`t: ${t}`);
 		console.log(`deltaStart: ${-deltaRange * t}`);
