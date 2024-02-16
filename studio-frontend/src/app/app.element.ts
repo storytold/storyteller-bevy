@@ -264,7 +264,9 @@ export class AppElement extends LitElement {
 				</div>
 			` : nothing}
 
-			<sts-anim-editor class="timeline v-end h-start h-before-hierarchy"></sts-anim-editor>
+			${this.mode === StudioMode.Editor ? html`
+				<sts-anim-editor class="timeline v-end h-start h-before-hierarchy"></sts-anim-editor>
+			` : nothing}
 
 			${this.showHelp ? html`
 				<sts-help class="help v-after-toolbar h-start"></sts-help>
