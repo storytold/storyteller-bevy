@@ -3,6 +3,10 @@
 	overflow: hidden;
 }
 
+*:focus-visible {
+	outline: none;
+}
+
 .wrapper {
 	position: absolute;
 	inset: 0;

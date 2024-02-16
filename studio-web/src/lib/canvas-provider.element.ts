@@ -80,6 +80,7 @@ export class CanvasProviderElement
 		const canvas = document.createElement("canvas");
 		canvas.id = this.#canvasId;
 		canvas.slot = "canvas";
+		canvas.tabIndex = -1;
 
 		this.appendChild(canvas);
 

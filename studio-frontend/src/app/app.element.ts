@@ -78,6 +78,8 @@ export class AppElement extends LitElement {
 			"viewer": () => StudioMode.Viewer,
 			_: () => StudioMode.Viewer,
 		});
+
+		this.#redirectBodyFocus();
 	}
 
 	protected override createRenderRoot(): Element | ShadowRoot {
@@ -188,6 +190,20 @@ export class AppElement extends LitElement {
 			.sort(sortByName);
 
 		console.log("Hierarchy:", this.sceneObjects);
+	}
+
+	#redirectBodyFocus(): void {
+		// If user focus lands on the `document.body`, neither the frontend app
+		// nor the Bevy app will properly handle keyboard events. Thie function
+		// runs every tick to ensure that user focus never becomes "stranded" in
+		// this way.
+		if (document.activeElement === document.body) {
+			const canvasId = this.#canvasProvider.value?.canvasId;
+			if (canvasId)
+				document.getElementById(canvasId)?.focus();
+		}
+
+		requestAnimationFrame(() => this.#redirectBodyFocus());
 	}
 
 	protected override render = () => html`

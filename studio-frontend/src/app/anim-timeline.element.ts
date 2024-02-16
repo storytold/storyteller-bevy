@@ -293,6 +293,7 @@ export class AnimTimelineElement extends LitElement {
 					move: this.#onDrag,
 					end: this.#onDragEnd,
 				})}
+				tabindex="-1"
 			>
 				<div class="clip-region"
 					style=${styleMap({
@@ -337,6 +338,7 @@ export class AnimTimelineElement extends LitElement {
 					style=${styleMap({
 						left: `${this.#msToPx(this.playHead)}px`
 					})}
+					tabindex="-1"
 				>
 					<div class="head"></div>
 					<div class="bar"></div>
@@ -354,6 +356,7 @@ export class AnimTimelineElement extends LitElement {
 							style=${styleMap({
 								left: `${this.#msToPx(keyframe)}px`
 							})}
+							tabindex="-1"
 							${drag({
 								move: event => this.#onKeyframeDrag(id, event),
 							})}
