@@ -21,6 +21,7 @@ export class HelpElement extends LitElement {
 				{ name: "Select", controls: "LMB" },
 				{ name: "Clear selection", controls: "Esc" },
 				{ name: "Focus selection", controls: "F" },
+				{ name: "Delete selection", controls: "Delete" },
 			])}
 			${section("Animation Timeline", [
 				{ name: "Pan", controls: "MMB" },
