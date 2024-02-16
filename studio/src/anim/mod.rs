@@ -28,13 +28,7 @@ impl Plugin for AnimPlugin {
             .register_type::<InvBindPose>()
             .editor_registry::<InvBindPose>();
 
-        app.add_systems(
-            Update,
-            (
-                process_skinned_meshes,
-                log_global_seek_time.run_if(resource_changed::<GlobalSeekTime>()),
-            ),
-        );
+        app.add_systems(Update, process_skinned_meshes);
         app.insert_resource(GlobalSeekTime(0.));
 
         app.add_plugins((retargeting::RetargetingPlugin, camera::CameraAnimPlugin));
@@ -153,10 +147,6 @@ fn process_skinned_meshes(
             ));
         }
     }
-}
-
-fn log_global_seek_time(r_seek_time: Res<GlobalSeekTime>) {
-    info!("Global seek-time: {:.3}", **r_seek_time);
 }
 
 #[cfg(feature = "wasm")]
