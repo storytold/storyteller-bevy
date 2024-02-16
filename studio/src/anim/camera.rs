@@ -22,6 +22,7 @@ impl Plugin for CameraAnimPlugin {
             (
                 wasm::spawn_camera_keyframes,
                 wasm::notify_keyframe_changes.map(bevy::utils::error),
+                wasm::process_update_keyframe,
             ),
         );
     }
@@ -97,12 +98,13 @@ mod wasm {
 
     use crate::{
         camera_controller::CameraController,
-        wasm::{self, StaticBuffer, WasmMessageBuffer},
+        wasm::{self, FromStr, StaticBuffer, WasmMessageBuffer},
     };
 
     use super::{CameraKeyframe, CameraTargetKeyframe};
 
     static ADD_KEYFRAME: WasmMessageBuffer<f32> = WasmMessageBuffer::new();
+    static UPDATE_KEYFRAME: WasmMessageBuffer<(Entity, f32)> = WasmMessageBuffer::new();
 
     #[wasm_bindgen(js_name = addCameraKeyframe)]
     pub fn add_camera_keyframe(timestamp: f32) {
@@ -128,6 +130,27 @@ mod wasm {
                 TransformBundle::from_transform(Transform::from(*world_xform)),
                 CameraKeyframe(timestamp),
             ));
+        }
+    }
+
+    #[wasm_bindgen(js_name = updateKeyframe)]
+    pub fn update_keyframe(entity: &str, timestamp: f32) {
+        let entity = Entity::from_str(entity).unwrap();
+        UPDATE_KEYFRAME.write_message((entity, timestamp));
+    }
+
+    pub(super) fn process_update_keyframe(
+        mut q_camera_keyframes: Query<&mut CameraKeyframe>,
+        mut q_camera_target_keyframes: Query<&mut CameraTargetKeyframe>,
+    ) {
+        if let Some((ent, timestamp)) = UPDATE_KEYFRAME.take_message() {
+            if let Ok(mut keyframe) = q_camera_keyframes.get_mut(ent) {
+                **keyframe = timestamp;
+            } else if let Ok(mut keyframe) = q_camera_target_keyframes.get_mut(ent) {
+                **keyframe = timestamp;
+            } else {
+                warn!("No matching keyframe found for entity: {ent:?}");
+            }
         }
     }
 

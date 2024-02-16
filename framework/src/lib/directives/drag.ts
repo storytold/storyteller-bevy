@@ -43,6 +43,15 @@ class Drag extends Directive {
 			return noChange;
 		}
 
+		// TODO:
+		// This makes it impossible to replace the move handler on an element with
+		// a different one on subsequent renders, but this may be the desired
+		// behavior? This allows the move handler to be bound as a lambda that
+		// will keep firing even after the DOM re-renders. See
+		// studio-frontend/src/app/anim-timeline.element.ts for the use case.
+		if (this.#moveHandler != null)
+			return noChange;
+
 		this.#lastProps = { ...props };
 
 		// Clean up previous event handlers
@@ -50,6 +59,7 @@ class Drag extends Directive {
 			element.removeEventListener("pointerdown", this.#startHandler);
 
 		if (this.#moveHandler)
+			// TODO: This statement is unreachable due to the early-return above
 			window.removeEventListener("pointermove", this.#moveHandler);
 
 		// Set the pointer button which should activate dragging

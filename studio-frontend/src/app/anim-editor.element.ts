@@ -93,6 +93,10 @@ export class AnimEditorElement extends LitElement {
 		this.playHead = event.detail;
 	}
 
+	#onKeyframesChange(event: CustomEvent<Record<string, number>>): void {
+		this.keyframes = event.detail;
+	}
+
 	protected override render = () => html`
 		<div class="sidebar"
 			style=${styleMap({
@@ -173,6 +177,7 @@ export class AnimEditorElement extends LitElement {
 			@playHeadChange=${this.#onPlayHeadChange}
 
 			.keyframes=${this.keyframes}
+			@keyframesChange=${this.#onKeyframesChange}
 		></sts-anim-timeline>
 	`;
 }

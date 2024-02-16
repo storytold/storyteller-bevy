@@ -4,13 +4,14 @@ import { drag, on } from "@storyteller/framework";
 import { LitElement, PropertyValues, html, nothing, unsafeCSS } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { classMap } from "lit/directives/class-map.js";
+import { repeat } from "lit/directives/repeat.js";
 import { styleMap } from "lit/directives/style-map.js";
 
 import styles from "./anim-timeline.element.scss?inline";
 
 // TODO: This is basically a [signal](https://www.solidjs.com/tutorial/introduction_signals)
-//       that requires manual dependency tracking. Given that manual tracking,
-//       it's questionable whether this is even a valuable abstraction to have.
+//       that requires manual dependency tracking. Given that requirement, it's
+//       questionable whether this is even a valuable abstraction to have.
 //
 //       We should either make it more obviously valuable (e.g. by coming up
 //       with a way to automatically handle dependencies) and move it to
@@ -196,6 +197,23 @@ export class AnimTimelineElement extends LitElement {
 		this.dispatchEvent(new CustomEvent("playHeadChange", { detail: updated }));
 	}
 
+	#onKeyframeDrag(id: string, event: PointerEvent): void {
+		const deltaMs = event.movementX * this.msPerPx.get();
+		const updated = this.keyframes[id] + deltaMs;
+
+		studio.updateKeyframe(id, updated);
+
+		const updatedKeyframes = Object.fromEntries(
+			Object
+				.entries(this.keyframes)
+				.map(entry => entry[0] === id
+					? [id, updated]
+					: entry
+				)
+		);
+		this.dispatchEvent(new CustomEvent("keyframesChange", { detail: updatedKeyframes }));
+	}
+
 	#updateRenderWidth(): void {
 		this._renderWidth = this.getBoundingClientRect().width;
 	}
@@ -324,18 +342,25 @@ export class AnimTimelineElement extends LitElement {
 					<div class="bar"></div>
 				</div>
 
-				${Object.entries(this.keyframes).map(([id, keyframe]) => html`
-					<div id=${id}
-						class=${classMap({
-							keyframe: true,
-							selected: this._selectedKeyframe === id,
-						})}
-						style=${styleMap({
-							left: `${this.#msToPx(keyframe)}px`
-						})}
-						@click=${() => this.selectKeyframe(id)}
-					></div>
-				`)}
+				${repeat(
+					Object.entries(this.keyframes),
+					([id]) => id,
+					([id, keyframe]) => html`
+						<div id=${id}
+							class=${classMap({
+								keyframe: true,
+								selected: this._selectedKeyframe === id,
+							})}
+							style=${styleMap({
+								left: `${this.#msToPx(keyframe)}px`
+							})}
+							${drag({
+								move: event => this.#onKeyframeDrag(id, event),
+							})}
+							@click=${() => this.selectKeyframe(id)}
+						></div>
+					`
+				)}
 			</div>
 		`;
 	}
