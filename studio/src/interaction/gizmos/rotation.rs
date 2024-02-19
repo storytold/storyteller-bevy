@@ -14,7 +14,8 @@ use crate::{
 };
 
 use super::{
-    material::GizmoMaterial, on_gizmo_element_hover, on_gizmo_element_unhover, GizmoMats, GizmoMeshes, InitialTransform, TransformGizmo, TransformGizmoBundle, GIZMO_RENDER_LAYER
+    material::GizmoMaterial, on_gizmo_element_hover, on_gizmo_element_unhover, GizmoMats,
+    GizmoMeshes, InitialTransform, TransformGizmo, TransformGizmoBundle, GIZMO_RENDER_LAYER,
 };
 
 #[derive(Component)]

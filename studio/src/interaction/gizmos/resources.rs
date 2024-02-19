@@ -87,8 +87,8 @@ pub(super) fn init_resources(
         rotate_ball,
         rotate_ss,
     });
-    
-    let translate_x  = ra_mats.add(design_system::Color::RED.into());
+
+    let translate_x = ra_mats.add(design_system::Color::RED.into());
     let translate_yz = ra_mats.add(design_system::Color::RED.into());
 
     let translate_y = ra_mats.add(design_system::Color::GREEN.into());
