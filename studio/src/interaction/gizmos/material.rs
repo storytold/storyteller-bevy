@@ -9,10 +9,6 @@ pub struct GizmoMaterial {
     pub blend_mode: AlphaMode,
 }
 
-impl GizmoMaterial {
-    pub fn new(color: Color, blend_mode: AlphaMode) -> Self { Self { color, blend_mode } }
-}
-
 impl From<Color> for GizmoMaterial {
     fn from(color: Color) -> Self {
         GizmoMaterial { color, blend_mode: AlphaMode::Blend }
