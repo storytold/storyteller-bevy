@@ -102,8 +102,12 @@ pub(super) fn init_resources(
     let rotate_x = ra_mats.add(design_system::Color::RED.into());
     let rotate_y = ra_mats.add(design_system::Color::GREEN.into());
     let rotate_z = ra_mats.add(design_system::Color::BLUE.into());
-    let rotate_trackball = ra_mats.add(Color::WHITE.with_a(0.0).into());
     let rotate_ss = ra_mats.add(Color::WHITE.into());
+
+    let rotate_trackball = ra_mats.add(GizmoMaterial {
+        color: Color::WHITE.with_a(0.0),
+        blend_mode: AlphaMode::Blend,
+    });
 
     cmd.insert_resource(GizmoMats {
         translate_x,

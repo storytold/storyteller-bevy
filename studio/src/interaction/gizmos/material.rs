@@ -15,7 +15,7 @@ impl From<Color> for GizmoMaterial {
     fn from(color: Color) -> Self {
         GizmoMaterial {
             color,
-            blend_mode: AlphaMode::Blend,
+            blend_mode: AlphaMode::Opaque,
         }
     }
 }
