@@ -239,11 +239,17 @@ pub(super) fn on_rotate(
     q_widget: Query<&RotationWidget>,
 ) {
     // Components from the gizmo root (the entity being transformed)
-    let (mut xform, parent, init_xform, init_point, mut last_point, mut last_rotation) =
-        q_root.single_mut();
-
-    let gizmo_xform = q_gizmo.single();
-    let (cam, cam_xform) = q_camera.single();
+    let Ok((mut xform, parent, init_xform, init_point, mut last_point, mut last_rotation)) =
+        q_root.get_single_mut()
+    else {
+        return;
+    };
+    let Ok(gizmo_xform) = q_gizmo.get_single() else {
+        return;
+    };
+    let Ok((cam, cam_xform)) = q_camera.get_single() else {
+        return;
+    };
 
     // `Transform::rotate_axis` takes an axis vector relative to the transform's
     // _parent_. We'll use the gizmo root's parent's global transform (if it
