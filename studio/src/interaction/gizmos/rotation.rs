@@ -162,7 +162,7 @@ fn on_trackball_hover(
     q_target: Query<&Handle<GizmoMaterial>>,
 ) {
     let mat = ra_mats.get_mut(q_target.get(ev.target).unwrap()).unwrap();
-    mat.color.set_a(0.2);
+    mat.color.set_a(0.05);
 }
 
 fn on_trackball_unhover(
