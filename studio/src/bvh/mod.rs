@@ -118,7 +118,7 @@ pub fn animate_bvh(
             .0;
 
         let bvh_len = bvh.frames().len();
-        
+
         let t = if anim.should_play {
             anim.timer.tick(r_time.delta());
 

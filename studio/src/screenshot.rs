@@ -28,7 +28,11 @@ pub struct ScreenShotPlugin;
 
 impl Plugin for ScreenShotPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, (test_system, update_screen_capture_on_extract_step).run_if(in_state(SceneState::Active)));
+        app.add_systems(
+            Update,
+            (test_system, update_screen_capture_on_extract_step)
+                .run_if(in_state(SceneState::Active)),
+        );
 
         let Ok(render_world) = app.get_sub_app_mut(bevy::render::RenderApp) else {
             return;
