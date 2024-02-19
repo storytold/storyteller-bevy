@@ -125,7 +125,7 @@ fn extent3d_parser(input: &str) -> Result<Extent3d, String> {
         return Err("Width must be a number when defining the output resolution.".to_string());
     };
 
-    let Ok(height) = split[0].parse::<u32>() else {
+    let Ok(height) = split[1].parse::<u32>() else {
         return Err("Width must be a number when defining the output resolution.".to_string());
     };
 

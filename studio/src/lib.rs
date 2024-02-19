@@ -318,6 +318,7 @@ pub fn start_headless(
 
     match mode {
         HeadlessMode::Bvh(bvh_dir, skybox) => {
+            app.add_plugins(BvhPlugin);
             app.add_systems(
                 Startup,
                 move |mut cmd: Commands,
@@ -329,6 +330,8 @@ pub fn start_headless(
                     ew.send(LoadSceneEvent("Mannequin.gltf".to_string()));
                 },
             );
+            
+            app.add_systems(PostUpdate, check_for_capture_complete);
         }
         HeadlessMode::Scene(scene, skybox) => {
             app.add_systems(
@@ -340,8 +343,6 @@ pub fn start_headless(
             );
         }
     }
-
-    app.add_systems(PostUpdate, check_for_capture_complete);
 
     app
 }

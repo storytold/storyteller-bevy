@@ -18,6 +18,8 @@ use image::{
 };
 use wgpu::{Extent3d, MaintainBase};
 
+use crate::scene::SceneState;
+
 //==============================================================================
 //                        Screen Shot Plugin
 //==============================================================================
@@ -26,7 +28,7 @@ pub struct ScreenShotPlugin;
 
 impl Plugin for ScreenShotPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, (test_system, update_screen_capture_on_extract_step));
+        app.add_systems(Update, (test_system, update_screen_capture_on_extract_step).run_if(in_state(SceneState::Active)));
 
         let Ok(render_world) = app.get_sub_app_mut(bevy::render::RenderApp) else {
             return;
@@ -252,14 +254,6 @@ fn save_buffer_to_file(
             screen_capture.to_directory, screen_capture.number_of_frames
         );
 
-        // let rgba16 = main_image_values
-        //     .iter()
-        //     .map(|v| (*v) as u16)
-        //     .collect::<Vec<u16>>();
-        // for chunk in main_image_values.chunks(2) {
-        //     let number = ((chunk[1] as u16) << 8) | chunk[0] as u16;
-        //     rgba16.push(number)
-        // }
         save_buffer::<Rgba<u8>>(&main_image_values, &buffers.main_buffer_extent, &path);
     }
 }
