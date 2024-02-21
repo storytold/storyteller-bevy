@@ -126,7 +126,7 @@ export class AnimTimelineElement extends LitElement {
 		if (event.ctrlKey) {
 			this.#zoomTimeline(event.offsetX, event.deltaY);
 		} else if (event.deltaX) {
-			this.#pan(event.deltaX);
+			this.#pan(-event.deltaX);
 		} else if (event.shiftKey && event.deltaY) {
 			this.#pan(-event.deltaY);
 		}
