@@ -93,7 +93,10 @@ fn draw_camera_keyframes(
 
 #[cfg(feature = "wasm")]
 mod wasm {
+    use std::sync::Arc;
+
     use bevy::{prelude::*, window::PrimaryWindow};
+    use space_editor::prelude::space_undo::{self, AddedEntity};
     use wasm_bindgen::prelude::*;
 
     use crate::{
@@ -113,6 +116,7 @@ mod wasm {
 
     pub(super) fn spawn_camera_keyframes(
         mut cmd: Commands,
+        mut ew_changes: EventWriter<space_undo::NewChange>,
         q_camera: Query<(&CameraController, &GlobalTransform)>,
     ) {
         if let Some(timestamp) = ADD_KEYFRAME.take_message() {
@@ -120,16 +124,29 @@ mod wasm {
                 return;
             };
 
-            cmd.spawn((
-                Name::new("Camera Target Keyframe"),
-                TransformBundle::from_transform(Transform::from_translation(cam_controller.focus)),
-                CameraTargetKeyframe(timestamp),
-            ));
-            cmd.spawn((
-                Name::new("Camera Keyframe"),
-                TransformBundle::from_transform(Transform::from(*world_xform)),
-                CameraKeyframe(timestamp),
-            ));
+            let entity = cmd
+                .spawn((
+                    Name::new("Camera Target Keyframe"),
+                    TransformBundle::from_transform(Transform::from_translation(
+                        cam_controller.focus,
+                    )),
+                    CameraTargetKeyframe(timestamp),
+                ))
+                .id();
+            ew_changes.send(space_undo::NewChange {
+                change: Arc::new(AddedEntity { entity }),
+            });
+
+            let entity = cmd
+                .spawn((
+                    Name::new("Camera Keyframe"),
+                    TransformBundle::from_transform(Transform::from(*world_xform)),
+                    CameraKeyframe(timestamp),
+                ))
+                .id();
+            ew_changes.send(space_undo::NewChange {
+                change: Arc::new(AddedEntity { entity }),
+            });
         }
     }
 

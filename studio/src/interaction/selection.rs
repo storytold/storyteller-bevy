@@ -1,8 +1,11 @@
+use std::sync::Arc;
+
 use bevy::{prelude::*, render::mesh::skinning::SkinnedMesh};
 use bevy_mod_outline::{
     AutoGenerateOutlineNormalsPlugin, OutlineBundle, OutlinePlugin, OutlineVolume,
 };
 use bevy_mod_picking::{prelude::Pointer, selection::Select, PickableBundle};
+use space_editor::prelude::space_undo::{self, NewChange, RemovedEntity};
 
 use crate::{
     input::{self, Action, InputAction, Lifecycle},
@@ -155,10 +158,10 @@ fn update_selection(
     }
 }
 
-// TODO: Make undo-able
 fn process_delete_inputs(
     mut cmd: Commands,
     mut er_input: EventReader<InputAction>,
+    mut ew_changes: EventWriter<space_undo::NewChange>,
     r_selection: Res<Selection>,
 ) {
     if er_input.read().any(|action| {
@@ -167,8 +170,13 @@ fn process_delete_inputs(
             InputAction(Lifecycle::Stop, Action::Selection(input::Selection::Delete))
         )
     }) {
-        cmd.entity(**r_selection).despawn_recursive();
+        let entity = **r_selection;
+
+        cmd.entity(entity).despawn_recursive();
         cmd.remove_resource::<Selection>();
+        ew_changes.send(NewChange {
+            change: Arc::new(RemovedEntity { entity }),
+        });
     }
 }
 
