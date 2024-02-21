@@ -52,7 +52,7 @@ export interface EntityMultiSpawnEvent extends CustomEvent {
 }
 
 declare global {
-    export interface HTMLElementEventMap {
+    export interface GlobalEventHandlersEventMap {
         "entity-spawn": EntitySpawnEvent;
         "entity-despawn": EntityDespawnEvent;
         "entity-multi-spawn": EntityMultiSpawnEvent;

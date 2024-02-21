@@ -460,7 +460,7 @@ export interface SceneStateEvent extends CustomEvent {
 }
 
 declare global {
-    export interface HTMLElementEventMap {
+    export interface GlobalEventHandlersEventMap {
         "scene-state": SceneStateEvent;
     }
 }

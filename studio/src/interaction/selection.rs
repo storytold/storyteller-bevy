@@ -230,7 +230,7 @@ export interface EntitySelectEvent extends CustomEvent {
 }
 
 declare global {
-    export interface HTMLElementEventMap {
+    export interface GlobalEventHandlersEventMap {
         "entity-select": EntitySelectEvent;
     }
 }

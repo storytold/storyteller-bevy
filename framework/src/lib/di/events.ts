@@ -65,7 +65,7 @@ export class ProviderRemoval<T> extends CustomEvent<Provider<T>> {
 }
 
 declare global {
-	interface HTMLElementEventMap {
+	interface GlobalEventHandlersEventMap {
 		[DIEvent.InjectionRequest]: InjectionRequest<any>;
 		[DIEvent.DependencyProvision]: DependencyProvision<any>;
 		[DIEvent.ProviderRemoval]: ProviderRemoval<any>;

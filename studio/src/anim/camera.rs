@@ -162,7 +162,7 @@ export interface CameraKeyframesEvent extends CustomEvent {
 }
 
 declare global {
-    export interface HTMLElementEventMap {
+    export interface GlobalEventHandlersEventMap {
         "camera-keyframes": CameraKeyframesEvent;
     }
 }
