@@ -33,7 +33,7 @@ header {
 		timing-function: linear;
 	}
 
-	&:hover:not(:has(.toggle-expanded:hover)) {
+	&.selectable:hover:not(:has(.toggle-expanded:hover)) {
 		background: #0000001F;
 	}
 

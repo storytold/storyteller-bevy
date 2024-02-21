@@ -37,12 +37,18 @@ export class TreeElement extends LitElement {
 	}
 
 	selectEntity(): void {
-		studio.select(this.id);
+		if (this.id)
+			studio.select(this.id);
 	}
 
 	// TODO: A11y
 	protected override render = () => html`
-		<header class=${classMap({ selected: this.selected })}>
+		<header
+			class=${classMap({
+				selected: this.selected,
+				selectable: !!this.id,
+			})}
+		>
 			${this.treeChildren?.length ? html`
 				<button class="toggle-expanded"
 					@click=${this.toggleExpanded}
