@@ -11,9 +11,14 @@ use bevy::{
     prelude::*,
     render::{camera::RenderTarget, primitives::Aabb},
     scene::InstanceId,
+    utils::HashSet,
 };
 
-use space_editor::{prelude::PrefabMarker, space_prefab::component::SceneAutoChild};
+use space_editor::{
+    prelude::PrefabMarker,
+    space_prefab::component::{GltfPrefab, SceneAutoChild},
+};
+
 #[cfg(feature = "wasm")]
 use wasm_bindgen::prelude::wasm_bindgen;
 use wgpu::{TextureDescriptor, TextureUsages};
@@ -51,7 +56,7 @@ impl Plugin for ScenePlugin {
                 (tag_scene_elements, frame_scene_in_view).in_set(SceneSpawnerSystem),
             );
 
-        app.add_systems(Update, tag_scene_elements);
+        app.add_systems(Update, (tag_scene_elements, play_animations));
 
         //Auto loading screen
         //Register handles on which we will look to show loading screen
@@ -427,6 +432,72 @@ fn frame_scene_in_view(
     cam.focus = aabb.center.into();
     cam.radius = radius;
     cam_xform.translation = cam.focus + cam_xform.back() * radius;
+}
+
+fn play_animations(
+    mut cmd: Commands,
+    mut l_done: Local<HashSet<String>>,
+    r_assets: Res<AssetServer>,
+    ra_gltfs: Res<Assets<Gltf>>,
+    ra_anims: Res<Assets<AnimationClip>>,
+    q_prefabs: Query<&GltfPrefab>,
+    q_named_ents: Query<(Entity, &Name)>,
+    mut q_players: Query<&mut AnimationPlayer>,
+) {
+    for prefab in q_prefabs.iter() {
+        if l_done.contains(&prefab.path) {
+            continue;
+        }
+
+        // TODO: Get the `Handle<Gltf>` directly from the entity once it's available
+        let gltf_handle = match r_assets.get_handle::<Gltf>(&prefab.path) {
+            Some(handle) => {
+                info!("Returning existing handle");
+                handle
+            }
+            None => {
+                info!("Loading from path");
+                r_assets.load::<Gltf>(&prefab.path)
+            }
+        };
+
+        let Some(gltf) = ra_gltfs.get(gltf_handle) else {
+            continue;
+        };
+
+        let mut playing_anims = 0_usize;
+        for anim_handle in gltf.animations.iter() {
+            let Some(anim) = ra_anims.get(anim_handle.clone()) else {
+                continue;
+            };
+
+            let Some(target) = q_named_ents.iter().find_map(|(ent, name)| {
+                if anim.compatible_with(name) {
+                    Some(ent)
+                } else {
+                    None
+                }
+            }) else {
+                continue;
+            };
+
+            if let Ok(mut player) = q_players.get_mut(target) {
+                if !player.is_playing_clip(anim_handle) {
+                    player.play(anim_handle.clone()).repeat();
+                }
+            } else {
+                let mut player = AnimationPlayer::default();
+                player.play(anim_handle.clone()).repeat();
+                cmd.entity(target).insert(player);
+            }
+
+            playing_anims += 1;
+        }
+
+        if playing_anims == gltf.animations.len() {
+            l_done.insert(prefab.path.clone());
+        }
+    }
 }
 
 #[cfg(feature = "wasm")]

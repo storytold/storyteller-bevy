@@ -208,7 +208,7 @@ export class AppElement extends LitElement {
 				></sts-mixamo-viewer>
 			` : html`
 				<sts-viewer
-					objectId="sample-room.gltf"
+					objectId="POP_BakedShapeKeys_HeadOnly.glb"
 					skyboxId="test_scene"
 					.mode=${this.mode}
 					@scene-state=${this.onSceneStateChange}
