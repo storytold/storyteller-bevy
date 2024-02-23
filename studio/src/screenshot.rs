@@ -30,8 +30,7 @@ impl Plugin for ScreenShotPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             Update,
-            (update_screen_capture_on_extract_step)
-                .run_if(in_state(SceneState::Active)),
+            (update_screen_capture_on_extract_step).run_if(in_state(SceneState::Active)),
         );
 
         let Ok(render_world) = app.get_sub_app_mut(bevy::render::RenderApp) else {
@@ -85,10 +84,10 @@ impl ScreenCapture {
             to_directory: output_dir.to_string(),
             capture_depth: false,
             currently_captureing: false,
-            max_frames: u32::MAX
+            max_frames: u32::MAX,
         }
     }
-    
+
     pub fn with_max_frames(mut self, max_frames: u32) -> Self {
         self.max_frames = max_frames;
         self
@@ -98,27 +97,27 @@ impl ScreenCapture {
         self.capture_depth = true;
         self
     }
-    
+
     pub fn is_capturing(&self) -> bool {
         self.currently_captureing
     }
-    
+
     pub fn stop_capturing(&mut self) {
         self.currently_captureing = false;
     }
-    
+
     pub fn start_capturing(&mut self) {
         self.currently_captureing = true;
     }
-    
+
     pub fn should_capture(&self) -> bool {
         self.frames < self.max_frames && self.is_capturing()
     }
-    
+
     pub fn frames_captured(&self) -> u32 {
         self.frames
     }
-    
+
     pub fn max_frames(&self) -> u32 {
         self.max_frames
     }

@@ -114,14 +114,14 @@ fn main() {
                 frames,
                 output_res,
             )
-        },
-        Subcommands::Mixamo { 
-            mixamo_dir, 
-            out, 
-            skybox, 
-            output_resolution, 
-            fps, 
-            frames 
+        }
+        Subcommands::Mixamo {
+            mixamo_dir,
+            out,
+            skybox,
+            output_resolution,
+            fps,
+            frames,
         } => {
             let output_dir = out.unwrap_or("./screen_shots/".to_string());
             let output_res = output_resolution.unwrap_or(Extent3d {

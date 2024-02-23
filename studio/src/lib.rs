@@ -290,7 +290,7 @@ pub enum HeadlessMode {
     Bvh(String, String),
     Scene(String, String),
     Mixamo(String, String),
-    None
+    None,
 }
 
 pub fn start_headless(
@@ -348,23 +348,23 @@ pub fn start_headless(
         }
         HeadlessMode::Mixamo(mixamo_path, skybox) => {
             app.add_plugins(MixamoPlugin);
-            app.add_systems(Startup, move |
-                mut commands : Commands, 
-                mut ew: EventWriter<MixamoImportEvent>,
-                mut load_scene_event: EventWriter<LoadSceneEvent>  
-            | {
-                ew.send(MixamoImportEvent(mixamo_path.clone()));
-                load_scene_event.send(LoadSceneEvent("Mannequin.gltf".to_string()));
-                commands.insert_resource(SkyboxId(skybox.clone()));
-            });
+            app.add_systems(
+                Startup,
+                move |mut commands: Commands,
+                      mut ew: EventWriter<MixamoImportEvent>,
+                      mut load_scene_event: EventWriter<LoadSceneEvent>| {
+                    ew.send(MixamoImportEvent(mixamo_path.clone()));
+                    load_scene_event.send(LoadSceneEvent("Mannequin.gltf".to_string()));
+                    commands.insert_resource(SkyboxId(skybox.clone()));
+                },
+            );
             app.add_systems(PostUpdate, check_for_mixamo_capture_complete);
-        
+
             app.run();
-            
         }
         HeadlessMode::None => {}
     }
-    
+
     app
 }
 
@@ -413,17 +413,21 @@ fn check_for_bvh_capture_complete(
     }
 }
 
-fn check_for_mixamo_capture_complete (
+fn check_for_mixamo_capture_complete(
     mut close_app: EventWriter<AppExit>,
     mut main_camera: Query<&mut ScreenCapture, With<MainCamera>>,
-    mixamo_anims : Query<&AnimationPlayer>,
+    mixamo_anims: Query<&AnimationPlayer>,
 ) {
-    let Ok( mut capture) = main_camera.get_single_mut() else {
+    let Ok(mut capture) = main_camera.get_single_mut() else {
         return;
     };
-    
+
     for anim in mixamo_anims.iter() {
-        println!("Time elapsed {} | Frames Captured : {}", anim.elapsed(), capture.frames_captured());
+        println!(
+            "Time elapsed {} | Frames Captured : {}",
+            anim.elapsed(),
+            capture.frames_captured()
+        );
         if anim.completions() != 0 {
             capture.stop_capturing();
             close_app.send(AppExit);
