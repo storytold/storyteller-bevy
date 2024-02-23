@@ -32,19 +32,15 @@ impl AssetReader for RemoteAssetReader {
                 .to_str()
                 .unwrap();
 
-            let io_error = |err: reqwest::Error| -> AssetReaderError {
-                AssetReaderError::Io(std::io::Error::new(ErrorKind::Other, format!("{err}")))
-            };
-
             let response = reqwest::get(format!("{}/{token}", &Self::API_BASE_URL))
                 .await
-                .map_err(io_error)?;
+                .map_err(IntoError::<AssetReaderError>::into)?;
 
             let response = match response.status() {
                 StatusCode::OK => response
                     .json::<GetMediaFileSuccessResponse>()
                     .await
-                    .map_err(io_error),
+                    .map_err(IntoError::<AssetReaderError>::into),
                 other => Err(AssetReaderError::Io(std::io::Error::new(
                     ErrorKind::Other,
                     format!("Status Code from endpoint: {other}"),
@@ -57,7 +53,10 @@ impl AssetReader for RemoteAssetReader {
                 &response.media_file.public_bucket_path
             );
 
-            let response = reqwest::get(url).await.map_err(io_error)?;
+            let response = reqwest::get(url)
+                .await
+                .map_err(IntoError::<AssetReaderError>::into)?;
+
             let bytes = match response.status() {
                 // TODO: This is not thread-safe, but some variation of this
                 //       would be better than the current solution once Bevy
@@ -68,7 +67,7 @@ impl AssetReader for RemoteAssetReader {
                 StatusCode::OK => Ok(response
                     .bytes()
                     .await
-                    .map_err(io_error)?
+                    .map_err(IntoError::<AssetReaderError>::into)?
                     .into_iter()
                     .collect::<Vec<_>>()),
                 other => Err(AssetReaderError::Io(std::io::Error::new(
@@ -101,5 +100,15 @@ impl AssetReader for RemoteAssetReader {
     fn is_directory<'a>(&'a self, _: &'a Path) -> BoxedFuture<'a, Result<bool, AssetReaderError>> {
         // We won't have to deal with directories
         Box::pin(async { Ok(false) })
+    }
+}
+
+trait IntoError<Output> {
+    fn into(self) -> Output;
+}
+
+impl IntoError<AssetReaderError> for reqwest::Error {
+    fn into(self) -> AssetReaderError {
+        AssetReaderError::Io(std::io::Error::new(ErrorKind::Other, format!("{self}")))
     }
 }
