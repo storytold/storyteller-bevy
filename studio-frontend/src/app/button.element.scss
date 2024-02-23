@@ -1,8 +1,8 @@
 :host {
 	display: inline-flex;
 	align-items: center;
-	gap: 0.5rem;
-	padding: 10px 20px;
+	gap: 0.75rem;
+	padding: 0.5rem 1rem;
 	border-radius: 0.5rem;
 
 	font: {
@@ -10,14 +10,14 @@
 		size: 15px;
 		weight: 500;
 	}
-	line-height: 1;
+	line-height: 1.5;
 
 	pointer-events: auto;
 	cursor: pointer;
 	user-select: none;
 
 	background: #0006;
-	color: #FFF;
+	color: #FFFC;
 	backdrop-filter: blur(16px);
 	transition: {
 		property: background, color;
@@ -28,6 +28,7 @@
 
 :host(:hover) {
 	background: #0008;
+	color: #FFFF;
 }
 
 .icon {

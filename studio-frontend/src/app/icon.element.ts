@@ -6,18 +6,19 @@ import { unsafeSVG } from "lit/directives/unsafe-svg.js";
 
 import farCrosshairs from "@fortawesome/fontawesome-pro/svgs/regular/crosshairs.svg?raw";
 import farVideo from "@fortawesome/fontawesome-pro/svgs/regular/video.svg?raw";
-import fasCircleInfo from "@fortawesome/fontawesome-pro/svgs/regular/circle-info.svg?raw";
+import fasCircleQuestion from "@fortawesome/fontawesome-pro/svgs/solid/circle-question.svg?raw";
 import fasKey from "@fortawesome/fontawesome-pro/svgs/solid/key.svg?raw";
-import fasCube from "@fortawesome/fontawesome-pro/svgs/regular/cube.svg?raw";
-import fasGlobe from "@fortawesome/fontawesome-pro/svgs/regular/globe.svg?raw";
-import fasUpDownLeftRight from "@fortawesome/fontawesome-pro/svgs/regular/arrows-up-down-left-right.svg?raw";
+import farCube from "@fortawesome/fontawesome-pro/svgs/regular/cube.svg?raw";
+import farGlobe from "@fortawesome/fontawesome-pro/svgs/regular/globe.svg?raw";
+import farUpDownLeftRight from "@fortawesome/fontawesome-pro/svgs/regular/arrows-up-down-left-right.svg?raw";
 import fasPlay from "@fortawesome/fontawesome-pro/svgs/solid/play.svg?raw";
 import fasFwdStep from "@fortawesome/fontawesome-pro/svgs/solid/forward-step.svg?raw";
 import fasFwdFast from "@fortawesome/fontawesome-pro/svgs/solid/forward-fast.svg?raw";
 import fasBwdStep from "@fortawesome/fontawesome-pro/svgs/solid/backward-step.svg?raw";
 import fasBwdFast from "@fortawesome/fontawesome-pro/svgs/solid/backward-fast.svg?raw";
-import fasRotate from "@fortawesome/fontawesome-pro/svgs/regular/arrows-rotate.svg?raw";
-import fasScale from "@fortawesome/fontawesome-pro/svgs/regular/arrow-up-right-and-arrow-down-left-from-center.svg?raw";
+import fasQuestion from "@fortawesome/fontawesome-pro/svgs/solid/question.svg?raw";
+import farRotate from "@fortawesome/fontawesome-pro/svgs/regular/arrows-rotate.svg?raw";
+import farScale from "@fortawesome/fontawesome-pro/svgs/regular/arrow-up-right-and-arrow-down-left-from-center.svg?raw";
 import fasCaretRight from "@fortawesome/fontawesome-pro/svgs/solid/caret-right.svg?raw";
 import fasFloppyDisk from "@fortawesome/fontawesome-pro/svgs/solid/floppy-disk.svg?raw";
 
@@ -48,19 +49,20 @@ function renderSvg(iconId: string) {
 	const svgSrc = match (iconId, {
 		"bwd-fast": () => fasBwdFast,
 		"bwd-step": () => fasBwdStep,
-		"circle-info": () => fasCircleInfo,
+		"circle-question": () => fasCircleQuestion,
 		"caret-right": () => fasCaretRight,
 		"crosshairs": () => farCrosshairs,
-		"cube": () => fasCube,
+		"cube": () => farCube,
 		"floppy-disk": () => fasFloppyDisk,
 		"fwd-fast": () => fasFwdFast,
 		"fwd-step": () => fasFwdStep,
 		"key": () => fasKey,
-		"globe": () => fasGlobe,
+		"globe": () => farGlobe,
 		"play": () => fasPlay,
-		"rotate": () => fasRotate,
-		"scale": () => fasScale,
-		"up-down-left-right": () => fasUpDownLeftRight,
+		"question": () => fasQuestion,
+		"rotate": () => farRotate,
+		"scale": () => farScale,
+		"up-down-left-right": () => farUpDownLeftRight,
 		"video": () => farVideo,
 		_: () => null,
 	});

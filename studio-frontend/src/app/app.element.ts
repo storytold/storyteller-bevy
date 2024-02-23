@@ -263,7 +263,7 @@ export class AppElement extends LitElement {
 					` : nothing}
 					<sts-button
 						class=${classMap({ active: this.showHelp })}
-						icon="circle-info"
+						icon="question"
 						@click=${this.toggleHelp}
 					>
 						Help
