@@ -11,7 +11,7 @@ use super::response::GetMediaFileSuccessResponse;
 pub struct RemoteAssetReader;
 
 impl RemoteAssetReader {
-    const BASE_URL: &'static str = "https://api.fakeyou.com/v1/media_files/file";
+    const API_BASE_URL: &'static str = "https://api.fakeyou.com/v1/media_files/file";
     const BUCKET_BASE_URL: &'static str = "https://storage.googleapis.com/vocodes-public";
 }
 
@@ -36,7 +36,7 @@ impl AssetReader for RemoteAssetReader {
                 AssetReaderError::Io(std::io::Error::new(ErrorKind::Other, format!("{err}")))
             };
 
-            let response = reqwest::get(format!("{}/{token}", &Self::BASE_URL))
+            let response = reqwest::get(format!("{}/{token}", &Self::API_BASE_URL))
                 .await
                 .map_err(io_error)?;
 
