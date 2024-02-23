@@ -20,4 +20,3 @@ impl Plugin for RemoteAssetPlugin {
         );
     }
 }
-
