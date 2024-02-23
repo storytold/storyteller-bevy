@@ -43,6 +43,19 @@ enum Subcommands {
         #[arg(long, value_parser = clap::value_parser!(u32).range(1..))]
         frames: Option<u32>,
     },
+    Mixamo {
+        mixamo_dir: String,
+        #[arg(long, short = 'o', short)]
+        out: Option<String>,
+        #[arg(long)]
+        skybox: Option<String>,
+        #[arg(long = "res", value_parser = extent3d_parser)]
+        output_resolution: Option<Extent3d>,
+        #[arg(long, value_parser = clap::value_parser!(u32).range(1..))]
+        fps: Option<u32>,
+        #[arg(long, value_parser = clap::value_parser!(u32).range(1..))]
+        frames: Option<u32>,
+    },
 }
 
 #[derive(Args, Clone)]
@@ -96,6 +109,31 @@ fn main() {
             let skybox = skybox.unwrap_or("gum_trees_4k".to_string());
             start_headless(
                 HeadlessMode::Bvh(bvh_dir, skybox),
+                fps,
+                &output_dir,
+                frames,
+                output_res,
+            )
+        },
+        Subcommands::Mixamo { 
+            mixamo_dir, 
+            out, 
+            skybox, 
+            output_resolution, 
+            fps, 
+            frames 
+        } => {
+            let output_dir = out.unwrap_or("./screen_shots/".to_string());
+            let output_res = output_resolution.unwrap_or(Extent3d {
+                width: 1280,
+                height: 720,
+                depth_or_array_layers: 1,
+            });
+            let fps = fps.unwrap_or(24);
+            let frames = frames.unwrap_or(u32::MAX);
+            let skybox = skybox.unwrap_or("gum_trees_4k".to_string());
+            start_headless(
+                HeadlessMode::Mixamo(mixamo_dir, skybox),
                 fps,
                 &output_dir,
                 frames,

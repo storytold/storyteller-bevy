@@ -244,6 +244,7 @@ pub fn start_internal(
 
     let mut app = App::new();
 
+    app.insert_resource(HeadlessMode::None);
     app.insert_resource(studio_mode);
 
     app.add_plugins((
@@ -284,9 +285,12 @@ pub fn start_internal(
     app
 }
 
+#[derive(Debug, Resource, Clone)]
 pub enum HeadlessMode {
     Bvh(String, String),
     Scene(String, String),
+    Mixamo(String, String),
+    None
 }
 
 pub fn start_headless(
@@ -298,9 +302,10 @@ pub fn start_headless(
 ) -> App {
     let mut app = App::new();
 
+    app.insert_resource(mode.clone());
     app.insert_resource(StudioMode::Headless);
     app.insert_resource(HeadlessSettings {
-        frames_to_capture,
+        max_frames: frames_to_capture,
         output_dims: image_res,
         output_dir: outout_dir.to_string(),
     });
@@ -330,7 +335,7 @@ pub fn start_headless(
                 },
             );
 
-            app.add_systems(PostUpdate, check_for_capture_complete);
+            app.add_systems(PostUpdate, check_for_bvh_capture_complete);
         }
         HeadlessMode::Scene(scene, skybox) => {
             app.add_systems(
@@ -341,8 +346,25 @@ pub fn start_headless(
                 },
             );
         }
+        HeadlessMode::Mixamo(mixamo_path, skybox) => {
+            app.add_plugins(MixamoPlugin);
+            app.add_systems(Startup, move |
+                mut commands : Commands, 
+                mut ew: EventWriter<MixamoImportEvent>,
+                mut load_scene_event: EventWriter<LoadSceneEvent>  
+            | {
+                ew.send(MixamoImportEvent(mixamo_path.clone()));
+                load_scene_event.send(LoadSceneEvent("Mannequin.gltf".to_string()));
+                commands.insert_resource(SkyboxId(skybox.clone()));
+            });
+            app.add_systems(PostUpdate, check_for_mixamo_capture_complete);
+        
+            app.run();
+            
+        }
+        HeadlessMode::None => {}
     }
-
+    
     app
 }
 
@@ -358,7 +380,7 @@ pub fn is_not_headless(studio_state: Res<StudioMode>) -> bool {
 pub struct HeadlessSettings {
     pub output_dims: Extent3d,
     pub output_dir: String,
-    pub frames_to_capture: u32,
+    pub max_frames: u32,
 }
 
 impl Default for HeadlessSettings {
@@ -370,23 +392,41 @@ impl Default for HeadlessSettings {
                 depth_or_array_layers: 1,
             },
             output_dir: "./screen_shots/".to_string(),
-            frames_to_capture: 1,
+            max_frames: u32::MAX,
         }
     }
 }
 
-fn check_for_capture_complete(
-    mut commands: Commands,
+fn check_for_bvh_capture_complete(
     mut close_app: EventWriter<AppExit>,
-    main_camera: Query<(Entity, &ScreenCapture), With<MainCamera>>,
+    mut main_camera: Query<&mut ScreenCapture, With<MainCamera>>,
     bvh_event_reader: EventReader<BvhAnimCompleteEvent>,
 ) {
-    let Ok((entity, screen_capture)) = main_camera.get_single() else {
+    let Ok(mut screen_capture) = main_camera.get_single_mut() else {
         return;
     };
 
-    if screen_capture.is_complete() || !bvh_event_reader.is_empty() {
-        commands.entity(entity).remove::<ScreenCapture>();
+    println!("Frames captured {}", screen_capture.frames_captured());
+    if !screen_capture.should_capture() || !bvh_event_reader.is_empty() {
+        screen_capture.stop_capturing();
         close_app.send(AppExit);
+    }
+}
+
+fn check_for_mixamo_capture_complete (
+    mut close_app: EventWriter<AppExit>,
+    mut main_camera: Query<&mut ScreenCapture, With<MainCamera>>,
+    mixamo_anims : Query<&AnimationPlayer>,
+) {
+    let Ok( mut capture) = main_camera.get_single_mut() else {
+        return;
+    };
+    
+    for anim in mixamo_anims.iter() {
+        println!("Time elapsed {} | Frames Captured : {}", anim.elapsed(), capture.frames_captured());
+        if anim.completions() != 0 {
+            capture.stop_capturing();
+            close_app.send(AppExit);
+        }
     }
 }

@@ -48,7 +48,7 @@ impl Plugin for ScenePlugin {
             .add_systems(Update, init_scene_loading.in_set(SceneSpawnerSystem))
             .add_systems(
                 OnEnter(SceneState::Active),
-                (tag_scene_elements, frame_scene_in_view).in_set(SceneSpawnerSystem),
+                (tag_scene_elements, frame_scene_in_view, start_capture.run_if(is_headless)).in_set(SceneSpawnerSystem),
             );
 
         app.add_systems(Update, tag_scene_elements);
@@ -261,8 +261,7 @@ fn initialiaze_headless(
             ..default()
         },
         CameraControllerBundle::new(focus, camera_xform.translation),
-        ScreenCapture::number_of_frames(
-            headless_settings.frames_to_capture,
+        ScreenCapture::from_out(
             &headless_settings.output_dir,
         ),
     ));
@@ -427,6 +426,14 @@ fn frame_scene_in_view(
     cam.focus = aabb.center.into();
     cam.radius = radius;
     cam_xform.translation = cam.focus + cam_xform.back() * radius;
+}
+
+fn start_capture(
+    mut captures : Query<&mut ScreenCapture>
+) {
+    for mut capture in captures.iter_mut() {
+        capture.start_capturing();
+    }
 }
 
 #[cfg(feature = "wasm")]

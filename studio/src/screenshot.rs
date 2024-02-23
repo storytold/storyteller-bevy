@@ -30,7 +30,7 @@ impl Plugin for ScreenShotPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             Update,
-            (test_system, update_screen_capture_on_extract_step)
+            (update_screen_capture_on_extract_step)
                 .run_if(in_state(SceneState::Active)),
         );
 
@@ -65,48 +65,62 @@ impl Plugin for ScreenShotPlugin {
     }
 }
 
-fn test_system(
-    mut commands: Commands,
-    camera: Query<Entity, With<Camera>>,
-    input: Res<Input<KeyCode>>,
-) {
-    if input.just_pressed(KeyCode::F10) {
-        for entity in camera.iter() {
-            commands
-                .entity(entity)
-                .insert(ScreenCapture::number_of_frames(16, "./scrnshot/"));
-        }
-    }
-}
-
 //==============================================================================
 //                        Sceen Shot Component
 //==============================================================================
 
 #[derive(Component, Clone)]
 pub struct ScreenCapture {
-    number_of_frames: u32,
+    frames: u32,
+    max_frames: u32,
     to_directory: String,
     capture_depth: bool,
+    currently_captureing: bool,
 }
 
 impl ScreenCapture {
-    pub fn number_of_frames(frames: u32, output_dir: &str) -> Self {
+    pub fn from_out(output_dir: &str) -> Self {
         ScreenCapture {
-            number_of_frames: frames,
+            frames: 0,
             to_directory: output_dir.to_string(),
             capture_depth: false,
+            currently_captureing: false,
+            max_frames: u32::MAX
         }
+    }
+    
+    pub fn with_max_frames(mut self, max_frames: u32) -> Self {
+        self.max_frames = max_frames;
+        self
     }
 
     pub fn capture_depth(mut self) -> Self {
         self.capture_depth = true;
         self
     }
-
-    pub fn is_complete(&self) -> bool {
-        println!("Number of Frames Left: {}", self.number_of_frames);
-        self.number_of_frames == 1
+    
+    pub fn is_capturing(&self) -> bool {
+        self.currently_captureing
+    }
+    
+    pub fn stop_capturing(&mut self) {
+        self.currently_captureing = false;
+    }
+    
+    pub fn start_capturing(&mut self) {
+        self.currently_captureing = true;
+    }
+    
+    pub fn should_capture(&self) -> bool {
+        self.frames < self.max_frames && self.is_capturing()
+    }
+    
+    pub fn frames_captured(&self) -> u32 {
+        self.frames
+    }
+    
+    pub fn max_frames(&self) -> u32 {
+        self.max_frames
     }
 }
 
@@ -115,10 +129,10 @@ fn update_screen_capture_on_extract_step(
     mut screen_captures: Query<(Entity, &mut ScreenCapture)>,
 ) {
     for (entity, mut screen_capture) in screen_captures.iter_mut() {
-        screen_capture.number_of_frames -= 1;
-        if screen_capture.number_of_frames == 0 {
-            commands.entity(entity).remove::<ScreenCapture>();
-        }
+        screen_capture.frames += 1;
+        // if screen_capture.number_of_frames == 0 {
+        //     commands.entity(entity).remove::<ScreenCapture>();
+        // }
     }
 }
 
@@ -128,7 +142,9 @@ fn extract_screen_capture_components(
     screen_capure_comps: Extract<Query<(Entity, &ScreenCapture), With<Camera>>>,
 ) {
     for (entity, screen_capture) in screen_capure_comps.iter() {
-        commands.get_or_spawn(entity).insert(screen_capture.clone());
+        if screen_capture.should_capture() {
+            commands.get_or_spawn(entity).insert(screen_capture.clone());
+        }
     }
 }
 
@@ -152,7 +168,7 @@ fn prepare_screen_capture_buffers(
     device: Res<RenderDevice>,
 ) {
     for (entity, view_target, screen_capture) in views.iter() {
-        if screen_capture.number_of_frames > 0 {
+        if screen_capture.frames > 0 {
             let texture = view_target.main_texture();
             let size = texture.size();
             let format = texture.format();
@@ -174,8 +190,6 @@ fn prepare_screen_capture_buffers(
                 main_bytes_per_row: bytes_per_row,
                 main_padded_bytes_per_row: padded_bytes_per_row,
             });
-
-            println!("Buffers Created!");
         }
     }
 }
@@ -219,7 +233,6 @@ impl ViewNode for ScreenCaptureNode {
             },
             view_query.1.main_texture().size(),
         );
-        println!("Saved to buffer!");
         Ok(())
     }
 }
@@ -255,7 +268,7 @@ fn save_buffer_to_file(
 
         let path = format!(
             "{}img_{:0.5}.png",
-            screen_capture.to_directory, screen_capture.number_of_frames
+            screen_capture.to_directory, screen_capture.frames
         );
 
         save_buffer::<Rgba<u8>>(&main_image_values, &buffers.main_buffer_extent, &path);
