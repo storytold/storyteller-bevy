@@ -18,6 +18,7 @@ import { LitElement, html, nothing } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { classMap } from "lit-html/directives/class-map.js";
 import { Ref, createRef, ref } from "lit-html/directives/ref.js";
+import { v4 as uuid } from "uuid";
 
 import "@storyteller/studio-web/canvas-provider";
 import "@storyteller/studio-web/viewer";
@@ -152,19 +153,25 @@ export class AppElement extends LitElement {
 	}
 
 	@on("window:scene-saved")
-	onSceneSaved({ detail: scene }: SceneSavedEvent): void {
-		const fileBlob = new Blob([scene], { type: "text/ron" });
-		const url = URL.createObjectURL(fileBlob);
+	async onSceneSaved({ detail: scene }: SceneSavedEvent): Promise<void> {
+		const file = new File([scene], "scene.scn.ron", { type: "text/ron" });
+		const formData = new FormData();
 
-		const anchor = document.createElement("a");
-		anchor.href = url;
-		anchor.download = "scene.scn.ron";
-		anchor.click();
+		formData.append("uuid_idempotency_token", uuid());
+		formData.append("file", file);
 
-		setTimeout(() => {
-			URL.revokeObjectURL(url);
-			anchor.remove();
-		});
+		try {
+			const response = await fetch("https://api.fakeyou.com/v1/engine/create_scene", {
+				method: "POST",
+				credentials: "include",
+				headers: { "Accept": "text/plain" },
+				body: formData,
+			});
+			console.log(response);
+		}
+		catch (err) {
+			console.error(err);
+		}
 	}
 
 	toggleHelp(): void {
