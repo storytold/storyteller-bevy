@@ -28,6 +28,7 @@ mod interaction;
 pub mod math;
 mod mixamo;
 mod persistance;
+mod remote;
 mod scene;
 pub mod screenshot;
 mod skybox;
@@ -46,6 +47,7 @@ pub use crate::{
     math::InterpolationPlugin,
     mixamo::{MixamoImportEvent, MixamoPlugin},
     persistance::PersistancePlugin,
+    remote::RemoteAssetPlugin,
     scene::{LoadSceneEvent, ScenePlugin},
     skybox::{SkyboxId, SkyboxPlugin},
     ui::UiLayerPlugin,
@@ -250,6 +252,7 @@ pub fn start_internal(
         #[cfg(feature = "wasm")]
         viewport::wasm::ViewportPlugin,
         WebAssetPlugin,
+        RemoteAssetPlugin,
         DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
                 resolution: viewport_size.into(),
