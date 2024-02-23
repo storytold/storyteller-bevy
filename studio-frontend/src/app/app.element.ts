@@ -23,6 +23,7 @@ import { v4 as uuid } from "uuid";
 import "@storyteller/studio-web/canvas-provider";
 import "@storyteller/studio-web/viewer";
 import "@storyteller/studio-web/bvh-viewer";
+import "@storyteller/studio-web/editor";
 import "@storyteller/studio-web/mixamo-viewer";
 import "./anim-editor.element";
 import "./button.element";
@@ -51,6 +52,7 @@ export class AppElement extends LitElement {
 
 	@state() bvhPath?: string;
 	@state() mixamoPath?: string;
+	@state() scenePath?: string;
 	@state() mode?: StudioMode;
 
 	#sceneObjects: studio.SceneObject[] = [];
@@ -74,6 +76,9 @@ export class AppElement extends LitElement {
 
 		if (params.has("mixamo"))
 			this.mixamoPath = params.get("mixamo")!;
+
+		if (params.has("scene"))
+			this.scenePath = params.get("scene")!;
 
 		this.mode = match (params.get("mode"), {
 			"studio": () => StudioMode.Editor,
@@ -248,6 +253,11 @@ export class AppElement extends LitElement {
 					skyboxId="test_scene"
 					@scene-state=${this.onSceneStateChange}
 				></sts-mixamo-viewer>
+			` : this.scenePath ? html`
+				<sts-editor
+					scenePath=${this.scenePath}
+					@scene-state=${this.onSceneStateChange}
+				></sts-editor>
 			` : html`
 				<sts-viewer
 					objectId="sample-room.gltf"

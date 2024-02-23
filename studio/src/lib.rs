@@ -120,8 +120,10 @@ pub fn start_viewer(
     viewport_size: ViewportSize,
 ) {
     start_internal(
-        object_id,
-        skybox_id,
+        InitSeed::FromLibrary {
+            object_id: object_id.into(),
+            skybox_id: skybox_id.into(),
+        },
         canvas_selector,
         canvas_alt,
         viewport_size,
@@ -132,15 +134,13 @@ pub fn start_viewer(
 
 #[cfg_attr(feature = "wasm", wasm_bindgen(js_name = startEditor))]
 pub fn start_editor(
-    object_id: &str,
-    skybox_id: &str,
+    scene_id: &str,
     canvas_selector: &str,
     canvas_alt: &str,
     viewport_size: ViewportSize,
 ) {
     start_internal(
-        object_id,
-        skybox_id,
+        InitSeed::FromScene(scene_id.into()),
         canvas_selector,
         canvas_alt,
         viewport_size,
@@ -158,8 +158,10 @@ pub fn start_bvh_viewer(
     viewport_size: ViewportSize,
 ) {
     let mut app = start_internal(
-        "Mannequin.gltf",
-        skybox_id,
+        InitSeed::FromLibrary {
+            object_id: "Mannequin.gltf".into(),
+            skybox_id: skybox_id.into(),
+        },
         canvas_selector,
         canvas_alt,
         viewport_size,
@@ -188,8 +190,10 @@ pub fn start_mixamo_viewer(
     viewport_size: ViewportSize,
 ) {
     let mut app = start_internal(
-        "Mannequin.gltf",
-        skybox_id,
+        InitSeed::FromLibrary {
+            object_id: "Mannequin.gltf".into(),
+            skybox_id: skybox_id.into(),
+        },
         canvas_selector,
         canvas_alt,
         viewport_size,
@@ -216,8 +220,10 @@ pub fn start(
     studio_mode: StudioMode,
 ) {
     start_internal(
-        object_id,
-        skybox_id,
+        InitSeed::FromLibrary {
+            object_id: object_id.into(),
+            skybox_id: skybox_id.into(),
+        },
         canvas_selector,
         canvas_alt,
         viewport_size,
@@ -229,10 +235,16 @@ pub fn start(
 // TODO: These `start_` functiions should be refactored to better support the
 //       needs of the "reaodnly viewer" vs "full studio editor" use cases. See
 //       notes in `studio-web/src/lib/viewer.element.ts` for more info.
+pub enum InitSeed {
+    FromLibrary {
+        object_id: String,
+        skybox_id: String,
+    },
+    FromScene(String),
+}
 
 pub fn start_internal(
-    object_id: &str,
-    skybox_id: &str,
+    seed: InitSeed,
     canvas_selector: &str,
     canvas_alt: &str,
     viewport_size: ViewportSize,
@@ -240,9 +252,6 @@ pub fn start_internal(
 ) -> App {
     #[cfg(feature = "wasm")]
     console_error_panic_hook::set_once();
-
-    let object_id = object_id.to_string();
-    let skybox_id = skybox_id.to_string();
 
     let mut app = App::new();
 
@@ -274,13 +283,23 @@ pub fn start_internal(
         app.auto_reflected_undo::<Transform>();
     }
 
-    app.add_systems(
-        Startup,
-        move |mut cmd: Commands, mut ew: EventWriter<LoadSceneEvent>| {
-            cmd.insert_resource(SkyboxId(skybox_id.clone()));
-            ew.send(LoadSceneEvent(object_id.clone()));
-        },
-    );
+    match seed {
+        InitSeed::FromLibrary {
+            object_id,
+            skybox_id,
+        } => {
+            app.add_systems(
+                Startup,
+                move |mut cmd: Commands, mut ew: EventWriter<LoadSceneEvent>| {
+                    cmd.insert_resource(SkyboxId(skybox_id.clone()));
+                    ew.send(LoadSceneEvent(object_id.clone()));
+                },
+            );
+        }
+        InitSeed::FromScene(scene) => {
+            // TODO
+        }
+    }
 
     #[cfg(feature = "wasm")]
     wasm::initialize();
