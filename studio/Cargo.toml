@@ -27,9 +27,9 @@ console_error_panic_hook = { version = "0.1.7", optional = true }
 itertools = "0.12.1"
 js-sys = { version = "0.3.65", optional = true }
 parking_lot = "0.12.1"
-serde = { version = "1.0.192", optional = true }
+serde = "1.0.192"
 serde-wasm-bindgen = { version = "0.6.1", optional = true }
-serde_json = { version = "1.0.108", optional = true }
+serde_json = "1.0.108"
 studio-bvh = { path = "../studio-bvh" }
 wasm-bindgen = "0.2.84"
 web-sys = { version = "0.3.65", optional = true, features = [
@@ -61,8 +61,6 @@ features = [
 wasm = [
 	"dep:console_error_panic_hook",
 	"dep:js-sys",
-	"dep:serde",
-	"dep:serde_json",
 	"dep:serde-wasm-bindgen",
 	"dep:web-sys",
 	"bevy_rapier3d/wasm-bindgen",
