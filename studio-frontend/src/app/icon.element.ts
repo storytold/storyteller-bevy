@@ -19,6 +19,7 @@ import fasBwdFast from "@fortawesome/fontawesome-pro/svgs/solid/backward-fast.sv
 import fasRotate from "@fortawesome/fontawesome-pro/svgs/regular/arrows-rotate.svg?raw";
 import fasScale from "@fortawesome/fontawesome-pro/svgs/regular/arrow-up-right-and-arrow-down-left-from-center.svg?raw";
 import fasCaretRight from "@fortawesome/fontawesome-pro/svgs/solid/caret-right.svg?raw";
+import fasFloppyDisk from "@fortawesome/fontawesome-pro/svgs/solid/floppy-disk.svg?raw";
 
 import styles from "./icon.element.scss?inline";
 
@@ -51,6 +52,7 @@ function renderSvg(iconId: string) {
 		"caret-right": () => fasCaretRight,
 		"crosshairs": () => farCrosshairs,
 		"cube": () => fasCube,
+		"floppy-disk": () => fasFloppyDisk,
 		"fwd-fast": () => fasFwdFast,
 		"fwd-step": () => fasFwdStep,
 		"key": () => fasKey,

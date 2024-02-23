@@ -5,6 +5,7 @@ import {
 	type EntityMultiSpawnEvent,
 	type EntitySelectEvent,
 	type EntitySpawnEvent,
+	type SceneSavedEvent,
 	type SceneStateEvent,
 	TransformSpace,
 	TransformType,
@@ -150,6 +151,22 @@ export class AppElement extends LitElement {
 		this.#updateHierarchy();
 	}
 
+	@on("window:scene-saved")
+	onSceneSaved({ detail: scene }: SceneSavedEvent): void {
+		const fileBlob = new Blob([scene], { type: "text/ron" });
+		const url = URL.createObjectURL(fileBlob);
+
+		const anchor = document.createElement("a");
+		anchor.href = url;
+		anchor.download = "scene.scn.ron";
+		anchor.click();
+
+		setTimeout(() => {
+			URL.revokeObjectURL(url);
+			anchor.remove();
+		});
+	}
+
 	toggleHelp(): void {
 		this.showHelp = !this.showHelp;
 	}
@@ -211,6 +228,7 @@ export class AppElement extends LitElement {
 			class="app-root"
 			${ref(this.#canvasProvider as any)}
 		>
+			<!-- Scene view -->
 			${this.bvhPath ? html`
 				<sts-bvh-viewer
 					bvhPath=${this.bvhPath}
@@ -232,8 +250,17 @@ export class AppElement extends LitElement {
 				></sts-viewer>
 			`}
 
+			<!-- Actions toolbar -->
 			<sts-toolbar class="v-start h-start">
 				<sts-toolbar-group>
+					${this.mode === StudioMode.Editor ? html`
+						<sts-button
+							icon="floppy-disk"
+							@click=${() => studio.saveScene()}
+						>
+							Save
+						</sts-button>
+					` : nothing}
 					<sts-button
 						class=${classMap({ active: this.showHelp })}
 						icon="circle-info"
@@ -245,6 +272,7 @@ export class AppElement extends LitElement {
 			</sts-toolbar>
 
 			${this.mode === StudioMode.Editor ? html`
+				<!-- Transform toolbar -->
 				<sts-transform-toolbar
 					class="v-start h-center"
 					.type=${this.transformType}
@@ -253,6 +281,7 @@ export class AppElement extends LitElement {
 					@space-change=${this.onTransformSpaceChange}
 				></sts-transform-toolbar>
 
+				<!-- Hierarchy and inspector -->
 				<div class="hierarchy v-start h-end">
 					${this.sceneObjects.map(obj => html`
 						<sts-tree class="scene-object"
@@ -264,10 +293,12 @@ export class AppElement extends LitElement {
 				</div>
 			` : nothing}
 
+			<!-- Animation timeline -->
 			${this.mode === StudioMode.Editor ? html`
 				<sts-anim-editor class="timeline v-end h-start h-before-hierarchy"></sts-anim-editor>
 			` : nothing}
 
+			<!-- Dialogs and modals -->
 			${this.showHelp ? html`
 				<sts-help class="help v-after-toolbar h-start"></sts-help>
 			` : nothing}
