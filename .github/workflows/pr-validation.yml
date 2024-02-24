@@ -20,7 +20,7 @@ jobs:
           components: rustfmt
       - name: Check Rust formatting
         run: |
-              rustup component add rustfmt --toolchain 1.76-x86_64-unknown-linux-gnu
+              Run rustup toolchain install 1.76.0 --component rustfmt --profile minimal --no-self-update
               cargo fmt --all -- --check
 
   lint-and-test:
