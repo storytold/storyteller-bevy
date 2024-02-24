@@ -13,7 +13,10 @@ use bevy::{
     scene::InstanceId,
 };
 
-use space_editor::{prelude::PrefabMarker, space_prefab::component::SceneAutoChild};
+use space_editor::{
+    prelude::{EditorEvent, EditorPrefabPath, PrefabMarker},
+    space_prefab::component::SceneAutoChild,
+};
 #[cfg(feature = "wasm")]
 use wasm_bindgen::prelude::wasm_bindgen;
 use wgpu::{TextureDescriptor, TextureUsages};
@@ -317,14 +320,14 @@ fn init_object_loading(mut cmd: Commands, mut er: EventReader<LoadLibraryObjectE
 }
 
 fn init_scene_loading(
-    mut _cmd: Commands,
-    mut er: EventReader<LoadSceneEvent>,
-    r_assets: Res<AssetServer>,
+    mut er_load_scene: EventReader<LoadSceneEvent>,
+    mut ew_editor: EventWriter<EditorEvent>,
 ) {
-    if let Some(scene_path) = er.read().last() {
+    if let Some(scene_path) = er_load_scene.read().last() {
         info!("Loading scene: {}", scene_path.0);
-        // TODO
-        let handle = r_assets.load::<DynamicScene>(&**scene_path);
+        ew_editor.send(EditorEvent::Load(EditorPrefabPath::File(
+            scene_path.0.clone(),
+        )));
     }
 }
 
