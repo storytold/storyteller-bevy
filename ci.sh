@@ -6,7 +6,7 @@ set -euxo pipefail
 rustup target add wasm32-unknown-unknown
 
 # Emit versions
-rustup show
+rustup show active-toolchain
 npm version
 
 # Install project dependencies
