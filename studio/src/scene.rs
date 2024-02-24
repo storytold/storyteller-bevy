@@ -37,6 +37,7 @@ impl Plugin for ScenePlugin {
         app.insert_resource(ClearColor(Color::hsl(0.0, 0.0, 0.25)))
             .insert_resource(Msaa::Off)
             .add_state::<SceneState>()
+            .add_event::<LoadLibraryObjectEvent>()
             .add_event::<LoadSceneEvent>()
             .add_systems(
                 Startup,
@@ -45,7 +46,10 @@ impl Plugin for ScenePlugin {
                     initialiaze_headless.run_if(is_headless),
                 ),
             )
-            .add_systems(Update, init_scene_loading.in_set(SceneSpawnerSystem))
+            .add_systems(
+                Update,
+                (init_object_loading, init_scene_loading).in_set(SceneSpawnerSystem),
+            )
             .add_systems(
                 OnEnter(SceneState::Active),
                 (
@@ -78,7 +82,7 @@ impl Plugin for ScenePlugin {
         app.add_systems(
             Update,
             (
-                wasm::dispatch_scene_request,
+                wasm::dispatch_object_load_request,
                 wasm::notify_state_changes
                     .map(bevy::utils::error)
                     .run_if(resource_changed::<State<SceneState>>()),
@@ -172,6 +176,33 @@ fn auto_add_handle<T: Asset>(
     }
 }
 
+/// Request the application to load a `gltf`/`glb` scene from the "bundled"
+/// asset library in `assets/gltf/`. Expects a filename including the extension.
+///
+/// ```ignore
+/// fn main() {
+///     App::new()
+///         .add_plugins((
+///             DefaultPlugins,
+///             CommonPlugins,
+///         ))
+///         .add_systems(Startup, load_mannequin)
+/// }
+///
+/// fn load_mannequin(mut ew_load_object: EventWriter<LoadLibraryObjectEvent>) {
+///     ew_load_object.send(LoadLibraryObjectEvent("Mannequin.gltf".into()));
+/// }
+/// ```
+#[derive(Event, Deref)]
+pub struct LoadLibraryObjectEvent(pub String);
+
+/// Request the application to load a previously saved `*.scn.ron` dynamic scene
+/// file.
+///
+/// Expects a full, resolvable path to the file (e.g. `scenes/my-scene.scn.ron`
+/// for a local file saved under `studio/assets/scenes`, or
+/// `remote://<media_token>.scn.ron` for a scene saved to the Storyteller.ai
+/// backend).
 #[derive(Event, Deref)]
 pub struct LoadSceneEvent(pub String);
 
@@ -270,9 +301,9 @@ fn initialiaze_headless(
     ));
 }
 
-fn init_scene_loading(mut cmd: Commands, mut er: EventReader<LoadSceneEvent>) {
+fn init_object_loading(mut cmd: Commands, mut er: EventReader<LoadLibraryObjectEvent>) {
     if let Some(id) = er.read().last() {
-        info!("Loading scene: {}", id.0);
+        info!("Loading library asset: {}", id.0);
         cmd.spawn((
             SpatialBundle::default(),
             space_editor::prelude::GltfPrefab {
@@ -282,6 +313,18 @@ fn init_scene_loading(mut cmd: Commands, mut er: EventReader<LoadSceneEvent>) {
             PrefabMarker,
             SceneRoot,
         ));
+    }
+}
+
+fn init_scene_loading(
+    mut _cmd: Commands,
+    mut er: EventReader<LoadSceneEvent>,
+    r_assets: Res<AssetServer>,
+) {
+    if let Some(scene_path) = er.read().last() {
+        info!("Loading scene: {}", scene_path.0);
+        // TODO
+        let handle = r_assets.load::<DynamicScene>(&**scene_path);
     }
 }
 
@@ -442,7 +485,7 @@ mod wasm {
     use bevy::{prelude::*, window::PrimaryWindow};
     use wasm_bindgen::prelude::*;
 
-    use super::{LoadSceneEvent, SceneState};
+    use super::{LoadLibraryObjectEvent, SceneState};
     use crate::wasm::{self, StaticBuffer, WasmMessageBuffer};
 
     static OBJECT_LOAD_REQUEST: WasmMessageBuffer<String> = WasmMessageBuffer::new();
@@ -454,9 +497,11 @@ mod wasm {
 
     // FIXME: Is it an object or a scene? Inconsistent terminology is
     //        unnecessarily confusing
-    pub(super) fn dispatch_scene_request(mut ew_load_scene: EventWriter<LoadSceneEvent>) {
+    pub(super) fn dispatch_object_load_request(
+        mut ew_load_scene: EventWriter<LoadLibraryObjectEvent>,
+    ) {
         if let Some(id) = OBJECT_LOAD_REQUEST.take_message() {
-            ew_load_scene.send(LoadSceneEvent(id));
+            ew_load_scene.send(LoadLibraryObjectEvent(id));
         }
     }
 

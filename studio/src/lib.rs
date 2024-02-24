@@ -27,6 +27,7 @@ mod inspector;
 mod interaction;
 pub mod math;
 mod mixamo;
+mod path;
 mod persistance;
 mod remote;
 mod scene;
@@ -48,7 +49,7 @@ pub use crate::{
     mixamo::{MixamoImportEvent, MixamoPlugin},
     persistance::PersistancePlugin,
     remote::RemoteAssetPlugin,
-    scene::{LoadSceneEvent, ScenePlugin},
+    scene::{LoadLibraryObjectEvent, LoadSceneEvent, ScenePlugin},
     skybox::{SkyboxId, SkyboxPlugin},
     ui::UiLayerPlugin,
     viewport::ViewportSize,
@@ -232,14 +233,19 @@ pub fn start(
     .run();
 }
 
-// TODO: These `start_` functiions should be refactored to better support the
-//       needs of the "reaodnly viewer" vs "full studio editor" use cases. See
-//       notes in `studio-web/src/lib/viewer.element.ts` for more info.
 pub enum InitSeed {
+    /// Initialize the application from assets in the "bundled" asset library.
     FromLibrary {
+        /// A filename, including the extension, that can be found under
+        /// `studio/assets/gltf` (e.g., "Mannequin.gltf")
         object_id: String,
+        /// A skybox name that corresponds to a matching set of assets under
+        /// `studio/assets/skyboxes`, _not_ including file extensions or
+        /// "diffuse"/"specular" qualifiers (e.g., "gum_trees_4k")
         skybox_id: String,
     },
+    /// Initialize the application by loading a previously saved `*.scn.ron`
+    /// scene file.
     FromScene(String),
 }
 
@@ -290,14 +296,16 @@ pub fn start_internal(
         } => {
             app.add_systems(
                 Startup,
-                move |mut cmd: Commands, mut ew: EventWriter<LoadSceneEvent>| {
+                move |mut cmd: Commands, mut ew: EventWriter<LoadLibraryObjectEvent>| {
                     cmd.insert_resource(SkyboxId(skybox_id.clone()));
-                    ew.send(LoadSceneEvent(object_id.clone()));
+                    ew.send(LoadLibraryObjectEvent(object_id.clone()));
                 },
             );
         }
         InitSeed::FromScene(scene) => {
-            // TODO
+            app.add_systems(Startup, move |mut ew: EventWriter<LoadSceneEvent>| {
+                ew.send(LoadSceneEvent(scene.clone()));
+            });
         }
     }
 
@@ -350,10 +358,10 @@ pub fn start_headless(
                 Startup,
                 move |mut cmd: Commands,
                       asset_server: Res<AssetServer>,
-                      mut ew: EventWriter<LoadSceneEvent>| {
+                      mut ew: EventWriter<LoadLibraryObjectEvent>| {
                     cmd.insert_resource(SkyboxId(skybox.clone()));
                     cmd.insert_resource(TestBvh(asset_server.load(bvh_dir.clone())));
-                    ew.send(LoadSceneEvent("Mannequin.gltf".to_string()));
+                    ew.send(LoadLibraryObjectEvent("Mannequin.gltf".to_string()));
                 },
             );
 
