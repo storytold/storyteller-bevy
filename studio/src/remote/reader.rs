@@ -2,11 +2,13 @@ use std::{io::ErrorKind, path::Path};
 
 use bevy::{
     asset::io::{AssetReader, AssetReaderError, PathStream, Reader, VecReader},
+    prelude::*,
     utils::BoxedFuture,
 };
 use reqwest::StatusCode;
 
 use super::response::GetMediaFileSuccessResponse;
+use crate::path::PathExtras;
 
 pub struct RemoteAssetReader;
 
@@ -22,7 +24,7 @@ impl AssetReader for RemoteAssetReader {
     ) -> BoxedFuture<'a, Result<Box<Reader<'a>>, AssetReaderError>> {
         Box::pin(async move {
             let token = path
-                .file_stem()
+                .ext_file_prefix()
                 .ok_or_else(|| {
                     AssetReaderError::Io(std::io::Error::new(
                         ErrorKind::Other,
@@ -31,6 +33,8 @@ impl AssetReader for RemoteAssetReader {
                 })?
                 .to_str()
                 .unwrap();
+
+            info!("Loading asset from media token: '{token}'");
 
             let response = reqwest::get(format!("{}/{token}", &Self::API_BASE_URL))
                 .await
