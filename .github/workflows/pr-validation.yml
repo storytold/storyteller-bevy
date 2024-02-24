@@ -16,6 +16,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
       - name: Check Rust formatting
         run: cargo fmt --all -- --check
 
@@ -36,6 +38,8 @@ jobs:
             target/
           key: ${{ runner.os }}-cargo-lint-and-test-${{ hashFiles('**/Cargo.toml') }}
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
       - name: Install Linux dependencies
         run: |
               sudo apt-get update
