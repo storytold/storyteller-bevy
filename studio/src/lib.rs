@@ -35,6 +35,7 @@ pub mod screenshot;
 mod skybox;
 mod ui;
 pub mod viewport;
+mod change_tracking;
 mod world_grid;
 
 pub use crate::{
