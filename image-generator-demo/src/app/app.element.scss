@@ -1,6 +1,7 @@
 .app-root {
 	position: fixed;
 	inset: 0;
+	display: flex;
 }
 
 // Layout utilities
@@ -14,6 +15,11 @@
 .h-center {
 	left: 50%;
 	transform: translateX(-50%);
+}
+
+.studio-scene,
+.image-capture {
+	flex: 0 0 50%;
 }
 
 .hierarchy {

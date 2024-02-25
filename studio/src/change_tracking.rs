@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, render::RenderSet};
 
 pub struct ChangeTrackingPlugin;
 
@@ -12,7 +12,9 @@ impl Plugin for ChangeTrackingPlugin {
         #[cfg(feature = "wasm")]
         app.add_systems(
             Update,
-            wasm::send_change_events::<Transform>.map(bevy::utils::error),
+            wasm::send_change_events::<Transform>
+                .map(bevy::utils::error)
+                .after(RenderSet::Render),
         );
     }
 }

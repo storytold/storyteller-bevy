@@ -10,6 +10,8 @@ import styles from "./studio-base.element.scss?inline";
 export abstract class StudioBaseElement extends LitElement {
 	static override styles = unsafeCSS(styles);
 
+	get canvas() { return this.#canvas; }
+
 	@inject(CANVAS_PROVIDER)
 	_canvasProvider?: CanvasProvider;
 
