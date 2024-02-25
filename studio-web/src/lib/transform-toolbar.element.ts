@@ -1,7 +1,8 @@
+import * as studio from "@storyteller/studio";
 import { TransformSpace, TransformType } from "@storyteller/studio";
 import { match } from "@storyteller/utility";
 import { LitElement, html, unsafeCSS } from "lit";
-import { customElement, property } from "lit/decorators.js";
+import { customElement, state } from "lit/decorators.js";
 
 import styles from "./transform-toolbar.element.scss?inline";
 
@@ -9,12 +10,15 @@ import styles from "./transform-toolbar.element.scss?inline";
 export class TransformToolbarElement extends LitElement {
 	static override styles = unsafeCSS(styles);
 
-	@property({ type: Number }) space = TransformSpace.Local;
-	@property({ type: Number }) type = TransformType.Translate;
+	get space() { return this._space; }
+	@state() private _space = TransformSpace.Local;
+
+	get type() { return this._type; }
+	@state() private _type = TransformType.Translate;
 
 	#onSpaceChange(event: InputEvent): void {
 		const { value } = event.target as HTMLInputElement;
-		const space = match (value, {
+		this._space = match (value, {
 			"local": () => TransformSpace.Local,
 			"world": () => TransformSpace.World,
 			_: () => {
@@ -22,11 +26,7 @@ export class TransformToolbarElement extends LitElement {
 			}
 		});
 
-		this.dispatchEvent(new CustomEvent<TransformSpace>("space-change", {
-			detail: space,
-			bubbles: true,
-			composed: true,
-		}));
+		studio.setTransformSpace(this._space);
 	}
 
 	#onTypeChange(event: InputEvent): void {
@@ -40,15 +40,10 @@ export class TransformToolbarElement extends LitElement {
 			}
 		});
 
-		const type = checked
-			? this.type | flag
-			: this.type & ~flag;
+		if (checked) this._type |= flag;
+		else this._type &= ~flag;
 
-		this.dispatchEvent(new CustomEvent<TransformType>("type-change", {
-			detail: type,
-			bubbles: true,
-			composed: true,
-		}));
+		studio.setTransformType(this._type);
 	}
 
 	protected override render = () => html`
@@ -59,7 +54,7 @@ export class TransformToolbarElement extends LitElement {
 					<input type="radio"
 						name="transform-space"
 						value="local"
-						?checked=${this.space === TransformSpace.Local}
+						?checked=${this._space === TransformSpace.Local}
 						@input=${this.#onSpaceChange}
 					/>
 				</label>
@@ -68,7 +63,7 @@ export class TransformToolbarElement extends LitElement {
 					<input type="radio"
 						name="transform-space"
 						value="world"
-						?checked=${this.space === TransformSpace.World}
+						?checked=${this._space === TransformSpace.World}
 						@input=${this.#onSpaceChange}
 					/>
 				</label>
@@ -78,7 +73,7 @@ export class TransformToolbarElement extends LitElement {
 					<sts-icon icon="up-down-left-right">Translate</sts-icon>
 					<input type="checkbox"
 						name="translate"
-						?checked=${Boolean(this.type & TransformType.Translate)}
+						?checked=${Boolean(this._type & TransformType.Translate)}
 						@input=${this.#onTypeChange}
 					/>
 				</label>
@@ -86,7 +81,7 @@ export class TransformToolbarElement extends LitElement {
 					<sts-icon icon="rotate">Rotate</sts-icon>
 					<input type="checkbox"
 						name="rotate"
-						?checked=${Boolean(this.type & TransformType.Rotate)}
+						?checked=${Boolean(this._type & TransformType.Rotate)}
 						@input=${this.#onTypeChange}
 					/>
 				</label>
@@ -95,7 +90,7 @@ export class TransformToolbarElement extends LitElement {
 					<input type="checkbox"
 						name="scale"
 						disabled
-						?checked=${Boolean(this.type & TransformType.Scale)}
+						?checked=${Boolean(this._type & TransformType.Scale)}
 						@input=${this.#onTypeChange}
 					/>
 				</label>

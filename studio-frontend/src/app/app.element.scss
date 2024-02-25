@@ -35,33 +35,9 @@ sts-button.active {
 
 // Hierarchy (TODO: Probably move this)
 .hierarchy {
-	overflow: auto;
-
-	box-sizing: border-box;
 	width: $hierarchy-width;
 	max-height: calc(100vh - 32px);
-	padding: 10px 15px;
-
-	background: #0006;
-	backdrop-filter: blur(16px);
-	border: 8px solid transparent;
-	border-radius: 0.5rem;
-
 	pointer-events: auto;
-
-	&::-webkit-scrollbar {
-		width: 8px;
-		height: 8px;
-
-		&-thumb {
-			border-radius: 2px;
-			background: #FFF2;
-
-			&:hover {
-				background: #FFF3;
-			}
-		}
-	}
 }
 
 .loading {
