@@ -1,33 +1,17 @@
-use bevy::{ecs::query::{ReadOnlyWorldQuery}, prelude::*};
-use wasm_bindgen::prelude::wasm_bindgen;
+use bevy::prelude::*;
 
-#[cfg(feature = "wasm")]
-use crate::wasm;
-
-
-#[wasm_bindgen(typescript_custom_section)]
-const SCENE_STATE_EVENT: &str = r#"
-
-export interface EntityChange extends CustomEvent {
-    type: "entity-change";
-    detail: string;
-}
-
-declare global {
-    export interface GlobalEventHandlersEventMap {
-        "entity-change": EntityChange;
-    }
-}
-
-"#;
-
-#[derive(Debug)]
 pub struct ChangeTrackingPlugin;
 
 impl Plugin for ChangeTrackingPlugin {
     fn build(&self, app: &mut App) {
-        //Add more of these systems for each component that we want to track
+        // Add more of these systems for each component that we want to track
         app.add_systems(Update, send_change_events::<Transform>);
+
+        #[cfg(feature = "wasm")]
+        app.add_systems(
+            Update,
+            wasm::send_change_events::<Transform>.map(bevy::utils::error),
+        );
     }
 }
 
@@ -35,16 +19,57 @@ impl Plugin for ChangeTrackingPlugin {
 pub struct ChangeTracker;
 
 fn send_change_events<T: Component>(
-    query : Query<Entity, (Changed<T>, With<ChangeTracker>)>,
-    mut entity_change_writer : EventWriter<EntityChangedEvent>
+    query: Query<Entity, (Changed<T>, With<ChangeTracker>)>,
+    mut entity_change_writer: EventWriter<EntityChangedEvent>,
 ) {
-    for entity in query.iter() { 
+    for entity in query.iter() {
         entity_change_writer.send(EntityChangedEvent(entity));
-        
-        #[cfg(feature = "wasm")]
-        wasm::dispatch_to_js(window, "scene-state", &(**r_state as u32))?;
     }
 }
 
 #[derive(Event)]
 pub struct EntityChangedEvent(Entity);
+
+#[cfg(feature = "wasm")]
+mod wasm {
+    use bevy::{prelude::*, window::PrimaryWindow};
+    use wasm_bindgen::prelude::wasm_bindgen;
+
+    use crate::wasm;
+
+    use super::ChangeTracker;
+
+    #[wasm_bindgen(typescript_custom_section)]
+    const SCENE_STATE_EVENT: &str = r#"
+export interface EntityChangesEvent extends CustomEvent {
+    type: "entity-changes";
+    detail: string[];
+}
+
+declare global {
+    export interface GlobalEventHandlersEventMap {
+        "entity-changes": EntityChangesEvent;
+    }
+}
+    "#;
+
+    pub(super) fn send_change_events<T: Component>(
+        q_changed_ents: Query<Entity, (Changed<T>, With<ChangeTracker>)>,
+        q_window: Query<&Window, With<PrimaryWindow>>,
+    ) -> Result<(), String> {
+        if q_changed_ents.is_empty() {
+            return Ok(());
+        }
+
+        let Ok(window) = q_window.get_single() else {
+            return Ok(());
+        };
+
+        let entities = q_changed_ents
+            .iter()
+            .map(|ent| format!("{ent:?}"))
+            .collect::<Vec<_>>();
+
+        wasm::dispatch_to_js(window, "entity-changes", &entities)
+    }
+}
