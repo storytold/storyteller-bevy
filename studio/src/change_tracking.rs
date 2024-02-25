@@ -4,6 +4,8 @@ pub struct ChangeTrackingPlugin;
 
 impl Plugin for ChangeTrackingPlugin {
     fn build(&self, app: &mut App) {
+        app.add_event::<EntityChangedEvent>();
+
         // Add more of these systems for each component that we want to track
         app.add_systems(Update, send_change_events::<Transform>);
 
@@ -27,8 +29,8 @@ fn send_change_events<T: Component>(
     }
 }
 
-#[derive(Event)]
-pub struct EntityChangedEvent(Entity);
+#[derive(Event, Deref)]
+pub struct EntityChangedEvent(pub Entity);
 
 #[cfg(feature = "wasm")]
 mod wasm {
