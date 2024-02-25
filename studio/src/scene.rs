@@ -243,6 +243,7 @@ fn initialize(mut cmd: Commands) {
     cmd.spawn((
         Name::new("Main Camera"),
         MainCamera,
+        ChangeTracker,
         Camera3dBundle {
             transform: camera_xform,
             tonemapping: Tonemapping::BlenderFilmic,

@@ -10,7 +10,7 @@ use crate::{
     interaction::Selected,
     math::{
         Easing, InterpPosition, InterpVelocity, Interpolation, InterpolationSystem, NearlyEq,
-        Velocity,
+        NearlyZero, Velocity,
     },
 };
 
@@ -78,9 +78,6 @@ fn camera_control_kinematic(
         return;
     }
 
-    let (mut controller, mut xform, proj) = q_camera.single_mut();
-    let mut window = q_window.single_mut();
-
     let mut any_ongoing = false;
     let mut any_started = false;
     let mut any_stopped = false;
@@ -92,7 +89,8 @@ fn camera_control_kinematic(
         )
     }) {
         if let InputAction(lifecycle, Action::Camera(motion)) = action {
-            use CameraMotion::*;
+            let (mut controller, mut xform, proj) = q_camera.single_mut();
+            let window = q_window.single();
 
             match lifecycle {
                 Lifecycle::Start => any_started = true,
@@ -100,20 +98,21 @@ fn camera_control_kinematic(
                 Lifecycle::Stop => any_stopped = true,
             }
 
+            use CameraMotion::*;
             match motion {
-                Pan(delta) => do_pan(proj, &window, *delta, &mut xform, &mut controller),
-                Zoom(delta) => do_zoom(&window, *delta, &mut xform, &mut controller),
-                Orbit(delta) => do_orbit(&window, *delta, *lifecycle, &mut xform, &mut controller),
-                Rotate(delta) => do_rotate(&window, *delta, &mut xform, &mut controller),
+                Pan(delta) => do_pan(proj, window, *delta, &mut xform, &mut controller),
+                Zoom(delta) => do_zoom(window, *delta, &mut xform, &mut controller),
+                Orbit(delta) => do_orbit(window, *delta, *lifecycle, &mut xform, &mut controller),
+                Rotate(delta) => do_rotate(window, *delta, &mut xform, &mut controller),
                 _ => {}
             }
         }
     }
 
     if any_started {
-        capture_pointer(&mut window);
+        capture_pointer(&mut q_window.single_mut());
     } else if any_stopped && !any_ongoing {
-        release_pointer(&mut window);
+        release_pointer(&mut q_window.single_mut());
     }
 }
 
@@ -215,12 +214,16 @@ fn process_focus_inputs(
 }
 
 fn camera_control_physical(
-    mut q_camera: Query<(&mut CameraController, &mut Transform, &Velocity)>,
+    mut q_camera: Query<(Entity, &mut CameraController, &Velocity)>,
+    mut q_xforms: Query<&mut Transform>,
 ) {
-    for (mut controller, mut xform, velocity) in q_camera.iter_mut() {
-        let delta_pos = xform.rotation * (**velocity);
-        xform.translation += delta_pos;
-        controller.focus += delta_pos;
+    for (ent, mut controller, velocity) in q_camera.iter_mut() {
+        if !velocity.nearly_zero() {
+            let mut xform = q_xforms.get_mut(ent).unwrap();
+            let delta_pos = xform.rotation * (**velocity);
+            xform.translation += delta_pos;
+            controller.focus += delta_pos;
+        }
     }
 }
 
