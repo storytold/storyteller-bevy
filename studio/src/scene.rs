@@ -22,7 +22,14 @@ use wasm_bindgen::prelude::wasm_bindgen;
 use wgpu::{TextureDescriptor, TextureUsages};
 
 use crate::{
-    anim::SkeletalJoint, camera_controller::{CameraController, CameraControllerBundle}, change_tracking::{ChangeTracker, ChangeTrackingPlugin}, debug::DebugPoint, is_headless, is_not_headless, math::{Combinable, Extrema}, screenshot::ScreenCapture, HeadlessSettings, MainCamera
+    anim::SkeletalJoint,
+    camera_controller::{CameraController, CameraControllerBundle},
+    change_tracking::{ChangeTracker, ChangeTrackingPlugin},
+    debug::DebugPoint,
+    is_headless, is_not_headless,
+    math::{Combinable, Extrema},
+    screenshot::ScreenCapture,
+    HeadlessSettings, MainCamera,
 };
 
 pub struct ScenePlugin;
@@ -33,7 +40,7 @@ pub struct SceneSpawnerSystem;
 impl Plugin for ScenePlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(ChangeTrackingPlugin);
-        
+
         app.insert_resource(ClearColor(Color::hsl(0.0, 0.0, 0.25)))
             .insert_resource(Msaa::Off)
             .add_state::<SceneState>()
@@ -56,11 +63,13 @@ impl Plugin for ScenePlugin {
                     (
                         tag_scene_elements,
                         frame_scene_in_view,
-                        start_capture.run_if(is_headless)
+                        start_capture.run_if(is_headless),
                     ),
                     apply_deferred,
-                    track_scene_elements
-                ).chain().in_set(SceneSpawnerSystem),
+                    track_scene_elements,
+                )
+                    .chain()
+                    .in_set(SceneSpawnerSystem),
             );
 
         app.add_systems(Update, tag_scene_elements);
@@ -483,9 +492,9 @@ fn start_capture(mut captures: Query<&mut ScreenCapture>) {
     }
 }
 
-fn track_scene_elements (
-    mut commands : Commands,
-    scene_elements: Query<Entity, (With<Transform>, With<SkeletalJoint>)>
+fn track_scene_elements(
+    mut commands: Commands,
+    scene_elements: Query<Entity, (With<Transform>, With<SkeletalJoint>)>,
 ) {
     for element in scene_elements.iter() {
         commands.entity(element).insert(ChangeTracker);

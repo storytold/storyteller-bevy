@@ -19,6 +19,7 @@ use wgpu::Extent3d;
 mod anim;
 mod bvh;
 mod camera_controller;
+mod change_tracking;
 mod debug;
 mod design_system;
 mod hierarchy;
@@ -35,7 +36,6 @@ pub mod screenshot;
 mod skybox;
 mod ui;
 pub mod viewport;
-mod change_tracking;
 mod world_grid;
 
 pub use crate::{
