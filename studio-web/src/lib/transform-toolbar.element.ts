@@ -4,6 +4,9 @@ import { match } from "@storyteller/utility";
 import { LitElement, html, unsafeCSS } from "lit";
 import { customElement, state } from "lit/decorators.js";
 
+import "@storyteller/studio-ui/icon";
+import "@storyteller/studio-ui/toolbar";
+
 import styles from "./transform-toolbar.element.scss?inline";
 
 @customElement("sts-transform-toolbar")
