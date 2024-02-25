@@ -3,8 +3,7 @@ import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 import topLevelAwait from "vite-plugin-top-level-await";
 import wasm from "vite-plugin-wasm";
-
-import mergeAssetsDirs from "./vite-plugins/multiple-assets";
+import mergeAssetsDirs from "../vite-multiple-assets";
 
 export default defineConfig({
 	cacheDir: "../node_modules/.vite/react-frontend",
