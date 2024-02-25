@@ -2,3 +2,34 @@
 	position: fixed;
 	inset: 0;
 }
+
+// Layout utilities
+.v-start, .v-end, .h-start, .h-end, .h-center {
+	position: absolute;
+}
+.v-start { top: 1rem; }
+.v-end { bottom: 1rem; }
+.h-start { left: 1rem; }
+.h-end { right: 1rem; }
+.h-center {
+	left: 50%;
+	transform: translateX(-50%);
+}
+
+.hierarchy {
+	width: 320px;
+}
+
+.loading {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: #222;
+	color: #FFF;
+	font: {
+		family: "Fira Sans", sans-serif;
+		weight: 700;
+	}
+}
