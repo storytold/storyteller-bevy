@@ -1,4 +1,6 @@
-use bevy::{prelude::*, render::RenderSet};
+use bevy::prelude::*;
+#[cfg(feature = "wasm")]
+use bevy::render::RenderSet;
 
 pub struct ChangeTrackingPlugin;
 
