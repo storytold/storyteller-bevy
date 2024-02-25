@@ -5,10 +5,10 @@ import { LitElement, type PropertyValues, html, unsafeCSS } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { styleMap } from "lit/directives/style-map.js";
 
+import "@storyteller/studio-ui/button";
+import "@storyteller/studio-ui/toolbar";
+import "@storyteller/studio-ui/tree";
 import "./anim-timeline.element";
-import "./button.element";
-import "./toolbar.element";
-import "./tree.element";
 
 import styles from "./anim-editor.element.scss?inline";
 

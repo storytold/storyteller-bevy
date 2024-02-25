@@ -25,13 +25,13 @@ import "@storyteller/studio-web/viewer";
 import "@storyteller/studio-web/bvh-viewer";
 import "@storyteller/studio-web/editor";
 import "@storyteller/studio-web/mixamo-viewer";
+import "@storyteller/studio-ui/button";
+import "@storyteller/studio-ui/icon";
+import "@storyteller/studio-ui/toolbar";
+import "@storyteller/studio-ui/transform-toolbar";
+import "@storyteller/studio-ui/tree";
 import "./anim-editor.element";
-import "./button.element";
 import "./help.element";
-import "./icon.element";
-import "./toolbar.element";
-import "./transform-toolbar.element";
-import "./tree.element";
 
 import "./app.element.scss";
 
