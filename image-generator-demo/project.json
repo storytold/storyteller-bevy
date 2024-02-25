@@ -1,0 +1,71 @@
+{
+  "name": "image-generator-demo",
+  "$schema": "../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "sourceRoot": "image-generator-demo/src",
+  "tags": [],
+  "targets": {
+    "build": {
+      "executor": "@nx/vite:build",
+      "outputs": [
+        "{options.outputPath}"
+      ],
+      "defaultConfiguration": "production",
+      "options": {
+        "outputPath": "dist/image-generator-demo"
+      },
+      "configurations": {
+        "development": {
+          "mode": "development"
+        },
+        "production": {
+          "mode": "production"
+        }
+      }
+    },
+    "serve": {
+      "executor": "@nx/vite:dev-server",
+      "defaultConfiguration": "development",
+      "dependsOn": [
+        {
+          "projects": ["studio"],
+          "target": "build:web"
+        }
+      ],
+      "options": {
+        "buildTarget": "image-generator-demo:build"
+      },
+      "configurations": {
+        "development": {
+          "buildTarget": "image-generator-demo:build:development",
+          "hmr": true
+        },
+        "production": {
+          "buildTarget": "image-generator-demo:build:production",
+          "hmr": false
+        }
+      }
+    },
+    "preview": {
+      "executor": "@nx/vite:preview-server",
+      "defaultConfiguration": "production",
+      "dependsOn": [
+        {
+          "projects": ["studio"],
+          "target": "build:web"
+        }
+      ],
+      "options": {
+        "buildTarget": "image-generator-demo:build"
+      },
+      "configurations": {
+        "development": {
+          "buildTarget": "image-generator-demo:build:development"
+        },
+        "production": {
+          "buildTarget": "image-generator-demo:build:production"
+        }
+      }
+    }
+  }
+}
