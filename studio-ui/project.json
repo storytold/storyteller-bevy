@@ -1,0 +1,30 @@
+{
+  "name": "studio-ui",
+  "$schema": "../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "studio-ui/src",
+  "projectType": "library",
+  "targets": {
+    "build": {
+      "executor": "@nx/vite:build",
+      "outputs": ["{options.outputPath}"],
+      "dependsOn": [
+        {
+          "projects": ["studio"],
+          "target": "build:web"
+        }
+      ],
+      "options": {
+        "outputPath": "dist/studio-ui"
+      }
+    },
+    "test": {
+      "executor": "@nx/vite:test",
+      "outputs": ["{options.reportsDirectory}"],
+      "options": {
+        "passWithNoTests": true,
+        "reportsDirectory": "../coverage/studio-ui"
+      }
+    }
+  },
+  "tags": []
+}
