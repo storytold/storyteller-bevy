@@ -3,8 +3,8 @@ import * as studio from "@storyteller/studio";
 import {
 	SceneState,
 	type SceneStateEvent,
-	StudioMode,
 	type ScreenshotReadyEvent,
+	StudioMode,
 } from "@storyteller/studio";
 import { StudioURLParams, ViewerElement } from "@storyteller/studio-web";
 import { match } from "@storyteller/utility";
