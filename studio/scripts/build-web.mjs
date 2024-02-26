@@ -13,6 +13,12 @@ async function main() {
 		const __dirname = url.fileURLToPath(new URL(".", import.meta.url));
 		const workspaceRoot = path.resolve(__dirname, "../..");
 
+		const extraCargoArgs = process.argv.slice(2);
+		console.log(`Extra cargo args:`);
+		for (let arg of extraCargoArgs) {
+			console.log(`   ${arg}`);
+		}
+
 		/** @type import("node:child_process").StdioOptions */
 		const stdio = ["ignore", "inherit", "inherit"];
 
@@ -26,9 +32,8 @@ async function main() {
 			"-p", "studio",
 			"--lib",
 			"--release",
-			"--features", "wasm",
 			"--target", "wasm32-unknown-unknown",
-		], {
+		].concat(extraCargoArgs), {
 			shell: true,
 			cwd: workspaceRoot,
 			stdio,

@@ -5,7 +5,8 @@
 		"*.tsx": "${capture}.module.scss, ${capture}.spec.tsx",
 	},
 	"rust-analyzer.cargo.features": [
-		"wasm"
+		"wasm",
+		"wasm_screenshot"
 	],
 	"files.associations": {
 		"*.meta": "ron"

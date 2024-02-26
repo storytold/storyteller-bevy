@@ -280,6 +280,8 @@ pub fn start_internal(
             ..default()
         }),
         CommonPlugins,
+        #[cfg(all(feature = "wasm", feature = "wasm_screenshot"))]
+        wasm::ScreenshotPlugin,
     ));
 
     if matches!(studio_mode, StudioMode::Editor) {

@@ -27,7 +27,15 @@
       "executor": "nx:run-commands",
       "inputs": ["assets"],
       "options": {
-        "command": "node scripts/build-web.mjs",
+        "command": "node scripts/build-web.mjs --features=wasm",
+        "cwd": "studio"
+      }
+    },
+    "build:image-generator": {
+      "executor": "nx:run-commands",
+      "inputs": ["assets"],
+      "options": {
+        "command": "node scripts/build-web.mjs --features=wasm,wasm_screenshot",
         "cwd": "studio"
       }
     },
@@ -41,8 +49,8 @@
     "headless": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "cargo run -p studio --bin studio-headless -- {args}",
-      }      
+        "command": "cargo run -p studio --bin studio-headless -- {args}"
+      }
     },
     "test": {
       "executor": "@nxrs/cargo:test",
