@@ -11,7 +11,7 @@ import { match } from "@storyteller/utility";
 import { LitElement, html, nothing } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { createRef, ref } from "lit/directives/ref.js";
-import { debounce } from "lodash";
+import { DebounceSettings, debounce } from "lodash";
 
 import "@storyteller/studio-web/canvas-provider";
 import "@storyteller/studio-web/scene-hierarchy";
@@ -20,10 +20,29 @@ import "@storyteller/studio-web/viewer";
 
 import "./app.element.scss"
 
+class Debounce {
+	static readonly Wait = 1000 / 24;
+	static readonly Realtime = {
+		leading: false,
+		trailing: true,
+		maxWait: 1000 / 5,
+	};
+
+	static readonly Delayed = {
+		leading: false,
+		trailing: true,
+	};
+
+	static func(config: DebounceSettings) {
+		return debounce(() => studio.requestScreenshot(), this.Wait, config);
+	}
+}
+
 @customElement("app-root")
 export class AppElement extends LitElement {
 	@state() loading = true;
 	@state() imageCaptureUrl?: string;
+	@state() realtimeCapture = true;
 
 	params = new StudioURLParams();
 	viewer = createRef<ViewerElement>();
@@ -52,13 +71,7 @@ export class AppElement extends LitElement {
 		this.requestScreenshot();
 	}
 
-	requestScreenshot = debounce(() => {
-		studio.requestScreenshot();
-	}, (1000 / 24), {
-		leading: false,
-		trailing: true,
-		maxWait: 1000 / 5,
-	});
+	requestScreenshot = Debounce.func(Debounce.Realtime);
 
 	@on("screenshot-ready")
 	onScreenshotReady({ detail: screenshot }: ScreenshotReadyEvent) {
@@ -70,6 +83,14 @@ export class AppElement extends LitElement {
 
 		if (prevUrl != null)
 			URL.revokeObjectURL(prevUrl);
+	}
+
+	toggleRealtimeCapture(event: InputEvent): void {
+		const { checked } = event.target as HTMLInputElement;
+		this.realtimeCapture = checked;
+
+		const config = checked ? Debounce.Realtime : Debounce.Delayed;
+		this.requestScreenshot = Debounce.func(config);
 	}
 
 	protected override render = () => html`
@@ -92,6 +113,16 @@ export class AppElement extends LitElement {
 
 			<sts-scene-hierarchy class="hierarchy h-start v-start"></sts-scene-hierarchy>
 			<sts-transform-toolbar class="h-center v-start"></sts-transform-toolbar>
+			<div class="config v-start h-end">
+				<label class="checkbox">
+					<input
+						type="checkbox"
+						?checked=${this.realtimeCapture}
+						@input=${this.toggleRealtimeCapture}
+					/>
+					Realtime Capture
+				</label>
+			</div>
 
 			${this.loading ? html`
 				<!-- TODO: Animated spinner or something -- talk to our designers -->

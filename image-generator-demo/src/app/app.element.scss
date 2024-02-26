@@ -27,6 +27,36 @@
 	max-height: calc(100vh - 2rem);
 }
 
+.config {
+	display: flex;
+	flex-direction: column;
+	gap: 0.25em;
+
+	padding: 0.5rem 1rem;
+	background: #0006;
+	backdrop-filter: blur(16px);
+	border-radius: 0.5rem;
+
+	.checkbox {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		height: 1.5rem;
+
+		color: #FFFC;
+		transition: color 0.1s linear;
+		font: {
+			family: "Fira Sans", sans-serif;
+			size: 15px;
+			weight: 500;
+		}
+
+		&:hover {
+			color: #FFFF;
+		}
+	}
+}
+
 .loading {
 	position: absolute;
 	inset: 0;
