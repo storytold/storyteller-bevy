@@ -1,10 +1,17 @@
 import { on } from "@storyteller/framework";
-import { SceneState, type SceneStateEvent, StudioMode} from "@storyteller/studio";
+import * as studio from "@storyteller/studio";
+import {
+	SceneState,
+	type SceneStateEvent,
+	StudioMode,
+	type ScreenshotReadyEvent,
+} from "@storyteller/studio";
 import { StudioURLParams, ViewerElement } from "@storyteller/studio-web";
 import { match } from "@storyteller/utility";
 import { LitElement, html, nothing } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { createRef, ref } from "lit/directives/ref.js";
+import { debounce } from "lodash";
 
 import "@storyteller/studio-web/canvas-provider";
 import "@storyteller/studio-web/scene-hierarchy";
@@ -42,18 +49,27 @@ export class AppElement extends LitElement {
 
 	@on("entity-changes")
 	onStudioChanges(): void {
-		this.viewer.value?.canvas?.toBlob(result => {
-			if (!result) {
-				console.warn("canvas.toBlob() gave a null result!");
-				return;
-			}
+		this.requestScreenshot();
+	}
 
-			const prevUrl = this.imageCaptureUrl;
-			this.imageCaptureUrl = URL.createObjectURL(result);
+	requestScreenshot = debounce(() => {
+		studio.requestScreenshot();
+	}, (1000 / 24), {
+		leading: false,
+		trailing: true,
+		maxWait: 1000 / 5,
+	});
 
-			if (prevUrl != null)
-				URL.revokeObjectURL(prevUrl);
-		});
+	@on("screenshot-ready")
+	onScreenshotReady({ detail: screenshot }: ScreenshotReadyEvent) {
+		const prevUrl = this.imageCaptureUrl;
+
+		const blob = new Blob([screenshot.data.buffer], { type: "image/png" });
+		this.imageCaptureUrl = URL.createObjectURL(blob);
+		console.log(`New blob URL: ${this.imageCaptureUrl}`);
+
+		if (prevUrl != null)
+			URL.revokeObjectURL(prevUrl);
 	}
 
 	protected override render = () => html`
@@ -74,7 +90,7 @@ export class AppElement extends LitElement {
 				/>
 			` : nothing}
 
-			<sts-scene-hierarchy class="hierarchy h-start v-start v-end"></sts-scene-hierarchy>
+			<sts-scene-hierarchy class="hierarchy h-start v-start"></sts-scene-hierarchy>
 			<sts-transform-toolbar class="h-center v-start"></sts-transform-toolbar>
 
 			${this.loading ? html`

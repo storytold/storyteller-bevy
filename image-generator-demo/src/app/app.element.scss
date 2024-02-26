@@ -23,7 +23,8 @@
 }
 
 .hierarchy {
-	width: 320px;
+	width: 256px;
+	max-height: calc(100vh - 2rem);
 }
 
 .loading {
