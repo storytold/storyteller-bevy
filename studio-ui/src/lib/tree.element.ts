@@ -23,7 +23,7 @@ export class TreeElement extends LitElement {
 	@property() name = "";
 	@property() icon?: string;
 	@property({ attribute: false }) treeChildren?: Tree[];
-	@property({ type: Boolean }) expanded = false;
+	@property({ type: Boolean }) expanded = true;
 
 	@state() selected = false;
 
