@@ -2,7 +2,6 @@ import { inject } from "@storyteller/framework";
 import * as studio from "@storyteller/studio";
 import {
 	type InitOptions,
-	type SkyboxId,
 	StudioMode,
 	ViewportSize,
 } from "@storyteller/studio";
