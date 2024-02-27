@@ -6,7 +6,6 @@ use crate::{InitAsset, InitParams, StudioMode, ViewportSize};
 
 #[wasm_bindgen(typescript_custom_section)]
 const WASM_ENTRY_POINTS: &str = r#"
-
 export interface InitOptions {
     mode: StudioMode;
     /** Required for all entry-points except `initFromStorytellerScene()` */
