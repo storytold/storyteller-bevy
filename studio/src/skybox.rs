@@ -52,8 +52,7 @@ fn load_skybox(mut cmd: Commands, assets: Res<AssetServer>, id: Res<SkyboxId>) {
             cubemap: assets.load(paths.cubemap),
             env_diffuse: assets.load(paths.env_diffuse),
             env_specular: assets.load(paths.env_specular),
-    });
-        
+        });
     }
 }
 
