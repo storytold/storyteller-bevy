@@ -6,11 +6,9 @@ import {
 	type ScreenshotReadyEvent,
 	StudioMode,
 } from "@storyteller/studio";
-import { StudioURLParams } from "@storyteller/studio-web";
 import { match } from "@storyteller/utility";
 import { LitElement, html, nothing } from "lit";
 import { customElement, state } from "lit/decorators.js";
-import { createRef, ref } from "lit/directives/ref.js";
 import { DebounceSettings, debounce } from "lodash";
 
 import "@storyteller/studio-web/canvas-provider";
