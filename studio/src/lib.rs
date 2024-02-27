@@ -5,6 +5,7 @@ use bevy_mod_picking::DefaultPickingPlugins;
 use bevy_web_asset::WebAssetPlugin;
 use scene::ImportSceneEvent;
 
+#[cfg(feature = "wasm")]
 use serde_repr::{Deserialize_repr, Serialize_repr};
 #[cfg(feature = "wasm")]
 use wasm_bindgen::prelude::*;
