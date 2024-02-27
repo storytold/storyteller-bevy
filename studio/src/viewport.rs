@@ -1,10 +1,11 @@
 use core::fmt;
 
 use bevy::window::WindowResolution;
+use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Serialize, Deserialize)]
 pub struct ViewportSize {
     pub width: f32,
     pub height: f32,

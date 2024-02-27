@@ -29,6 +29,7 @@
       "@storyteller/studio-web/editor": ["studio-web/src/lib/editor.element.ts"],
       "@storyteller/studio-web/mixamo-viewer": ["studio-web/src/lib/mixamo-viewer.element.ts"],
       "@storyteller/studio-web/scene-hierarchy": ["studio-web/src/lib/scene-hierarchy.element.ts"],
+      "@storyteller/studio-web/studio": ["studio-web/src/lib/studio.element.ts"],
       "@storyteller/studio-web/transform-toolbar": ["studio-web/src/lib/transform-toolbar.element.ts"],
       "@storyteller/utility": ["utility/src/index.ts"]
     }

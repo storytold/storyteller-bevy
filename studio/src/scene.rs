@@ -26,10 +26,10 @@ use crate::{
     camera_controller::{CameraController, CameraControllerBundle},
     change_tracking::{ChangeTracker, ChangeTrackingPlugin},
     debug::DebugPoint,
-    is_headless, is_not_headless,
+    headless::{is_headless, is_not_headless, HeadlessSettings},
     math::{Combinable, Extrema},
     screenshot::ScreenCapture,
-    HeadlessSettings, MainCamera,
+    MainCamera,
 };
 
 pub struct ScenePlugin;
@@ -46,6 +46,7 @@ impl Plugin for ScenePlugin {
             .add_state::<SceneState>()
             .add_event::<LoadLibraryObjectEvent>()
             .add_event::<LoadSceneEvent>()
+            .add_event::<ImportSceneEvent>()
             .add_systems(
                 Startup,
                 (
@@ -55,7 +56,8 @@ impl Plugin for ScenePlugin {
             )
             .add_systems(
                 Update,
-                (init_object_loading, init_scene_loading).in_set(SceneSpawnerSystem),
+                (init_object_loading, init_scene_import, init_scene_loading)
+                    .in_set(SceneSpawnerSystem),
             )
             .add_systems(
                 OnEnter(SceneState::Active),
@@ -208,8 +210,7 @@ fn auto_add_handle<T: Asset>(
 #[derive(Event, Deref)]
 pub struct LoadLibraryObjectEvent(pub String);
 
-/// Request the application to load a previously saved `*.scn.ron` dynamic scene
-/// file.
+/// Request the application to load a previously saved Storyteller Studio scene.
 ///
 /// Expects a full, resolvable path to the file (e.g. `scenes/my-scene.scn.ron`
 /// for a local file saved under `studio/assets/scenes`, or
@@ -217,6 +218,11 @@ pub struct LoadLibraryObjectEvent(pub String);
 /// backend).
 #[derive(Event, Deref)]
 pub struct LoadSceneEvent(pub String);
+
+/// Request the application to import and process a glTF scene from an arbitrary
+/// asset source (e.g., an http path or a Storyteller.ai media token).
+#[derive(Event, Deref)]
+pub struct ImportSceneEvent(pub String);
 
 // TODOL This could be converted into an enum that indicates what "kind" of
 //       element this is (e.g. StaticMesh, SkinnedMesh, Bone, Light, Camera).
@@ -321,6 +327,21 @@ fn init_object_loading(mut cmd: Commands, mut er: EventReader<LoadLibraryObjectE
             SpatialBundle::default(),
             space_editor::prelude::GltfPrefab {
                 path: format!("gltf/{}", id.0),
+                scene: "Scene0".to_string(),
+            },
+            PrefabMarker,
+            SceneRoot,
+        ));
+    }
+}
+
+fn init_scene_import(mut cmd: Commands, mut er: EventReader<ImportSceneEvent>) {
+    if let Some(path) = er.read().last() {
+        info!("Importing asset: {}", path.0);
+        cmd.spawn((
+            SpatialBundle::default(),
+            space_editor::prelude::GltfPrefab {
+                path: path.0.clone(),
                 scene: "Scene0".to_string(),
             },
             PrefabMarker,

@@ -1,6 +1,9 @@
-use bevy::{app::Update, window::close_on_esc};
+use bevy::{
+    app::Update,
+    window::{close_on_esc, Window},
+};
 use clap::Parser;
-use studio::{screenshot::ScreenShotPlugin, InitSeed, StudioMode, ViewportSize};
+use studio::{screenshot::ScreenShotPlugin, InitAsset, InitParams, StudioMode};
 
 #[derive(Parser)]
 #[command(name = "StorytellerStudio")]
@@ -21,14 +24,15 @@ fn main() {
 
     // Edit the arguments here to change the default startup scene or skybox
     let mut app = studio::start_internal(
-        InitSeed::FromLibrary {
-            object_id,
+        InitParams::FromAsset {
+            asset: InitAsset::LibraryObject(object_id),
             skybox_id,
         },
-        "", // ignored for non-WASM
-        "Storyteller Studio",
-        ViewportSize::default(),
         StudioMode::Editor,
+        Some(Window {
+            title: "Storyteller Studio".into(),
+            ..Default::default()
+        }),
     );
 
     // Add any additional systems, resources, etc. for local debugging

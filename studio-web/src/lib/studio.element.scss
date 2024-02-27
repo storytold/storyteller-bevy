@@ -1,0 +1,14 @@
+:host {
+	display: block;
+	position: relative;
+	width: 100%;
+	height: 100%;
+}
+
+::slotted([slot="canvas"]) {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	outline: none !important;
+}

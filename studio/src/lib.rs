@@ -1,20 +1,14 @@
 #![allow(clippy::type_complexity, clippy::too_many_arguments)]
 
-use std::time::Duration;
-
-use bevy::{
-    app::{AppExit, PluginGroupBuilder, ScheduleRunnerPlugin},
-    prelude::*,
-};
+use bevy::{app::PluginGroupBuilder, prelude::*};
 use bevy_mod_picking::DefaultPickingPlugins;
 use bevy_web_asset::WebAssetPlugin;
-use bvh::{BvhAnimCompleteEvent, TestBvh};
-use screenshot::{ScreenCapture, ScreenShotPlugin};
-use space_editor::prelude::{EditorEvent, EditorPrefabPath};
+use scene::ImportSceneEvent;
 
+use serde::{Deserialize, Serialize};
+use serde_repr::{Deserialize_repr, Serialize_repr};
 #[cfg(feature = "wasm")]
 use wasm_bindgen::prelude::*;
-use wgpu::Extent3d;
 
 mod anim;
 mod bvh;
@@ -22,6 +16,7 @@ mod camera_controller;
 mod change_tracking;
 mod debug;
 mod design_system;
+pub mod headless;
 mod hierarchy;
 mod input;
 mod inspector;
@@ -64,11 +59,12 @@ mod wasm;
 pub(crate) struct MainCamera;
 
 #[cfg_attr(feature = "wasm", wasm_bindgen)]
-#[derive(Resource, Clone, Copy, PartialEq, Eq, Debug)]
+#[repr(u8)]
+#[derive(Resource, Clone, Copy, PartialEq, Eq, Debug, Deserialize_repr, Serialize_repr)]
 pub enum StudioMode {
-    Editor,
-    Headless,
-    Viewer,
+    Editor = 0,
+    Headless = 1,
+    Viewer = 2,
 }
 
 pub(crate) fn is_editor(r_studio_mode: Res<StudioMode>) -> bool {
@@ -104,166 +100,342 @@ impl PluginGroup for EditorPlugins {
     }
 }
 
-#[cfg_attr(feature = "wasm", wasm_bindgen(js_name = startViewer))]
-/// Start the application as a read-only viewer for a single library object.
-///
-/// @param object_id ID of the library object to load.
-/// @param skybox_id ID of the Skybox to use
-/// @param canvas_selector A CSS selector for the canvas that will host the Bevy
-///   application. This should be unique (i.e. `querySelectorAll` should not
-///   return more than one element), so using an ID selector is a good idea.
-/// @param canvas_alt `alt` text for the HTML canvas element.
-/// @param viewport_size The size of the canvas in CSS `px` units.
-pub fn start_viewer(
-    object_id: &str,
-    skybox_id: &str,
-    canvas_selector: &str,
-    canvas_alt: &str,
+#[cfg(feature = "wasm")]
+#[wasm_bindgen(typescript_custom_section)]
+const WASM_ENTRY_POINTS: &str = r#"
+export type SkyboxId
+    = "gum_trees_4k"
+    | "kloofenfal_28d_misty_4k"
+    | "meadow_4k"
+    | "promenade_de_vidy_4k"
+    | "scythian_tombs_4k"
+    | "test_scene"
+    ;
+
+export interface InitOptions {
+    mode: StudioMode;
+    /** Required for all entry-points except `initFromStorytellerScene()` */
+    skyboxId?: SkyboxId;
+    canvasSelector: string;
+    canvasAlt: string;
+    viewportSize: ViewportSize;
+}
+
+export function initFromLibrary(objectId: string, options: InitOptions): void;
+export function initFromBvh(animPath: string, options: InitOptions): void;
+export function initFromMixamo(animPath: string, options: InitOptions): void;
+export function initFromSceneImport(scenePath: string, options: InitOptions): void;
+export function initFromStorytellerScene(scenePath: string, options: InitOptions): void;
+"#;
+
+#[derive(Serialize, Deserialize)]
+struct WasmInitOptions {
+    #[serde(rename = "skyboxId")]
+    skybox_id: Option<String>,
+    mode: StudioMode,
+    #[serde(rename = "canvasSelector")]
+    canvas_selector: String,
+    #[serde(rename = "canvasAlt")]
+    canvas_alt: String,
+    #[serde(rename = "viewportSize")]
     viewport_size: ViewportSize,
-) {
+}
+
+#[cfg(feature = "wasm")]
+#[wasm_bindgen(skip_typescript, js_name = initFromLibrary)]
+pub fn init_from_library(object_id: String, options: JsValue) -> Result<(), JsValue> {
+    let options = serde_wasm_bindgen::from_value::<WasmInitOptions>(options)?;
+    let skybox_id = options
+        .skybox_id
+        .expect("`skyboxId` is required for `initFromLibrary`");
+
     start_internal(
-        InitSeed::FromLibrary {
-            object_id: object_id.into(),
-            skybox_id: skybox_id.into(),
+        InitParams::FromAsset {
+            asset: InitAsset::LibraryObject(object_id),
+            skybox_id,
         },
-        canvas_selector,
-        canvas_alt,
-        viewport_size,
-        StudioMode::Viewer,
+        options.mode,
+        Some(Window {
+            resolution: options.viewport_size.into(),
+            title: options.canvas_alt,
+            canvas: Some(options.canvas_selector),
+            ..default()
+        }),
     )
     .run();
+
+    Ok(())
 }
 
-#[cfg_attr(feature = "wasm", wasm_bindgen(js_name = startEditor))]
-pub fn start_editor(
-    scene_id: &str,
-    canvas_selector: &str,
-    canvas_alt: &str,
-    viewport_size: ViewportSize,
-) {
+#[cfg(feature = "wasm")]
+#[wasm_bindgen(skip_typescript, js_name = initFromBvh)]
+pub fn init_from_bvh(anim_path: String, options: JsValue) -> Result<(), JsValue> {
+    let options = serde_wasm_bindgen::from_value::<WasmInitOptions>(options)?;
+    let skybox_id = options
+        .skybox_id
+        .expect("`skyboxId` is required for `initFromBvh`");
+
     start_internal(
-        InitSeed::FromScene(scene_id.into()),
-        canvas_selector,
-        canvas_alt,
-        viewport_size,
-        StudioMode::Editor,
+        InitParams::FromAsset {
+            asset: InitAsset::BvhAnim(anim_path),
+            skybox_id,
+        },
+        options.mode,
+        Some(Window {
+            resolution: options.viewport_size.into(),
+            title: options.canvas_alt,
+            canvas: Some(options.canvas_selector),
+            ..default()
+        }),
     )
     .run();
+
+    Ok(())
 }
 
-#[cfg_attr(feature = "wasm", wasm_bindgen(js_name = startBvhViewer))]
-pub fn start_bvh_viewer(
-    bvh_path: &str,
-    skybox_id: &str,
-    canvas_selector: &str,
-    canvas_alt: &str,
-    viewport_size: ViewportSize,
-) {
-    let mut app = start_internal(
-        InitSeed::FromLibrary {
-            object_id: "Mannequin.gltf".into(),
-            skybox_id: skybox_id.into(),
-        },
-        canvas_selector,
-        canvas_alt,
-        viewport_size,
-        StudioMode::Viewer,
-    );
+#[cfg(feature = "wasm")]
+#[wasm_bindgen(skip_typescript, js_name = initFromMixamo)]
+pub fn init_from_mixamo(anim_path: String, options: JsValue) -> Result<(), JsValue> {
+    let options = serde_wasm_bindgen::from_value::<WasmInitOptions>(options)?;
+    let skybox_id = options
+        .skybox_id
+        .expect("`skyboxId` is required for `initFromMixamo`");
 
-    let bvh_path = bvh_path.to_string();
-
-    app.add_plugins(BvhPlugin);
-    app.add_systems(
-        Startup,
-        move |mut cmd: Commands, r_assets: Res<AssetServer>| {
-            cmd.insert_resource(bvh::TestBvh(r_assets.load(bvh_path.clone())));
-        },
-    );
-
-    app.run();
-}
-
-#[cfg_attr(feature = "wasm", wasm_bindgen(js_name = startMixamoViewer))]
-pub fn start_mixamo_viewer(
-    mixamo_path: &str,
-    skybox_id: &str,
-    canvas_selector: &str,
-    canvas_alt: &str,
-    viewport_size: ViewportSize,
-) {
-    let mut app = start_internal(
-        InitSeed::FromLibrary {
-            object_id: "Mannequin.gltf".into(),
-            skybox_id: skybox_id.into(),
-        },
-        canvas_selector,
-        canvas_alt,
-        viewport_size,
-        StudioMode::Viewer,
-    );
-
-    let mixamo_path = mixamo_path.to_string();
-
-    app.add_plugins(MixamoPlugin);
-    app.add_systems(Startup, move |mut ew: EventWriter<MixamoImportEvent>| {
-        ew.send(MixamoImportEvent(mixamo_path.clone()));
-    });
-
-    app.run();
-}
-
-#[cfg_attr(feature = "wasm", wasm_bindgen)]
-pub fn start(
-    object_id: &str,
-    skybox_id: &str,
-    canvas_selector: &str,
-    canvas_alt: &str,
-    viewport_size: ViewportSize,
-    studio_mode: StudioMode,
-) {
     start_internal(
-        InitSeed::FromLibrary {
-            object_id: object_id.into(),
-            skybox_id: skybox_id.into(),
+        InitParams::FromAsset {
+            asset: InitAsset::MixamoAnim(anim_path),
+            skybox_id,
         },
-        canvas_selector,
-        canvas_alt,
-        viewport_size,
-        studio_mode,
+        options.mode,
+        Some(Window {
+            resolution: options.viewport_size.into(),
+            title: options.canvas_alt,
+            canvas: Some(options.canvas_selector),
+            ..default()
+        }),
     )
     .run();
+
+    Ok(())
 }
 
-pub enum InitSeed {
-    /// Initialize the application from assets in the "bundled" asset library.
-    FromLibrary {
-        /// A filename, including the extension, that can be found under
-        /// `studio/assets/gltf` (e.g., "Mannequin.gltf")
-        object_id: String,
+#[cfg(feature = "wasm")]
+#[wasm_bindgen(skip_typescript, js_name = initFromSceneImport)]
+pub fn init_from_scene_import(scene_path: String, options: JsValue) -> Result<(), JsValue> {
+    let options = serde_wasm_bindgen::from_value::<WasmInitOptions>(options)?;
+    let skybox_id = options
+        .skybox_id
+        .expect("`skyboxId` is required for `initFromSceneImport`");
+
+    start_internal(
+        InitParams::FromAsset {
+            asset: InitAsset::ImportedScene(scene_path),
+            skybox_id,
+        },
+        options.mode,
+        Some(Window {
+            resolution: options.viewport_size.into(),
+            title: options.canvas_alt,
+            canvas: Some(options.canvas_selector),
+            ..default()
+        }),
+    )
+    .run();
+
+    Ok(())
+}
+
+#[cfg(feature = "wasm")]
+#[wasm_bindgen(skip_typescript, js_name = initFromStorytellerScene)]
+pub fn init_from_storyteller_scene(scene_path: String, options: JsValue) -> Result<(), JsValue> {
+    let options = serde_wasm_bindgen::from_value::<WasmInitOptions>(options)?;
+
+    start_internal(
+        InitParams::FromScene(scene_path),
+        options.mode,
+        Some(Window {
+            resolution: options.viewport_size.into(),
+            title: options.canvas_alt,
+            canvas: Some(options.canvas_selector),
+            ..default()
+        }),
+    )
+    .run();
+
+    Ok(())
+}
+
+// #[cfg_attr(feature = "wasm", wasm_bindgen(js_name = startViewer))]
+// /// Start the application as a read-only viewer for a single library object.
+// ///
+// /// @param object_id ID of the library object to load.
+// /// @param skybox_id ID of the Skybox to use
+// /// @param canvas_selector A CSS selector for the canvas that will host the Bevy
+// ///   application. This should be unique (i.e. `querySelectorAll` should not
+// ///   return more than one element), so using an ID selector is a good idea.
+// /// @param canvas_alt `alt` text for the HTML canvas element.
+// /// @param viewport_size The size of the canvas in CSS `px` units.
+// pub fn start_viewer(
+//     object_id: &str,
+//     skybox_id: &str,
+//     canvas_selector: &str,
+//     canvas_alt: &str,
+//     viewport_size: ViewportSize,
+// ) {
+//     start_internal(
+//         InitParams::FromLibrary {
+//             object_id: object_id.into(),
+//             skybox_id: skybox_id.into(),
+//         },
+//         canvas_selector,
+//         canvas_alt,
+//         viewport_size,
+//         StudioMode::Viewer,
+//     )
+//     .run();
+// }
+
+// #[cfg_attr(feature = "wasm", wasm_bindgen(js_name = startEditor))]
+// pub fn start_editor(
+//     scene_id: &str,
+//     canvas_selector: &str,
+//     canvas_alt: &str,
+//     viewport_size: ViewportSize,
+// ) {
+//     start_internal(
+//         InitParams::FromScene(scene_id.into()),
+//         canvas_selector,
+//         canvas_alt,
+//         viewport_size,
+//         StudioMode::Editor,
+//     )
+//     .run();
+// }
+
+// #[cfg_attr(feature = "wasm", wasm_bindgen(js_name = startBvhViewer))]
+// pub fn start_bvh_viewer(
+//     bvh_path: &str,
+//     skybox_id: &str,
+//     canvas_selector: &str,
+//     canvas_alt: &str,
+//     viewport_size: ViewportSize,
+// ) {
+//     let mut app = start_internal(
+//         InitParams::FromLibrary {
+//             object_id: "Mannequin.gltf".into(),
+//             skybox_id: skybox_id.into(),
+//         },
+//         canvas_selector,
+//         canvas_alt,
+//         viewport_size,
+//         StudioMode::Viewer,
+//     );
+
+//     let bvh_path = bvh_path.to_string();
+
+//     app.add_plugins(BvhPlugin);
+//     app.add_systems(
+//         Startup,
+//         move |mut cmd: Commands, r_assets: Res<AssetServer>| {
+//             cmd.insert_resource(bvh::TestBvh(r_assets.load(bvh_path.clone())));
+//         },
+//     );
+
+//     app.run();
+// }
+
+// #[cfg_attr(feature = "wasm", wasm_bindgen(js_name = startMixamoViewer))]
+// pub fn start_mixamo_viewer(
+//     mixamo_path: &str,
+//     skybox_id: &str,
+//     canvas_selector: &str,
+//     canvas_alt: &str,
+//     viewport_size: ViewportSize,
+// ) {
+//     let mut app = start_internal(
+//         InitParams::FromLibrary {
+//             object_id: "Mannequin.gltf".into(),
+//             skybox_id: skybox_id.into(),
+//         },
+//         canvas_selector,
+//         canvas_alt,
+//         viewport_size,
+//         StudioMode::Viewer,
+//     );
+
+//     let mixamo_path = mixamo_path.to_string();
+
+//     app.add_plugins(MixamoPlugin);
+//     app.add_systems(Startup, move |mut ew: EventWriter<MixamoImportEvent>| {
+//         ew.send(MixamoImportEvent(mixamo_path.clone()));
+//     });
+
+//     app.run();
+// }
+
+// #[cfg_attr(feature = "wasm", wasm_bindgen)]
+// pub fn start(
+//     object_id: &str,
+//     skybox_id: &str,
+//     canvas_selector: &str,
+//     canvas_alt: &str,
+//     viewport_size: ViewportSize,
+//     studio_mode: StudioMode,
+// ) {
+//     start_internal(
+//         InitParams::FromLibrary {
+//             object_id: object_id.into(),
+//             skybox_id: skybox_id.into(),
+//         },
+//         canvas_selector,
+//         canvas_alt,
+//         viewport_size,
+//         studio_mode,
+//     )
+//     .run();
+// }
+
+#[derive(Debug)]
+pub enum InitParams {
+    /// Initialize the application by importing an asset and processing it to
+    /// work with Storyteller Studio's feature-set.
+    FromAsset {
+        asset: InitAsset,
         /// A skybox name that corresponds to a matching set of assets under
         /// `studio/assets/skyboxes`, _not_ including file extensions or
         /// "diffuse"/"specular" qualifiers (e.g., "gum_trees_4k")
         skybox_id: String,
     },
-    /// Initialize the application by loading a previously saved `*.scn.ron`
-    /// scene file.
+    /// Initialize the application by loading a previously saved Storyteller
+    /// Studio scene.
     FromScene(String),
 }
 
-pub fn start_internal(
-    seed: InitSeed,
-    canvas_selector: &str,
-    canvas_alt: &str,
-    viewport_size: ViewportSize,
-    studio_mode: StudioMode,
-) -> App {
+#[derive(Debug)]
+pub enum InitAsset {
+    /// Initialize the application from an asset in the "bundled" asset library.
+    /// Takes a filename, including the extension, that can be found under
+    /// `studio/assets/gltf` (e.g., "base-human-female.gltf").
+    LibraryObject(String),
+    /// Initialize the application by loading an arbitrary glTF scene from any
+    /// source (e.g., the Storyteller.ai backend)
+    ImportedScene(String),
+    /// Initialize the application by retargeting a BVH animation (currently
+    /// only supports the MocapNET skeleton) onto the bundled `Mannequin.gltf`
+    /// model.
+    BvhAnim(String),
+    /// Initialize the application by retargeting a Mixamo animation onto the
+    /// bundled `Mannequin.gltf` model.
+    MixamoAnim(String),
+}
+
+pub fn start_internal(init: InitParams, mode: StudioMode, window_config: Option<Window>) -> App {
     #[cfg(feature = "wasm")]
     console_error_panic_hook::set_once();
 
     let mut app = App::new();
 
-    app.insert_resource(HeadlessMode::None);
-    app.insert_resource(studio_mode);
+    app.insert_resource(mode);
 
     app.add_plugins((
         #[cfg(feature = "wasm")]
@@ -271,12 +443,13 @@ pub fn start_internal(
         WebAssetPlugin,
         RemoteAssetPlugin,
         DefaultPlugins.set(WindowPlugin {
-            primary_window: Some(Window {
-                resolution: viewport_size.into(),
-                title: canvas_alt.into(),
-                canvas: Some(canvas_selector.into()),
-                ..default()
-            }),
+            primary_window: Some(window_config.unwrap_or_default()),
+            // primary_window: Some(Window {
+            //     resolution: viewport_size.into(),
+            //     title: canvas_alt.into(),
+            //     canvas: Some(canvas_selector.into()),
+            //     ..default()
+            // }),
             ..default()
         }),
         CommonPlugins,
@@ -284,7 +457,7 @@ pub fn start_internal(
         wasm::ScreenshotPlugin,
     ));
 
-    if matches!(studio_mode, StudioMode::Editor) {
+    if matches!(mode, StudioMode::Editor) {
         app.add_plugins((DefaultPickingPlugins, EditorPlugins));
 
         // Only for registering components for undo
@@ -292,20 +465,59 @@ pub fn start_internal(
         app.auto_reflected_undo::<Transform>();
     }
 
-    match seed {
-        InitSeed::FromLibrary {
-            object_id,
-            skybox_id,
-        } => {
-            app.add_systems(
-                Startup,
-                move |mut cmd: Commands, mut ew: EventWriter<LoadLibraryObjectEvent>| {
-                    cmd.insert_resource(SkyboxId(skybox_id.clone()));
-                    ew.send(LoadLibraryObjectEvent(object_id.clone()));
-                },
-            );
+    match init {
+        InitParams::FromAsset { asset, skybox_id } => {
+            app.add_systems(Startup, move |mut cmd: Commands| {
+                cmd.insert_resource(SkyboxId(skybox_id.clone()));
+            });
+
+            match asset {
+                InitAsset::LibraryObject(id) => {
+                    app.add_systems(
+                        Startup,
+                        move |mut ew: EventWriter<LoadLibraryObjectEvent>| {
+                            ew.send(LoadLibraryObjectEvent(id.clone()));
+                        },
+                    );
+                }
+                anim @ (InitAsset::BvhAnim(_) | InitAsset::MixamoAnim(_)) => {
+                    app.add_systems(
+                        Startup,
+                        move |mut ew: EventWriter<LoadLibraryObjectEvent>| {
+                            ew.send(LoadLibraryObjectEvent("Mannequin.gltf".into()));
+                        },
+                    );
+
+                    match anim {
+                        InitAsset::BvhAnim(anim) => {
+                            app.add_plugins(BvhPlugin);
+                            app.add_systems(
+                                Startup,
+                                move |mut cmd: Commands, r_assets: Res<AssetServer>| {
+                                    cmd.insert_resource(bvh::TestBvh(r_assets.load(anim.clone())));
+                                },
+                            );
+                        }
+                        InitAsset::MixamoAnim(anim) => {
+                            app.add_plugins(MixamoPlugin);
+                            app.add_systems(
+                                Startup,
+                                move |mut ew: EventWriter<MixamoImportEvent>| {
+                                    ew.send(MixamoImportEvent(anim.clone()));
+                                },
+                            );
+                        }
+                        _ => unreachable!(),
+                    }
+                }
+                InitAsset::ImportedScene(scene) => {
+                    app.add_systems(Startup, move |mut ew: EventWriter<ImportSceneEvent>| {
+                        ew.send(ImportSceneEvent(scene.clone()));
+                    });
+                }
+            }
         }
-        InitSeed::FromScene(scene) => {
+        InitParams::FromScene(scene) => {
             app.add_systems(Startup, move |mut ew: EventWriter<LoadSceneEvent>| {
                 ew.send(LoadSceneEvent(scene.clone()));
             });
@@ -316,154 +528,4 @@ pub fn start_internal(
     wasm::initialize();
 
     app
-}
-
-#[derive(Debug, Resource, Clone)]
-pub enum HeadlessMode {
-    Bvh(String, String),
-    Scene(String, String),
-    Mixamo(String, String),
-    None,
-}
-
-pub fn start_headless(
-    mode: HeadlessMode,
-    fps: u32,
-    outout_dir: &str,
-    frames_to_capture: u32,
-    image_res: Extent3d,
-) -> App {
-    let mut app = App::new();
-
-    app.insert_resource(mode.clone());
-    app.insert_resource(StudioMode::Headless);
-    app.insert_resource(HeadlessSettings {
-        max_frames: frames_to_capture,
-        output_dims: image_res,
-        output_dir: outout_dir.to_string(),
-    });
-
-    app.add_plugins((
-        ScheduleRunnerPlugin::run_loop(Duration::from_secs_f64(1.0 / fps as f64)),
-        DefaultPlugins.set(WindowPlugin {
-            primary_window: None,
-            exit_condition: bevy::window::ExitCondition::DontExit,
-            close_when_requested: true,
-        }),
-        ScreenShotPlugin,
-        CommonPlugins.build().disable::<WorldGridPlugin>(),
-    ));
-
-    match mode {
-        HeadlessMode::Bvh(bvh_dir, skybox) => {
-            app.add_plugins(BvhPlugin);
-            app.add_systems(
-                Startup,
-                move |mut cmd: Commands,
-                      asset_server: Res<AssetServer>,
-                      mut ew: EventWriter<LoadLibraryObjectEvent>| {
-                    cmd.insert_resource(SkyboxId(skybox.clone()));
-                    cmd.insert_resource(TestBvh(asset_server.load(bvh_dir.clone())));
-                    ew.send(LoadLibraryObjectEvent("Mannequin.gltf".to_string()));
-                },
-            );
-
-            app.add_systems(PostUpdate, check_for_bvh_capture_complete);
-        }
-        HeadlessMode::Scene(scene, skybox) => {
-            app.add_systems(
-                Startup,
-                move |mut cmd: Commands, mut ew: EventWriter<EditorEvent>| {
-                    cmd.insert_resource(SkyboxId(skybox.clone()));
-                    ew.send(EditorEvent::Load(EditorPrefabPath::File(scene.clone())))
-                },
-            );
-        }
-        HeadlessMode::Mixamo(mixamo_path, skybox) => {
-            app.add_plugins(MixamoPlugin);
-            app.add_systems(
-                Startup,
-                move |mut commands: Commands,
-                      mut ew: EventWriter<MixamoImportEvent>,
-                      mut load_scene_event: EventWriter<LoadSceneEvent>| {
-                    ew.send(MixamoImportEvent(mixamo_path.clone()));
-                    load_scene_event.send(LoadSceneEvent("Mannequin.gltf".to_string()));
-                    commands.insert_resource(SkyboxId(skybox.clone()));
-                },
-            );
-            app.add_systems(PostUpdate, check_for_mixamo_capture_complete);
-
-            app.run();
-        }
-        HeadlessMode::None => {}
-    }
-
-    app
-}
-
-pub fn is_headless(studio_state: Res<StudioMode>) -> bool {
-    *studio_state == StudioMode::Headless
-}
-
-pub fn is_not_headless(studio_state: Res<StudioMode>) -> bool {
-    *studio_state != StudioMode::Headless
-}
-
-#[derive(Resource)]
-pub struct HeadlessSettings {
-    pub output_dims: Extent3d,
-    pub output_dir: String,
-    pub max_frames: u32,
-}
-
-impl Default for HeadlessSettings {
-    fn default() -> Self {
-        HeadlessSettings {
-            output_dims: Extent3d {
-                width: 1280,
-                height: 720,
-                depth_or_array_layers: 1,
-            },
-            output_dir: "./screen_shots/".to_string(),
-            max_frames: u32::MAX,
-        }
-    }
-}
-
-fn check_for_bvh_capture_complete(
-    mut close_app: EventWriter<AppExit>,
-    mut main_camera: Query<&mut ScreenCapture, With<MainCamera>>,
-    bvh_event_reader: EventReader<BvhAnimCompleteEvent>,
-) {
-    let Ok(mut screen_capture) = main_camera.get_single_mut() else {
-        return;
-    };
-
-    println!("Frames captured {}", screen_capture.frames_captured());
-    if !screen_capture.should_capture() || !bvh_event_reader.is_empty() {
-        screen_capture.stop_capturing();
-        close_app.send(AppExit);
-    }
-}
-
-fn check_for_mixamo_capture_complete(
-    mut close_app: EventWriter<AppExit>,
-    mut main_camera: Query<&mut ScreenCapture, With<MainCamera>>,
-    mixamo_anims: Query<&AnimationPlayer>,
-) {
-    let Ok(mut capture) = main_camera.get_single_mut() else {
-        return;
-    };
-
-    for anim in mixamo_anims.iter() {
-        println!(
-            "Time elapsed {} | Frames Captured : {}",
-            anim.elapsed(),
-            capture.frames_captured()
-        );
-        if anim.completions() != 0 {
-            capture.stop_capturing();
-            close_app.send(AppExit);
-        }
-    }
 }

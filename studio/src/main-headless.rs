@@ -1,6 +1,6 @@
 use bevy::render::render_resource::Extent3d;
 use clap::{Args, Parser, Subcommand};
-use studio::{start_headless, HeadlessMode};
+use studio::headless::{start_headless, HeadlessMode};
 
 #[derive(Parser)]
 #[command(name = "StorytellerStudioHeadless")]

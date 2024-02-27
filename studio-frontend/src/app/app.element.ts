@@ -20,11 +20,12 @@ import "@storyteller/studio-ui/icon";
 import "@storyteller/studio-ui/toolbar";
 import "@storyteller/studio-ui/tree";
 import "@storyteller/studio-web/canvas-provider";
-import "@storyteller/studio-web/viewer";
-import "@storyteller/studio-web/bvh-viewer";
-import "@storyteller/studio-web/editor";
-import "@storyteller/studio-web/mixamo-viewer";
+// import "@storyteller/studio-web/viewer";
+// import "@storyteller/studio-web/bvh-viewer";
+// import "@storyteller/studio-web/editor";
+// import "@storyteller/studio-web/mixamo-viewer";
 import "@storyteller/studio-web/scene-hierarchy";
+import "@storyteller/studio-web/studio";
 import "@storyteller/studio-web/transform-toolbar";
 import "./anim-editor.element";
 import "./help.element";
@@ -85,7 +86,17 @@ export class AppElement extends LitElement {
 			${ref(this.#canvasProvider as any)}
 		>
 			<!-- Scene view -->
-			${this.#params.bvh ? html`
+			<sts-studio
+				.objectId=${this.#params.objectId}
+				.bvhPath=${this.#params.bvh}
+				.mixamoPath=${this.#params.mixamo}
+				.sceneImport=${this.#params.sceneImport}
+				.storytellerScene=${this.#params.scene}
+				.skyboxId=${this.#params.skybox ?? "test_scene"}
+				.mode=${this.#params.mode}
+			></sts-studio>
+
+			<!-- ${this.#params.bvh ? html`
 				<sts-bvh-viewer
 					bvhPath=${this.#params.bvh}
 					skyboxId="test_scene"
@@ -105,7 +116,7 @@ export class AppElement extends LitElement {
 					skyboxId="test_scene"
 					.mode=${this.#params.mode}
 				></sts-viewer>
-			`}
+			`} -->
 
 			<!-- Actions toolbar -->
 			<sts-toolbar class="v-start h-start">

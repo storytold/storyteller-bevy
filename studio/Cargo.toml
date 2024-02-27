@@ -48,6 +48,7 @@ image = "0.24.8"
 bytemuck = "1.14.1"
 space_editor = {git = "https://github.com/rewin123/space_editor", rev = "ce83f86dc902787ab16213f3209276a784654df6"}
 anyhow.workspace = true
+serde_repr = "0.1.18"
 
 [dependencies.reqwest]
 version = "0.11.24"
