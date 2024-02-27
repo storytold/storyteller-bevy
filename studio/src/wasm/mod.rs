@@ -4,6 +4,7 @@ use parking_lot::ReentrantMutex;
 use wasm_bindgen::prelude::wasm_bindgen;
 
 mod conv;
+mod init;
 #[cfg(feature = "wasm_screenshot")]
 mod screenshot;
 mod util;

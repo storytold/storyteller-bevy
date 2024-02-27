@@ -20,10 +20,6 @@ import "@storyteller/studio-ui/icon";
 import "@storyteller/studio-ui/toolbar";
 import "@storyteller/studio-ui/tree";
 import "@storyteller/studio-web/canvas-provider";
-// import "@storyteller/studio-web/viewer";
-// import "@storyteller/studio-web/bvh-viewer";
-// import "@storyteller/studio-web/editor";
-// import "@storyteller/studio-web/mixamo-viewer";
 import "@storyteller/studio-web/scene-hierarchy";
 import "@storyteller/studio-web/studio";
 import "@storyteller/studio-web/transform-toolbar";
@@ -95,28 +91,6 @@ export class AppElement extends LitElement {
 				.skyboxId=${this.#params.skybox ?? "test_scene"}
 				.mode=${this.#params.mode}
 			></sts-studio>
-
-			<!-- ${this.#params.bvh ? html`
-				<sts-bvh-viewer
-					bvhPath=${this.#params.bvh}
-					skyboxId="test_scene"
-				></sts-bvh-viewer>
-			` : this.#params.mixamo ? html`
-				<sts-mixamo-viewer
-					mixamoPath=${this.#params.mixamo}
-					skyboxId="test_scene"
-				></sts-mixamo-viewer>
-			` : this.#params.scene ? html`
-				<sts-editor
-					scenePath=${this.#params.scene}
-				></sts-editor>
-			` : html`
-				<sts-viewer
-					objectId="sample-room.gltf"
-					skyboxId="test_scene"
-					.mode=${this.#params.mode}
-				></sts-viewer>
-			`} -->
 
 			<!-- Actions toolbar -->
 			<sts-toolbar class="v-start h-start">

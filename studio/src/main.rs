@@ -23,7 +23,7 @@ fn main() {
     let skybox_id = args.skybox.unwrap_or("gum_trees_4k".to_string());
 
     // Edit the arguments here to change the default startup scene or skybox
-    let mut app = studio::start_internal(
+    let mut app = studio::start(
         InitParams::FromAsset {
             asset: InitAsset::LibraryObject(object_id),
             skybox_id,

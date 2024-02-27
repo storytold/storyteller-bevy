@@ -6,7 +6,7 @@ import {
 	type ScreenshotReadyEvent,
 	StudioMode,
 } from "@storyteller/studio";
-import { StudioURLParams, ViewerElement } from "@storyteller/studio-web";
+import { StudioURLParams } from "@storyteller/studio-web";
 import { match } from "@storyteller/utility";
 import { LitElement, html, nothing } from "lit";
 import { customElement, state } from "lit/decorators.js";
@@ -15,8 +15,8 @@ import { DebounceSettings, debounce } from "lodash";
 
 import "@storyteller/studio-web/canvas-provider";
 import "@storyteller/studio-web/scene-hierarchy";
+import "@storyteller/studio-web/studio";
 import "@storyteller/studio-web/transform-toolbar";
-import "@storyteller/studio-web/viewer";
 
 import "./app.element.scss"
 
@@ -43,9 +43,6 @@ export class AppElement extends LitElement {
 	@state() loading = true;
 	@state() imageCaptureUrl?: string;
 	@state() realtimeCapture = true;
-
-	params = new StudioURLParams();
-	viewer = createRef<ViewerElement>();
 
 	protected override createRenderRoot = () => this;
 
@@ -95,13 +92,12 @@ export class AppElement extends LitElement {
 
 	protected override render = () => html`
 		<sts-canvas-provider class="app-root">
-			<sts-viewer
-				${ref(this.viewer)}
+			<sts-studio
 				class="studio-scene"
 				objectId="base-human-female.gltf"
 				skyboxId="test_scene"
 				.mode=${StudioMode.Editor}
-			></sts-viewer>
+			></sts-studio>
 
 			${this.imageCaptureUrl != null ? html`
 				<img
