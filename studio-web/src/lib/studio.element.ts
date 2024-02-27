@@ -6,9 +6,9 @@ import {
 	StudioMode,
 	ViewportSize,
 } from "@storyteller/studio";
-import { LitElement, PropertyValues, html, unsafeCSS } from "lit";
+import { LitElement, type PropertyValues, html, unsafeCSS } from "lit";
 import { customElement, property } from "lit/decorators.js";
-import { CANVAS_PROVIDER, CanvasProvider } from "./canvas-provider.element";
+import { CANVAS_PROVIDER, type CanvasProvider } from "./canvas-provider.element";
 
 import styles from "./studio.element.scss?inline";
 

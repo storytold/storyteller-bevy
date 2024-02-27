@@ -57,8 +57,13 @@ mod wasm;
 #[derive(Component)]
 pub(crate) struct MainCamera;
 
-#[cfg_attr(feature = "wasm", wasm_bindgen, repr(u8))]
-#[derive(Resource, Clone, Copy, PartialEq, Eq, Debug, Deserialize_repr, Serialize_repr)]
+#[cfg_attr(
+    feature = "wasm",
+    wasm_bindgen,
+    repr(u8),
+    derive(Deserialize_repr, Serialize_repr)
+)]
+#[derive(Resource, Clone, Copy, PartialEq, Eq, Debug)]
 pub enum StudioMode {
     Editor,
     Headless,
