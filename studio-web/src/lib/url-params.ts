@@ -1,4 +1,4 @@
-import { type SkyboxId, StudioMode } from "@storyteller/studio";
+import {StudioMode } from "@storyteller/studio";
 import { match } from "@storyteller/utility";
 
 export class StudioURLParams {
@@ -13,7 +13,7 @@ export class StudioURLParams {
 	get sceneImport() { return this.#nativeParams.get("sceneImport") ?? undefined; }
 	get scene() { return this.#nativeParams.get("scene") ?? undefined; }
 	get skybox() {
-		return this.#nativeParams.get("skybox") as SkyboxId ?? undefined;
+		return this.#nativeParams.get("skybox") as string ?? undefined;
 	}
 	get mode(): StudioMode {
 		return match(this.#nativeParams.get("mode"), {

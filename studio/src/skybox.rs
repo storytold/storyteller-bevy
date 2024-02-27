@@ -39,12 +39,22 @@ struct SkyboxAssets {
 }
 
 fn load_skybox(mut cmd: Commands, assets: Res<AssetServer>, id: Res<SkyboxId>) {
-    let paths = SkyboxPaths::new(&**id);
-    cmd.insert_resource(SkyboxAssets {
-        cubemap: assets.load(paths.cubemap),
-        env_diffuse: assets.load(paths.env_diffuse),
-        env_specular: assets.load(paths.env_specular),
+    let id = &**id;
+    if let Ok(color) = Color::hex(id) {
+        cmd.insert_resource(ClearColor(color));
+        cmd.insert_resource(AmbientLight {
+            color,
+            brightness: 1.0,
+        })
+    } else {
+        let paths = SkyboxPaths::new(id);
+        cmd.insert_resource(SkyboxAssets {
+            cubemap: assets.load(paths.cubemap),
+            env_diffuse: assets.load(paths.env_diffuse),
+            env_specular: assets.load(paths.env_specular),
     });
+        
+    }
 }
 
 fn skybox_assets_loaded(
