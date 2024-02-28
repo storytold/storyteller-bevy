@@ -1,4 +1,4 @@
-import { on } from "@storyteller/framework";
+import { debounce, drag, on } from "@storyteller/framework";
 import * as studio from "@storyteller/studio";
 import {
 	SceneState,
@@ -9,7 +9,8 @@ import {
 import { match } from "@storyteller/utility";
 import { LitElement, html, nothing } from "lit";
 import { customElement, state } from "lit/decorators.js";
-import { DebounceSettings, debounce } from "lodash";
+import { styleMap } from "lit/directives/style-map.js";
+import { classMap } from "lit/directives/class-map.js";
 
 import "@storyteller/studio-web/canvas-provider";
 import "@storyteller/studio-web/scene-hierarchy";
@@ -18,29 +19,18 @@ import "@storyteller/studio-web/transform-toolbar";
 
 import "./app.element.scss"
 
-class Debounce {
-	static readonly Wait = 1000 / 24;
-	static readonly Realtime = {
-		leading: false,
-		trailing: true,
-		maxWait: 1000 / 5,
-	};
-
-	static readonly Delayed = {
-		leading: false,
-		trailing: true,
-	};
-
-	static func(config: DebounceSettings) {
-		return debounce(() => studio.requestScreenshot(), this.Wait, config);
-	}
-}
-
 @customElement("app-root")
 export class AppElement extends LitElement {
-	@state() loading = true;
 	@state() imageCaptureUrl?: string;
 	@state() realtimeCapture = true;
+
+	@state() hierarchyWidth = 256;
+	@state() resizing = false;
+
+	@state() loading = true;
+
+	@state() prompt = "";
+	@state() seed = randomSeed();
 
 	protected override createRenderRoot = () => this;
 
@@ -63,10 +53,29 @@ export class AppElement extends LitElement {
 
 	@on("entity-changes")
 	onStudioChanges(): void {
-		this.requestScreenshot();
+		if (this.realtimeCapture) {
+			this.requestScreenshot_realtime();
+		} else {
+			this.requestScreenshot_delayed();
+		}
 	}
 
-	requestScreenshot = Debounce.func(Debounce.Realtime);
+	@on("viewport-resized")
+	// This handler requires a longer debounce to avoid crashing the render piptline
+	@debounce(1000 / 5)
+	onViewportResized(): void {
+		studio.requestScreenshot();
+	}
+
+	@debounce(1000 / 24, { maxWait: 1000 / 5 })
+	requestScreenshot_realtime() {
+		studio.requestScreenshot();
+	}
+
+	@debounce(1000 / 24)
+	requestScreenshot_delayed() {
+		studio.requestScreenshot();
+	}
 
 	@on("screenshot-ready")
 	onScreenshotReady({ detail: screenshot }: ScreenshotReadyEvent) {
@@ -74,41 +83,109 @@ export class AppElement extends LitElement {
 
 		const blob = new Blob([screenshot.data.buffer], { type: "image/png" });
 		this.imageCaptureUrl = URL.createObjectURL(blob);
-		console.log(`New blob URL: ${this.imageCaptureUrl}`);
 
 		if (prevUrl != null)
 			URL.revokeObjectURL(prevUrl);
 	}
 
+	onResizeStart(): void {
+		this.resizing = true;
+	}
+
+	onResizeEnd(): void {
+		this.resizing = false;
+	}
+
+	onResize(event: PointerEvent): void {
+		let updated = this.hierarchyWidth + event.movementX;
+		this.hierarchyWidth = Math.max(Math.min(updated, 512), 128);
+	}
+
 	toggleRealtimeCapture(event: InputEvent): void {
 		const { checked } = event.target as HTMLInputElement;
 		this.realtimeCapture = checked;
+	}
 
-		const config = checked ? Debounce.Realtime : Debounce.Delayed;
-		this.requestScreenshot = Debounce.func(config);
+	refreshSeed(): void {
+		this.seed = randomSeed();
 	}
 
 	protected override render = () => html`
 		<sts-canvas-provider class="app-root">
-			<sts-studio
-				class="studio-scene"
-				objectId="base-human-female.gltf"
-				skyboxId="test_scene"
-				.mode=${StudioMode.Editor}
-			></sts-studio>
+			<div
+				class="hierarchy-wrapper"
+				style=${styleMap({ width: `${this.hierarchyWidth}px` })}
+			>
+				<sts-scene-hierarchy class="hierarchy"></sts-scene-hierarchy>
+				<div
+					class=${classMap({
+						"hierarchy-resize-handle": true,
+						"resizing": this.resizing,
+					})}
+					${drag({
+						start: this.onResizeStart,
+						move: this.onResize,
+						end: this.onResizeEnd,
+					})}
+				></div>
+			</div>
 
-			${this.imageCaptureUrl != null ? html`
-				<img
-					class="image-capture"
-					src=${this.imageCaptureUrl}
-					alt="Image capture"
-				/>
-			` : nothing}
+			<div class="split-screen">
+				<sts-studio
+					class=${classMap({
+						"studio-scene": true,
+						"resizing": this.resizing,
+					})}
+					objectId="base-human-female.gltf"
+					skyboxId="test_scene"
+					.mode=${StudioMode.Editor}
+				>
+					<sts-transform-toolbar
+						class="xform-toolbar h-center v-start"
+					></sts-transform-toolbar>
+				</sts-studio>
 
-			<sts-scene-hierarchy class="hierarchy h-start v-start"></sts-scene-hierarchy>
-			<sts-transform-toolbar class="h-center v-start"></sts-transform-toolbar>
+				${this.imageCaptureUrl != null ? html`
+					<img
+						class="image-capture"
+						src=${this.imageCaptureUrl}
+						alt="Image capture"
+					/>
+				` : html`
+					<div class="image-capture placeholder"></div>
+				`}
+
+				<div class="config config-prompt h-center v-end"
+					@keydown=${(event: KeyboardEvent) => event.stopPropagation()}
+					@keyup=${(event: KeyboardEvent) => event.stopPropagation()}
+				>
+					<input
+						class="config-field prompt"
+						type="text"
+						aria-label="Prompt"
+						placeholder="Enter a prompt to customize the output"
+					/>
+					<div class="config-field-group">
+						<input
+							class="config-field seed"
+							type="number"
+							aria-label="Seed"
+							value=${this.seed}
+							min="100"
+							max="10000"
+						/>
+						<button
+							class="seed-refresh"
+							@click=${this.refreshSeed}
+						>
+							<sts-icon icon="rotate"></sts-icon>
+						</button>
+					</div>
+				</div>
+			</div>
+
 			<div class="config v-start h-end">
-				<label class="checkbox">
+				<label class="config-checkbox">
 					<input
 						type="checkbox"
 						?checked=${this.realtimeCapture}
@@ -126,4 +203,8 @@ export class AppElement extends LitElement {
 			` : nothing}
 		</sts-canvas-provider>
 	`
+}
+
+function randomSeed(): number {
+	return Math.round(Math.random() * 5000);
 }

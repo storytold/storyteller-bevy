@@ -67,7 +67,14 @@ export class StudioElement extends LitElement {
 
 	#onResize(): void {
 		const { width, height } = this.getBoundingClientRect();
+
 		studio.resize(new ViewportSize(width, height));
+
+		this.dispatchEvent(new CustomEvent("viewport-resized", {
+			detail: { width, height },
+			bubbles: true,
+			composed: true,
+		}));
 	}
 
 	#tick(): void {
@@ -120,6 +127,7 @@ export class StudioElement extends LitElement {
 	}
 
 	protected override render = () => html`
-		<slot name="canvas"></slot>
+		<slot name="canvas" part="canvas"></slot>
+		<slot></slot>
 	`;
 }
