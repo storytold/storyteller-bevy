@@ -20,12 +20,13 @@ $hierarchy-width: 290px;
 }
 .h-start { left: 16px }
 .h-end  { right: 16px }
-.h-before-hierarchy {
-	right: $hierarchy-width + 32px;
-}
 .h-center {
 	left: 50%;
 	transform: translateX(-50%);
+}
+
+.studio-scene.block-pointer-events::part(canvas) {
+	pointer-events: none;
 }
 
 sts-button.active {
@@ -34,8 +35,46 @@ sts-button.active {
 }
 
 // Hierarchy (TODO: Probably move this)
-.hierarchy {
-	width: $hierarchy-width;
-	max-height: calc(100vh - 32px);
-	pointer-events: auto;
+.inspector {
+	display: flex;
+	flex-direction: column;
+	border-radius: 0.5rem;
+	border: 0.5rem solid #FFF1 {
+		inline-start: none;
+	}
+	padding-inline-start: 0.5rem;
+
+	background: #0006;
+	backdrop-filter: blur(16px);
+
+	&__hierarchy {
+		flex: 0 0 calc(50% - 0.25rem);
+	}
+	&__entity {
+		flex: 1 0 0;
+		height: 0;
+	}
+
+	.resize-handle {
+		background: #FFF1;
+		transition: 66.666ms background linear;
+
+		&:hover {
+			background: #FFF2;
+		}
+
+		&--h-start {
+			position: absolute;
+			top: 0;
+			left: 0;
+			bottom: 0;
+			width: 0.5rem;
+			cursor: ew-resize;
+		}
+
+		&--v-center {
+			height: 0.5rem;
+			cursor: ns-resize
+		}
+	}
 }

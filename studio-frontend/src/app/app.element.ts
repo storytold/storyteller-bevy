@@ -1,4 +1,4 @@
-import { on } from "@storyteller/framework";
+import { drag, on } from "@storyteller/framework";
 import * as studio from "@storyteller/studio";
 import {
 	type EntitySelectEvent,
@@ -16,8 +16,9 @@ import { CanvasProvider } from "@storyteller/studio-web/canvas-provider";
 import { match } from "@storyteller/utility";
 import { LitElement, html, nothing } from "lit";
 import { customElement, state } from "lit/decorators.js";
-import { classMap } from "lit-html/directives/class-map.js";
-import { Ref, createRef, ref } from "lit-html/directives/ref.js";
+import { classMap } from "lit/directives/class-map.js";
+import { Ref, createRef, ref } from "lit/directives/ref.js";
+import { styleMap } from "lit/directives/style-map.js";
 import { v4 as uuid } from "uuid";
 
 import "@storyteller/studio-ui/button";
@@ -25,6 +26,7 @@ import "@storyteller/studio-ui/icon";
 import "@storyteller/studio-ui/toolbar";
 import "@storyteller/studio-ui/tree";
 import "@storyteller/studio-web/canvas-provider";
+import "@storyteller/studio-web/entity-inspector";
 import "@storyteller/studio-web/loading";
 import "@storyteller/studio-web/scene-hierarchy";
 import "@storyteller/studio-web/studio";
@@ -43,20 +45,19 @@ export class AppElement extends LitElement {
 
 	@state() selection?: SceneObject;
 
-	#hierarchy = createRef<SceneHierarchyElement>();
+	@state() resizingPanel = false;
+	@state() inspectorWidth = 320;
+	@state() hierarchyHeight?: number;
+
+	#inspectorRef = createRef<HTMLDivElement>();
+	#hierarchyRef = createRef<SceneHierarchyElement>();
+
 	#params = new StudioURLParams();
 	#canvasProvider: Ref<CanvasProvider> = createRef();
 
 	protected override createRenderRoot(): Element | ShadowRoot {
 		return this;
 	}
-
-	@on("inspector-changed")
-	onInspectorChanged(event: studio.InspectorChanged): void {
-		const data = event.detail ? JSON.parse(event.detail) : null;
-		console.log("Inspector changed:", data);
-	}
-
 
 	@on("scene-saved")
 	async onSceneSaved({ detail: scene }: SceneSavedEvent): Promise<void> {
@@ -95,8 +96,34 @@ export class AppElement extends LitElement {
 		if (!id) {
 			this.selection = undefined;
 		} else {
-			this.selection = this.#hierarchy.value?.entityMap.get(id);
+			this.selection = this.#hierarchyRef.value?.entityMap.get(id);
 		}
+	}
+
+	onPanelResizeStart(): void {
+		this.resizingPanel = true;
+	}
+
+	onPanelResizeEnd(): void {
+		this.resizingPanel = false;
+	}
+
+	resizeInspectorWidth(event: PointerEvent): void {
+		const updated = this.inspectorWidth - event.movementX;
+		this.inspectorWidth = Math.max(Math.min(updated, 1024), 128);
+	}
+
+	resizeHierarchyHeight(event: PointerEvent): void {
+		let availableHeight = this.#inspectorRef.value?.clientHeight;
+		if (availableHeight == null) return;
+		// Account for padding + resize-handle + minimal space for entity-inspector
+		availableHeight -= 32;
+
+		const height = this.hierarchyHeight ?? this.#hierarchyRef.value?.offsetHeight;
+		if (height == null) return;
+
+		const updated = height + event.movementY;
+		this.hierarchyHeight = Math.max(Math.min(updated, availableHeight), 8);
 	}
 
 	toggleHelp(): void {
@@ -110,6 +137,10 @@ export class AppElement extends LitElement {
 		>
 			<!-- Scene view -->
 			<sts-studio
+				class=${classMap({
+					"studio-scene": true,
+					"block-pointer-events": this.resizingPanel,
+				})}
 				.objectId=${this.#params.objectId}
 				.bvhPath=${this.#params.bvh}
 				.mixamoPath=${this.#params.mixamo}
@@ -142,15 +173,51 @@ export class AppElement extends LitElement {
 
 			<!-- Studio-mode-only elements -->
 			${this.#params.mode === StudioMode.Editor ? html`
-				<sts-transform-toolbar
-					class="v-start h-center"
-				></sts-transform-toolbar>
-				<sts-scene-hierarchy
-					class="hierarchy v-start h-end"
-					${ref(this.#hierarchy)}
-				></sts-scene-hierarchy>
+				<sts-transform-toolbar class="v-start h-center"></sts-transform-toolbar>
+
+				<section
+					${ref(this.#inspectorRef)}
+					class="inspector h-end v-start v-end"
+					style=${styleMap({
+						width: `${this.inspectorWidth}px`,
+					})}
+				>
+					<sts-scene-hierarchy
+						${ref(this.#hierarchyRef)}
+						class="inspector__hierarchy"
+						style=${styleMap({
+							flex: this.hierarchyHeight != null
+								? `0 0 ${this.hierarchyHeight}px`
+								: null,
+						})}
+					></sts-scene-hierarchy>
+
+					<div
+						class="resize-handle resize-handle--v-center"
+						${drag({
+							start: this.onPanelResizeStart,
+							end: this.onPanelResizeEnd,
+							move: this.resizeHierarchyHeight,
+						})}
+					></div>
+
+					<sts-entity-inspector class="inspector__entity"></sts-entity-inspector>
+
+					<div
+						class="resize-handle resize-handle--h-start"
+						${drag({
+							start: this.onPanelResizeStart,
+							end: this.onPanelResizeEnd,
+							move: this.resizeInspectorWidth,
+						})}
+					></div>
+				</section>
+
 				<sts-anim-editor
-					class="timeline v-end h-start h-before-hierarchy"
+					class="timeline v-end h-start"
+					style=${styleMap({
+						right: `${this.inspectorWidth + 32}px`
+					})}
 				></sts-anim-editor>
 
 				<sts-blocking></sts-blocking>
