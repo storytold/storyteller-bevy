@@ -28,6 +28,7 @@ import fasCheck from "@fortawesome/fontawesome-pro/svgs/solid/check.svg?raw";
 import fasXmark from "@fortawesome/fontawesome-pro/svgs/solid/xmark.svg?raw";
 import fasCircleCheck from "@fortawesome/fontawesome-pro/svgs/solid/circle-check.svg?raw";
 import fasCircleXmark from "@fortawesome/fontawesome-pro/svgs/solid/circle-xmark.svg?raw";
+import farShareNodes from "@fortawesome/fontawesome-pro/svgs/regular/share-nodes.svg?raw";
 
 import styles from "./icon.element.scss?inline";
 
@@ -74,6 +75,7 @@ function renderSvg(iconId: string) {
 		"question": () => fasQuestion,
 		"rotate": () => farRotate,
 		"scale": () => farScale,
+		"share-nodes": () => farShareNodes,
 		"skeleton": () => farSkeleton,
 		"up-down-left-right": () => farUpDownLeftRight,
 		"video": () => farVideo,

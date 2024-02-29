@@ -395,17 +395,8 @@ fn tag_scene_elements(
     mesh_entities: Query<Entity, With<Handle<Mesh>>>,
 ) {
     for (e, children) in q_named_non_primitives.iter() {
-        let mut has_mesh = false;
-        for child in children {
-            if mesh_entities.contains(*child) {
-                has_mesh = true;
-                break;
-            }
-        }
-        if has_mesh {
+        if children.iter().any(|child| mesh_entities.contains(*child)) {
             cmd.entity(e).insert(SceneElement::Mesh);
-        } else {
-            cmd.entity(e).insert(SceneElement::Generic);
         }
     }
 }

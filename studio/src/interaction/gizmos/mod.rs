@@ -6,12 +6,11 @@ use self::{
     camera::{spawn_gizmo_camera, GizmoCamera},
     combo::spawn_combo_translation_rotation_gizmo,
     common::*,
-    material::GizmoMaterial,
     resources::{init_resources, GizmoMats, GizmoMeshes},
     rotation::{spawn_rotation_gizmo, update_ss_ring_rotation},
     translation::spawn_translation_gizmo,
 };
-pub use common::TransformGizmo;
+pub use self::{common::TransformGizmo, material::GizmoMaterial};
 
 use super::{Selection, TransformMode, TransformType};
 
@@ -23,7 +22,7 @@ mod resources;
 mod rotation;
 mod translation;
 
-const GIZMO_RENDER_LAYER: u8 = 1;
+pub const GIZMO_RENDER_LAYER: u8 = 2;
 
 /// (sin|cos)(pi / 4)
 const CIRC_45: f32 = 0.70710677;
@@ -67,7 +66,7 @@ impl Plugin for GizmoPlugin {
         );
 
         //sync camera viewports
-        app.add_systems(Update, camera::sync_gizmo_and_main_cameras);
+        app.add_systems(Update, camera::sync_main_and_aux_cameras);
 
         app.add_systems(
             PostUpdate,

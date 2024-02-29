@@ -31,6 +31,12 @@
 	color: #FFFF;
 }
 
+:host(.disabled),
+:host(.disabled:hover) {
+	background: #0003;
+	color: #FFF6;
+}
+
 .icon {
 	fill: currentColor;
 }

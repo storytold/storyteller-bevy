@@ -12,4 +12,8 @@ impl Color {
     // original: rgb( 13, 110, 253)
     // brighter: rgb( 47, 131, 255)
     pub const BLUE: BevyColor = BevyColor::rgb(0.184314, 0.513724, 1.000000);
+
+    // "Lighten" blend of GREEN + RED
+    // rgb(255, 187, 100)
+    pub const YELLOW: BevyColor = BevyColor::rgb(1.000000, 0.733333, 0.392157);
 }

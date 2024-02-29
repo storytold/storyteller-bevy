@@ -61,6 +61,9 @@ pub struct Selected;
 #[derive(Resource, Deref, DerefMut, Debug)]
 pub struct Selection(Entity);
 
+#[derive(Component)]
+pub struct NoSelectionOutline;
+
 fn sync_editor_selected(
     mut cmd: Commands,
     q_new_selected: Query<Entity, (Added<Selected>, Without<space_editor::prelude::Selected>)>,
@@ -188,6 +191,7 @@ fn draw_selection_outline(
         (
             With<Handle<Mesh>>,
             Without<OutlineVolume>,
+            Without<NoSelectionOutline>,
             // FIXME: It shouldn't be necessary to filter out SkinnedMesh here
             Without<SkinnedMesh>,
         ),

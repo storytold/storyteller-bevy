@@ -10,6 +10,7 @@ use crate::{hierarchy, scene::SceneElement};
 pub use retargeting::*;
 
 mod camera;
+pub mod ik;
 mod retargeting;
 
 pub struct AnimPlugin;
@@ -31,7 +32,11 @@ impl Plugin for AnimPlugin {
         app.add_systems(Update, process_skinned_meshes);
         app.insert_resource(GlobalSeekTime(0.));
 
-        app.add_plugins((retargeting::RetargetingPlugin, camera::CameraAnimPlugin));
+        app.add_plugins((
+            retargeting::RetargetingPlugin,
+            camera::CameraAnimPlugin,
+            ik::IkPlugin,
+        ));
 
         #[cfg(feature = "wasm")]
         app.add_systems(Update, wasm::update_global_seek_time);
