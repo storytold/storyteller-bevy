@@ -131,6 +131,7 @@ pub(super) fn notify_entity_spawn_changes(
     mut l_missing_parents: Local<VecDeque<Entity>>,
     q_window: Query<&Window, With<PrimaryWindow>>,
     q_inspectables: Query<(Entity, &SceneElement)>,
+    q_element_changes: Query<Entity, Changed<SceneElement>>,
     q_others: Query<Entity, Without<SceneElement>>,
     q_names: Query<&Name>,
     q_parents: Query<&Children>,
@@ -146,6 +147,7 @@ pub(super) fn notify_entity_spawn_changes(
             ent,
             type_,
             &q_inspectables,
+            &q_element_changes,
             &q_names,
             &q_parents,
             &q_children,
@@ -166,6 +168,7 @@ pub(super) fn notify_entity_spawn_changes(
             ent,
             SceneElement::Generic,
             &q_inspectables,
+            &q_element_changes,
             &q_names,
             &q_parents,
             &q_children,
@@ -204,11 +207,12 @@ fn build_scene_object(
     ent: Entity,
     type_: SceneElement,
     q_inspectables: &Query<(Entity, &SceneElement)>,
+    q_element_changes: &Query<Entity, Changed<SceneElement>>,
     q_names: &Query<&Name>,
     q_parents: &Query<&Children>,
     q_children: &Query<&Parent>,
 ) -> Option<SceneObject> {
-    if notified.contains(&ent) {
+    if notified.contains(&ent) && !q_element_changes.contains(ent) {
         return None;
     }
 

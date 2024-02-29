@@ -233,13 +233,13 @@ pub struct ImportSceneEvent(pub String);
     derive(Serialize_repr, Deserialize_repr)
 )]
 #[derive(Component, Clone, Copy, Debug, PartialEq, Eq)]
+#[allow(dead_code)] // Some variants only used in `wasm`, some planned for later use
 pub enum SceneElement {
     Generic,
     Mesh,
     Skeleton,
     Bone,
     Light,
-    #[allow(dead_code)] // TODO: Will be used for camera animation
     Camera,
 }
 
@@ -395,17 +395,8 @@ fn tag_scene_elements(
     mesh_entities: Query<Entity, With<Handle<Mesh>>>,
 ) {
     for (e, children) in q_named_non_primitives.iter() {
-        let mut has_mesh = false;
-        for child in children {
-            if mesh_entities.contains(*child) {
-                has_mesh = true;
-                break;
-            }
-        }
-        if has_mesh {
+        if children.iter().any(|child| mesh_entities.contains(*child)) {
             cmd.entity(e).insert(SceneElement::Mesh);
-        } else {
-            cmd.entity(e).insert(SceneElement::Generic);
         }
     }
 }
