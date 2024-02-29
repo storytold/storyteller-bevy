@@ -25,6 +25,11 @@ import "@storyteller/studio-web/studio";
 import "@storyteller/studio-web/transform-toolbar";
 import "./anim-editor.element";
 import "./help.element";
+import "./icon.element";
+import "./toolbar.element";
+import "./transform-toolbar.element";
+import "./tree.element";
+import "./blocking.element";
 
 import "./app.element.scss";
 
@@ -125,6 +130,8 @@ export class AppElement extends LitElement {
 				<sts-transform-toolbar class="v-start h-center"></sts-transform-toolbar>
 				<sts-scene-hierarchy class="hierarchy v-start h-end"></sts-scene-hierarchy>
 				<sts-anim-editor class="timeline v-end h-start h-before-hierarchy"></sts-anim-editor>
+
+				<sts-blocking></sts-blocking>
 			` : nothing}
 
 			<!-- Dialogs and modals -->
