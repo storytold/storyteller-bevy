@@ -4,6 +4,7 @@ set -euxo pipefail
 
 # Install build dependencies
 rustup update
+rustup default stable
 rustup target add wasm32-unknown-unknown
 
 # Emit versions
