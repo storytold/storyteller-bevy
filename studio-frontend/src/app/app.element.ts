@@ -1,12 +1,17 @@
 import { on } from "@storyteller/framework";
 import * as studio from "@storyteller/studio";
 import {
+	type EntitySelectEvent,
 	type SceneSavedEvent,
 	type SceneStateEvent,
 	SceneState,
 	StudioMode,
 } from "@storyteller/studio";
-import { StudioURLParams } from "@storyteller/studio-web";
+import {
+	SceneHierarchyElement,
+	type SceneObject,
+	StudioURLParams,
+} from "@storyteller/studio-web";
 import { CanvasProvider } from "@storyteller/studio-web/canvas-provider";
 import { match } from "@storyteller/utility";
 import { LitElement, html, nothing } from "lit";
@@ -33,6 +38,9 @@ export class AppElement extends LitElement {
 	@state() showHelp = false;
 	@state() loading = true;
 
+	@state() selection?: SceneObject;
+
+	#hierarchy = createRef<SceneHierarchyElement>();
 	#params = new StudioURLParams();
 	#canvasProvider: Ref<CanvasProvider> = createRef();
 
@@ -79,6 +87,15 @@ export class AppElement extends LitElement {
 		});
 	}
 
+	@on("entity-select")
+	onEntitySelected({ detail: id }: EntitySelectEvent): void {
+		if (!id) {
+			this.selection = undefined;
+		} else {
+			this.selection = this.#hierarchy.value?.entityMap.get(id);
+		}
+	}
+
 	toggleHelp(): void {
 		this.showHelp = !this.showHelp;
 	}
@@ -122,9 +139,16 @@ export class AppElement extends LitElement {
 
 			<!-- Studio-mode-only elements -->
 			${this.#params.mode === StudioMode.Editor ? html`
-				<sts-transform-toolbar class="v-start h-center"></sts-transform-toolbar>
-				<sts-scene-hierarchy class="hierarchy v-start h-end"></sts-scene-hierarchy>
-				<sts-anim-editor class="timeline v-end h-start h-before-hierarchy"></sts-anim-editor>
+				<sts-transform-toolbar
+					class="v-start h-center"
+				></sts-transform-toolbar>
+				<sts-scene-hierarchy
+					class="hierarchy v-start h-end"
+					${ref(this.#hierarchy)}
+				></sts-scene-hierarchy>
+				<sts-anim-editor
+					class="timeline v-end h-start h-before-hierarchy"
+				></sts-anim-editor>
 			` : nothing}
 
 			<!-- Dialogs and modals -->
