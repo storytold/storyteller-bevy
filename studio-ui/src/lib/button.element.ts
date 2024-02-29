@@ -1,5 +1,5 @@
 import { on } from "@storyteller/framework";
-import { LitElement, html, nothing, unsafeCSS } from "lit";
+import { LitElement, type PropertyValues, html, nothing, unsafeCSS } from "lit";
 import { customElement, property } from "lit/decorators.js";
 
 import styles from "./button.element.scss?inline";
@@ -11,9 +11,20 @@ export class ButtonElement extends LitElement {
 	static override styles = unsafeCSS(styles);
 
 	@property() icon?: string;
+	@property({ type: Boolean }) disabled = false;
 
 	override role = "button";
 	override tabIndex = 0;
+
+	protected override willUpdate(changes: PropertyValues<this>): void {
+		if (changes.has("disabled")) {
+			this.ariaDisabled = this.disabled ? "true" : null;
+			this.tabIndex = this.disabled ? -1 : 0;
+			this.classList.toggle("disabled", this.disabled);
+		}
+
+		super.willUpdate(changes);
+	}
 
 	@on("keydown")
 	onKeyDown(event: KeyboardEvent) {
