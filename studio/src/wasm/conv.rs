@@ -22,6 +22,8 @@ export interface ITransform {
 }
 export type Transform = BevyObject<"Transform", ITransform>;
 export type GlobalTransform = BevyObject<"GlobalTransform", ITransform>;
+
+
 "#;
 
 pub(crate) const SERIALIZER: Serializer = Serializer::new()

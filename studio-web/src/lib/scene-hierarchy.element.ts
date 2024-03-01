@@ -14,7 +14,7 @@ import styles from "./scene-hierarchy.element.scss?inline";
 
 import "@storyteller/studio-ui/tree";
 
-interface SceneObject extends Omit<studio.SceneObject, "icon"|"children"> {
+export interface SceneObject extends Omit<studio.SceneObject, "children"> {
 	icon?: string;
 	children: SceneObject[];
 }
