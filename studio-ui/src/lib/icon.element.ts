@@ -28,6 +28,9 @@ import fasCheck from "@fortawesome/fontawesome-pro/svgs/solid/check.svg?raw";
 import fasXmark from "@fortawesome/fontawesome-pro/svgs/solid/xmark.svg?raw";
 import fasCircleCheck from "@fortawesome/fontawesome-pro/svgs/solid/circle-check.svg?raw";
 import fasCircleXmark from "@fortawesome/fontawesome-pro/svgs/solid/circle-xmark.svg?raw";
+import fasMinus from "@fortawesome/fontawesome-pro/svgs/solid/minus.svg?raw";
+import fasListTree from "@fortawesome/fontawesome-pro/svgs/solid/list-tree.svg?raw";
+import fasBars from "@fortawesome/fontawesome-pro/svgs/solid/bars.svg?raw";
 
 import styles from "./icon.element.scss?inline";
 
@@ -54,6 +57,7 @@ function renderSvg(iconId: string) {
 		return RENDER_RESULTS.get(iconId)!;
 
 	const svgSrc = match (iconId, {
+		"bars": () => fasBars,
 		"bone": () => farBone,
 		"bwd-fast": () => fasBwdFast,
 		"bwd-step": () => fasBwdStep,
@@ -69,6 +73,8 @@ function renderSvg(iconId: string) {
 		"fwd-step": () => fasFwdStep,
 		"key": () => fasKey,
 		"light": () => fasBrightness,
+		"list-tree": () => fasListTree,
+		"minus": () => fasMinus,
 		"globe": () => farGlobe,
 		"play": () => fasPlay,
 		"question": () => fasQuestion,

@@ -1,10 +1,11 @@
-import { on } from "@storyteller/framework";
-import { type InspectorChanged } from "@storyteller/studio";
-import { LitElement, html, unsafeCSS } from "lit";
-import { customElement, state } from "lit/decorators.js";
+import { inject } from "@storyteller/framework";
+import { LitElement, type PropertyValues, html, unsafeCSS } from "lit";
+import { customElement } from "lit/decorators.js";
 
+import { SCENE_DATA_PROVIDER, type SceneDataProvider } from "../scene-data-provider.element";
 import { type InspectorComponent } from "./inspector.types";
 
+import "../scene-data-provider.element";
 import "./name-inspector.element";
 import "./transform-inspector.element";
 
@@ -14,46 +15,57 @@ import styles from "./entity-inspector.element.scss?inline";
 export class EntityInspectorElement extends LitElement {
 	static override styles = unsafeCSS(styles);
 
-	@state() components: InspectorComponent[] = [];
+	@inject(SCENE_DATA_PROVIDER)
+	_sceneData?: SceneDataProvider;
 
-	@on("window:inspector-changed")
-	onInspectorChanged({ detail: json }: InspectorChanged): void {
-		const components: InspectorComponent[] = json ? JSON.parse(json) : [];
-		components.sort((a, b) => {
-			const ordA = COMPONENT_SORT_ORDER.indexOf(a.name);
-			const ordB = COMPONENT_SORT_ORDER.indexOf(b.name);
-			return ordA - ordB;
-		});
+	override connectedCallback(): void {
+		this._sceneData?.addEventListener("property-changes", this.onProviderChanges);
+		super.connectedCallback();
+	}
 
-		console.log("Inspector changed:", components);
+	override disconnectedCallback(): void {
+		this._sceneData?.removeEventListener("property-changes", this.onProviderChanges);
+		super.disconnectedCallback();
+	}
 
-		this.components = components;
+	onProviderChanges = ({ detail: changes }: CustomEvent<PropertyValues<SceneDataProvider>>) => {
+		if (changes.has("selectionComponents"))
+			this.requestUpdate();
 	}
 
 	protected override render = () => html`
-		${this.components.map(({ name, value }) => {
-			switch (name) {
-				case "bevy_core::name::Name":
-					return html`
-						<sts-name-inspector
-							.value=${value.name}
-						></sts-name-inspector>
-					`;
-				case "bevy_transform::components::transform::Transform":
-					return html`
-						<sts-transform-inspector
-							.translation=${value.translation}
-							.rotation=${value.rotation}
-							.scale=${value.scale}
-						></sts-transform-inspector>
-					`;
-				default:
-					return html`
-						<h3>Unknown Component: ${name}</h3>
-						<pre>${JSON.stringify({ name, value }, null, "   ")}</pre>
-					`;
-			}
-		})}
+		${this._sceneData
+			?.selectionComponents
+			.slice()
+			.sort((a, b) => {
+				const ordA = COMPONENT_SORT_ORDER.indexOf(a.name);
+				const ordB = COMPONENT_SORT_ORDER.indexOf(b.name);
+				return ordA - ordB;
+			})
+			.map(({ name, value }) => {
+				switch (name) {
+					case "bevy_core::name::Name":
+						return html`
+							<sts-name-inspector
+								.value=${value.name}
+							></sts-name-inspector>
+						`;
+					case "bevy_transform::components::transform::Transform":
+						return html`
+							<sts-transform-inspector
+								.translation=${value.translation}
+								.rotation=${value.rotation}
+								.scale=${value.scale}
+							></sts-transform-inspector>
+						`;
+					default:
+						return html`
+							<h3>Unknown Component: ${name}</h3>
+							<pre>${JSON.stringify({ name, value }, null, "   ")}</pre>
+						`;
+				}
+			})
+		}
 	`;
 }
 

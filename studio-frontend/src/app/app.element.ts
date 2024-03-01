@@ -1,7 +1,6 @@
 import { drag, on } from "@storyteller/framework";
 import * as studio from "@storyteller/studio";
 import {
-	type EntitySelectEvent,
 	type SceneSavedEvent,
 	type SceneStateEvent,
 	SceneState,
@@ -9,15 +8,13 @@ import {
 } from "@storyteller/studio";
 import {
 	SceneHierarchyElement,
-	type SceneObject,
 	StudioURLParams,
 } from "@storyteller/studio-web";
-import { CanvasProvider } from "@storyteller/studio-web/canvas-provider";
 import { match } from "@storyteller/utility";
 import { LitElement, html, nothing } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { classMap } from "lit/directives/class-map.js";
-import { Ref, createRef, ref } from "lit/directives/ref.js";
+import { createRef, ref } from "lit/directives/ref.js";
 import { styleMap } from "lit/directives/style-map.js";
 import { v4 as uuid } from "uuid";
 
@@ -41,19 +38,19 @@ import "./app.element.scss";
 @customElement("app-root")
 export class AppElement extends LitElement {
 	@state() showHelp = false;
+	@state() showInspector = false;
 	@state() loading = true;
-
-	@state() selection?: SceneObject;
 
 	@state() resizingPanel = false;
 	@state() inspectorWidth = 320;
 	@state() hierarchyHeight?: number;
 
+	#enableAnimTimeline = false; // TODO
+
 	#inspectorRef = createRef<HTMLDivElement>();
 	#hierarchyRef = createRef<SceneHierarchyElement>();
 
 	#params = new StudioURLParams();
-	#canvasProvider: Ref<CanvasProvider> = createRef();
 
 	protected override createRenderRoot(): Element | ShadowRoot {
 		return this;
@@ -91,15 +88,6 @@ export class AppElement extends LitElement {
 		});
 	}
 
-	@on("entity-select")
-	onEntitySelected({ detail: id }: EntitySelectEvent): void {
-		if (!id) {
-			this.selection = undefined;
-		} else {
-			this.selection = this.#hierarchyRef.value?.entityMap.get(id);
-		}
-	}
-
 	onPanelResizeStart(): void {
 		this.resizingPanel = true;
 	}
@@ -126,15 +114,21 @@ export class AppElement extends LitElement {
 		this.hierarchyHeight = Math.max(Math.min(updated, availableHeight), 8);
 	}
 
+	minimizeInspector(): void {
+		this.showInspector = false;
+	}
+
+	openInspector(): void {
+		this.showInspector = true;
+	}
+
 	toggleHelp(): void {
 		this.showHelp = !this.showHelp;
 	}
 
 	protected override render = () => html`
-		<sts-canvas-provider
-			class="app-root"
-			${ref(this.#canvasProvider as any)}
-		>
+		<sts-canvas-provider class="app-root">
+		<sts-scene-data-provider>
 			<!-- Scene view -->
 			<sts-studio
 				class=${classMap({
@@ -173,54 +167,83 @@ export class AppElement extends LitElement {
 
 			<!-- Studio-mode-only elements -->
 			${this.#params.mode === StudioMode.Editor ? html`
+				<sts-blocking></sts-blocking>
+
 				<sts-transform-toolbar class="v-start h-center"></sts-transform-toolbar>
 
-				<section
-					${ref(this.#inspectorRef)}
-					class="inspector h-end v-start v-end"
-					style=${styleMap({
-						width: `${this.inspectorWidth}px`,
-					})}
-				>
-					<sts-scene-hierarchy
-						${ref(this.#hierarchyRef)}
-						class="inspector__hierarchy"
+				${this.showInspector ? html`
+					<section
+						${ref(this.#inspectorRef)}
+						class="inspector h-end v-start v-end"
 						style=${styleMap({
-							flex: this.hierarchyHeight != null
-								? `0 0 ${this.hierarchyHeight}px`
-								: null,
+							width: `${this.inspectorWidth}px`,
 						})}
-					></sts-scene-hierarchy>
+						aria-labelledby="inspector-heading"
+					>
+						<header class="inspector-header">
+							<h3 class="inspector-header__label"
+								id="inspector-heading"
+							>
+								Inspector
+							</h3>
+							<button class="inspector-header__minimize"
+								aria-label="Minimize inspector"
+								title="Minimize inspector"
+								@click=${this.minimizeInspector}
+							>
+								<sts-icon icon="minus"></sts-icon>
+							</button>
+						</header>
 
-					<div
-						class="resize-handle resize-handle--v-center"
-						${drag({
-							start: this.onPanelResizeStart,
-							end: this.onPanelResizeEnd,
-							move: this.resizeHierarchyHeight,
+						<sts-scene-hierarchy
+							${ref(this.#hierarchyRef)}
+							class="inspector__hierarchy"
+							style=${styleMap({
+								flex: this.hierarchyHeight != null
+									? `0 0 ${this.hierarchyHeight}px`
+									: null,
+							})}
+						></sts-scene-hierarchy>
+
+						<div
+							class="resize-handle resize-handle--v-center"
+							${drag({
+								start: this.onPanelResizeStart,
+								end: this.onPanelResizeEnd,
+								move: this.resizeHierarchyHeight,
+							})}
+						></div>
+
+						<sts-entity-inspector class="inspector__entity"></sts-entity-inspector>
+
+						<div
+							class="resize-handle resize-handle--h-start"
+							${drag({
+								start: this.onPanelResizeStart,
+								end: this.onPanelResizeEnd,
+								move: this.resizeInspectorWidth,
+							})}
+						></div>
+					</section>
+				` : html`
+					<button
+						class="inspector-open h-end v-start"
+						aria-label="Open scene inspector"
+						title="Open scene inspector"
+						@click=${this.openInspector}
+					>
+						<sts-icon icon="bars"></sts-icon>
+					</button>
+				`}
+
+				${this.#enableAnimTimeline ? html`
+					<sts-anim-editor
+						class="timeline v-end h-start"
+						style=${styleMap({
+							right: `${this.inspectorWidth + 32}px`
 						})}
-					></div>
-
-					<sts-entity-inspector class="inspector__entity"></sts-entity-inspector>
-
-					<div
-						class="resize-handle resize-handle--h-start"
-						${drag({
-							start: this.onPanelResizeStart,
-							end: this.onPanelResizeEnd,
-							move: this.resizeInspectorWidth,
-						})}
-					></div>
-				</section>
-
-				<sts-anim-editor
-					class="timeline v-end h-start"
-					style=${styleMap({
-						right: `${this.inspectorWidth + 32}px`
-					})}
-				></sts-anim-editor>
-
-				<sts-blocking></sts-blocking>
+					></sts-anim-editor>
+				` : nothing}
 			` : nothing}
 
 			<!-- Dialogs and modals -->
@@ -231,6 +254,7 @@ export class AppElement extends LitElement {
 			${this.loading ? html`
 				<sts-loading></sts-loading>
 			` : nothing}
+		</sts-scene-data-provider>
 		</sts-canvas-provider>
 	`;
 }

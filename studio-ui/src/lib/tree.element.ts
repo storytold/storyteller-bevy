@@ -1,8 +1,8 @@
-import { on } from "@storyteller/framework";
+import { inject } from "@storyteller/framework";
 import * as studio from "@storyteller/studio";
-import { type EntitySelectEvent } from "@storyteller/studio";
-import { LitElement, html, nothing, unsafeCSS } from "lit";
-import { customElement, property, state } from "lit/decorators.js";
+import { SCENE_DATA_PROVIDER, type SceneDataProvider } from "@storyteller/studio-web";
+import { LitElement, type PropertyValues, html, nothing, unsafeCSS } from "lit";
+import { customElement, property } from "lit/decorators.js";
 import { classMap } from "lit/directives/class-map.js";
 import { ifDefined } from "lit/directives/if-defined.js";
 
@@ -26,15 +26,30 @@ export class TreeElement extends LitElement {
 	@property({ attribute: false }) treeChildren?: Tree[];
 	@property({ type: Boolean }) expanded = true;
 
-	@state() selected = false;
+	get selected() {
+		return !!this.id && this._sceneData?.selectedEntity === this.id
+	}
+
+	@inject(SCENE_DATA_PROVIDER)
+	_sceneData?: SceneDataProvider;
+
+	override connectedCallback(): void {
+		this._sceneData?.addEventListener("property-changes", this.onProviderChanges);
+		super.connectedCallback();
+	}
+
+	override disconnectedCallback(): void {
+		this._sceneData?.removeEventListener("property-changes", this.onProviderChanges);
+		super.disconnectedCallback();
+	}
+
+	onProviderChanges = ({ detail: changes }: CustomEvent<PropertyValues<SceneDataProvider>>) => {
+		if (changes.has("selectedEntity"))
+			this.requestUpdate();
+	}
 
 	toggleExpanded(): void {
 		this.expanded = !this.expanded;
-	}
-
-	@on("window:entity-select")
-	onEntitySelect({ detail: entity }: EntitySelectEvent): void {
-		this.selected = this.id === entity;
 	}
 
 	selectEntity(): void {
