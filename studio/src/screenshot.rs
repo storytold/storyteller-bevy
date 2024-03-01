@@ -1,4 +1,5 @@
 use bevy::{
+    app::AppExit,
     core_pipeline::{core_3d, prepass::ViewPrepassTextures},
     prelude::*,
     render::{
@@ -123,9 +124,16 @@ impl ScreenCapture {
     }
 }
 
-fn update_screen_capture_on_extract_step(mut screen_captures: Query<&mut ScreenCapture>) {
+fn update_screen_capture_on_extract_step(
+    mut screen_captures: Query<&mut ScreenCapture>,
+    mut exit_event: EventWriter<AppExit>,
+) {
     for mut screen_capture in screen_captures.iter_mut() {
         screen_capture.frames += 1;
+
+        if !screen_capture.should_capture() {
+            exit_event.send(AppExit);
+        }
         // if screen_capture.number_of_frames == 0 {
         //     commands.entity(entity).remove::<ScreenCapture>();
         // }
@@ -139,6 +147,10 @@ fn extract_screen_capture_components(
 ) {
     for (entity, screen_capture) in screen_capure_comps.iter() {
         if screen_capture.should_capture() {
+            info!(
+                "Capturing Frame: {} / {}",
+                screen_capture.frames, screen_capture.max_frames
+            );
             commands.get_or_spawn(entity).insert(screen_capture.clone());
         }
     }
@@ -263,7 +275,7 @@ fn save_buffer_to_file(
             .expect("Output path could not be created");
 
         let path = format!(
-            "{}img_{:0.5}.png",
+            "{}img_{:0>4}.png",
             screen_capture.to_directory, screen_capture.frames
         );
 

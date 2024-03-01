@@ -7,6 +7,7 @@ use scene::ImportSceneEvent;
 
 #[cfg(feature = "wasm")]
 use serde_repr::{Deserialize_repr, Serialize_repr};
+use space_editor::space_prefab::plugins::PrefabPlugin;
 #[cfg(feature = "wasm")]
 use wasm_bindgen::prelude::*;
 
