@@ -1,4 +1,7 @@
-use bevy::render::render_resource::Extent3d;
+use bevy::{
+    prelude::*, render::render_resource::Extent3d, transform::components::Transform,
+    window::PrimaryWindow,
+};
 use clap::{Args, Parser, Subcommand};
 use studio::headless::{start_headless, HeadlessMode};
 
@@ -19,6 +22,12 @@ struct StudioArgs {
 enum Subcommands {
     Scene {
         scene_dir: String,
+        #[arg(long)]
+        orbit: bool,
+        #[arg(long, value_parser = clap::value_parser!(f32))]
+        orbit_radius: Option<f32>,
+        #[arg(long, value_parser = clap::value_parser!(f32))]
+        orbit_speed: Option<f32>,
         #[arg(long, short)]
         output_dir: Option<String>,
         #[arg(long)]
@@ -67,6 +76,9 @@ fn main() {
     let mut app = match args.subcommand {
         Subcommands::Scene {
             scene_dir,
+            orbit,
+            orbit_speed,
+            orbit_radius,
             skybox,
             output_dir,
             output_resolution,
@@ -82,13 +94,25 @@ fn main() {
             let fps = fps.unwrap_or(24);
             let frames = frames.unwrap_or(30);
             let skybox = skybox.unwrap_or("gum_trees_4k".to_string());
-            start_headless(
+            let mut app = start_headless(
                 HeadlessMode::Scene(scene_dir, skybox),
                 fps,
                 &output_dir,
                 frames,
                 output_res,
-            )
+            );
+            let orbit_speed = orbit_speed.unwrap_or(1.0);
+            let orbit_radius = orbit_radius.unwrap_or(8.0);
+
+            if orbit {
+                app.insert_resource(OrbitSettings {
+                    radius: orbit_radius,
+                    speed: orbit_speed,
+                })
+                .add_systems(Update, orbit_scene);
+            }
+
+            app
         }
         Subcommands::Bvh {
             bvh_dir,
@@ -143,6 +167,29 @@ fn main() {
     };
 
     app.run();
+}
+
+#[derive(Resource)]
+struct OrbitSettings {
+    radius: f32,
+    speed: f32,
+}
+
+fn orbit_scene(
+    mut camera: Query<&mut Transform, With<Camera>>,
+    orbit_settings: Res<OrbitSettings>,
+    time: Res<Time>,
+) {
+    let Ok(mut main_cam_transform) = camera.get_single_mut() else {
+        return;
+    };
+
+    main_cam_transform.translation = Vec3::new(
+        orbit_settings.radius * (time.elapsed_seconds() * orbit_settings.speed).cos(),
+        6.0,
+        orbit_settings.radius * (time.elapsed_seconds() * orbit_settings.speed).sin(),
+    );
+    main_cam_transform.look_at(Vec3::ZERO, Vec3::Y);
 }
 
 //==============================================================================

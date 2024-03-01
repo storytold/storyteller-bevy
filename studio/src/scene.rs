@@ -26,7 +26,7 @@ use crate::{
     camera_controller::{CameraController, CameraControllerBundle},
     change_tracking::{ChangeTracker, ChangeTrackingPlugin},
     debug::DebugPoint,
-    headless::{is_headless, is_not_headless, HeadlessSettings},
+    headless::{self, is_headless, is_not_headless, HeadlessSettings},
     math::{Combinable, Extrema},
     screenshot::ScreenCapture,
     MainCamera,
@@ -326,7 +326,8 @@ fn initialiaze_headless(
             ..default()
         },
         CameraControllerBundle::new(focus, camera_xform.translation),
-        ScreenCapture::from_out(&headless_settings.output_dir),
+        ScreenCapture::from_out(&headless_settings.output_dir)
+            .with_max_frames(headless_settings.max_frames),
     ));
 }
 
