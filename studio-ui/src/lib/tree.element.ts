@@ -1,4 +1,4 @@
-import { type DynamicProvider, inject, type Token, UniqueToken } from "@storyteller/framework";
+import { type DynamicProvider, inject, UniqueToken } from "@storyteller/framework";
 import { LitElement, type PropertyValues, html, nothing, unsafeCSS } from "lit";
 import { customElement, property } from "lit/decorators.js";
 import { classMap } from "lit/directives/class-map.js";
@@ -8,8 +8,7 @@ import "./icon.element";
 
 import styles from "./tree.element.scss?inline";
 
-export const TREE_SELECTION_PROVIDER: Token<TreeSelectionProvider>
-	= new UniqueToken("TreeSelectionProvider");
+export const TREE_SELECTION_PROVIDER = UniqueToken.create<TreeSelectionProvider>();
 
 export interface TreeSelectionProvider extends DynamicProvider<TreeSelectionProvider> {
 	readonly selectedId: string | null;

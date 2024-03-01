@@ -1,4 +1,4 @@
-import { DynamicProvider, Token, UniqueToken, on, provide } from "@storyteller/framework";
+import { DynamicProvider, UniqueToken, on, provide } from "@storyteller/framework";
 import * as studio from "@storyteller/studio";
 import {
 	SceneElement,
@@ -23,7 +23,7 @@ export interface SceneDataProvider extends DynamicProvider<SceneDataProvider> {
 	readonly selectionComponents: readonly InspectorComponent[];
 }
 
-export const SCENE_DATA_PROVIDER: Token<SceneDataProvider> = new UniqueToken("SceneDataProvider");
+export const SCENE_DATA_PROVIDER = UniqueToken.create<SceneDataProvider>();
 
 export interface SceneObject extends Omit<studio.SceneObject, "children"> {
 	icon?: string;

@@ -5,8 +5,12 @@ export class UniqueToken {
 	get id() { return this.#id; }
 	readonly #id: symbol;
 
-	constructor (name: string) {
+	private constructor (name: string) {
 		this.#id = Symbol(name);
+	}
+
+	static create<T>(name?: string): Token<T> {
+		return new UniqueToken(name ?? crypto.randomUUID());
 	}
 
 	toString(): string {
