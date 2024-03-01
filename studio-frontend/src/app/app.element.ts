@@ -57,13 +57,6 @@ export class AppElement extends LitElement {
 	}
 
 
-	@on("inspector-changed")
-	onInspectorChanged(event: studio.InspectorChanged): void {
-		const data = event.detail ? JSON.parse(event.detail) : null;
-		console.log("Inspector changed:", data);
-	}
-
-
 	@on("scene-saved")
 	async onSceneSaved({ detail: scene }: SceneSavedEvent): Promise<void> {
 		const file = new File([scene], "scene.scn.ron", { type: "text/ron" });
