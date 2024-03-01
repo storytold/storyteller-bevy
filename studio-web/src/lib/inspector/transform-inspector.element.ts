@@ -1,6 +1,6 @@
 import { LitElement, html, unsafeCSS } from "lit";
 import { customElement, property } from "lit/decorators.js";
-import { Quat, Vec3 } from "./inspector.types";
+import { type Quat, type Vec3 } from "./inspector.types";
 
 import styles from "./transform-inspector.element.scss?inline";
 

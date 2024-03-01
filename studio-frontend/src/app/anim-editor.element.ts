@@ -1,7 +1,7 @@
 import * as studio from "@storyteller/studio";
 import { type CameraKeyframesEvent } from "@storyteller/studio";
 import { bind, drag, on } from "@storyteller/framework";
-import { LitElement, type PropertyValues, html, unsafeCSS } from "lit";
+import { LitElement, type PropertyValues, html, unsafeCSS, TemplateResult } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { styleMap } from "lit/directives/style-map.js";
 
@@ -81,7 +81,7 @@ export class AnimEditorElement extends LitElement {
 		this.playHead = this.clipEnd;
 	}
 
-	protected override render = () => html`
+	protected override render = (): TemplateResult => html`
 		<div class="sidebar"
 			style=${styleMap({
 				width: `${this.sidebarWidth}px`,
