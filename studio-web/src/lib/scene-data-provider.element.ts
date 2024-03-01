@@ -4,9 +4,9 @@ import {
 	SceneElement,
 	type EntityDespawnEvent,
 	type EntityMultiSpawnEvent,
+	type EntitySelectEvent,
 	type EntitySpawnEvent,
-	InspectorChanged,
-	EntitySelectEvent,
+	type InspectorChanged,
 } from "@storyteller/studio";
 import { Fn, match } from "@storyteller/utility";
 import { LitElement, type PropertyValues, html } from "lit";
