@@ -1,5 +1,5 @@
 import { bind } from "@storyteller/framework";
-import { LitElement, PropertyValues, html, unsafeCSS } from "lit";
+import { LitElement, PropertyValues, type TemplateResult, html, unsafeCSS } from "lit";
 import { customElement, property } from "lit/decorators.js";
 
 import "@storyteller/studio-ui/forms/text-field";
@@ -19,7 +19,7 @@ export class NameInspectorElement extends LitElement {
 		super.updated(changes);
 	}
 
-	protected override render = () => html`
+	protected override render = (): TemplateResult => html`
 		<sts-text-field .value=${bind(this, "value")}></sts-text-field>
 	`;
 }
