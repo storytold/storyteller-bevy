@@ -141,7 +141,7 @@ export class AnimTimelineElement extends LitElement {
 
 		if (Array.from(Object.keys(this.keyframes)).includes(id)) {
 			this._selectedKeyframe = id;
-			this.dispatchEvent(new CustomEvent("playHeadChange", { detail: this.keyframes[id]! }));
+			this.dispatchEvent(new CustomEvent("playHead-change", { detail: this.keyframes[id]! }));
 		} else {
 			this._selectedKeyframe = null;
 		}
@@ -165,8 +165,8 @@ export class AnimTimelineElement extends LitElement {
 		const rangeStart = this.rangeStart - deltaRange * t;
 		const rangeEnd = this.rangeEnd + deltaRange * (1 - t);
 
-		this.dispatchEvent(new CustomEvent("rangeStartChange", { detail: rangeStart }));
-		this.dispatchEvent(new CustomEvent("rangeEndChange", { detail: rangeEnd }));
+		this.dispatchEvent(new CustomEvent("rangeStart-change", { detail: rangeStart }));
+		this.dispatchEvent(new CustomEvent("rangeEnd-change", { detail: rangeEnd }));
 	}
 
 	#onDragStart(): void {
@@ -188,15 +188,15 @@ export class AnimTimelineElement extends LitElement {
 		const rangeStart = this.rangeStart - deltaPx * msPerPx;
 		const rangeEnd = this.rangeEnd - deltaPx * msPerPx;
 
-		this.dispatchEvent(new CustomEvent("rangeStartChange", { detail: rangeStart }));
-		this.dispatchEvent(new CustomEvent("rangeEndChange", { detail: rangeEnd }));
+		this.dispatchEvent(new CustomEvent("rangeStart-change", { detail: rangeStart }));
+		this.dispatchEvent(new CustomEvent("rangeEnd-change", { detail: rangeEnd }));
 	}
 
 	#onPlayheadDrag(event: PointerEvent): void {
 		const deltaMs = event.movementX * this.msPerPx.get();
 		const updated = this.playHead + deltaMs;
 
-		this.dispatchEvent(new CustomEvent("playHeadChange", { detail: updated }));
+		this.dispatchEvent(new CustomEvent("playHead-change", { detail: updated }));
 	}
 
 	#onKeyframeDrag(id: string, event: PointerEvent): void {
@@ -213,7 +213,7 @@ export class AnimTimelineElement extends LitElement {
 					: entry
 				)
 		);
-		this.dispatchEvent(new CustomEvent("keyframesChange", { detail: updatedKeyframes }));
+		this.dispatchEvent(new CustomEvent("keyframes-change", { detail: updatedKeyframes }));
 	}
 
 	#updateRenderWidth(): void {
