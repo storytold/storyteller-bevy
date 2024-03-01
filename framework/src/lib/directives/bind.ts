@@ -18,8 +18,6 @@ class BindDirective<T extends LitElement, K extends keyof T> extends Directive {
 	constructor (info: PartInfo) {
 		super(info);
 
-		console.log("BindDirective info:", info);
-
 		if (
 			info.type !== PartType.ATTRIBUTE
 			&& info.type !== PartType.BOOLEAN_ATTRIBUTE
@@ -29,8 +27,6 @@ class BindDirective<T extends LitElement, K extends keyof T> extends Directive {
 		}
 
 		this.#hostKey = info.name;
-
-		console.log(info);
 	}
 
 	override render([receiver, key]: Props<T, K>) {
