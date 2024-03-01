@@ -19,24 +19,25 @@ export class TransformInspectorElement extends LitElement {
 
 	protected override render = () => html`
 		<!-- TODO -->
+		<h4>Transform</h4>
 		<fieldset>
 			<legend>Translation</legend>
-			<input type="number" value=${this.translation.x} />
-			<input type="number" value=${this.translation.y} />
-			<input type="number" value=${this.translation.z} />
+			<input type="number" value=${this.translation.x.toFixed(3)} />
+			<input type="number" value=${this.translation.y.toFixed(3)} />
+			<input type="number" value=${this.translation.z.toFixed(3)} />
 		</fieldset>
 		<fieldset>
 			<legend>Rotation</legend>
-			<input type="number" value=${this.rotation.x} />
-			<input type="number" value=${this.rotation.y} />
-			<input type="number" value=${this.rotation.z} />
-			<input type="number" value=${this.rotation.w} />
+			<input type="number" value=${this.rotation.x.toFixed(3)} />
+			<input type="number" value=${this.rotation.y.toFixed(3)} />
+			<input type="number" value=${this.rotation.z.toFixed(3)} />
+			<!-- <input type="number" value=${this.rotation.w.toFixed(3)} /> -->
 		</fieldset>
 		<fieldset>
 			<legend>Scale</legend>
-			<input type="number" value=${this.scale.x} />
-			<input type="number" value=${this.scale.y} />
-			<input type="number" value=${this.scale.z} />
+			<input type="number" value=${this.scale.x.toFixed(3)} />
+			<input type="number" value=${this.scale.y.toFixed(3)} />
+			<input type="number" value=${this.scale.z.toFixed(3)} />
 		</fieldset>
 	`;
 }

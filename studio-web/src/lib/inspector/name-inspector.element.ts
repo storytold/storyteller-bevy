@@ -1,5 +1,8 @@
-import { LitElement, html, unsafeCSS } from "lit";
+import { bind } from "@storyteller/framework";
+import { LitElement, PropertyValues, html, unsafeCSS } from "lit";
 import { customElement, property } from "lit/decorators.js";
+
+import "@storyteller/studio-ui/forms/text-field";
 
 import styles from "./name-inspector.element.scss?inline";
 
@@ -9,10 +12,14 @@ export class NameInspectorElement extends LitElement {
 
 	@property() value = "";
 
+	protected override updated(changes: PropertyValues<this>): void {
+		if (changes.has("value"))
+			console.log("New value:", this.value);
+
+		super.updated(changes);
+	}
+
 	protected override render = () => html`
-		<input
-			type="text"
-			value=${this.value}
-		/>
+		<sts-text-field .value=${bind(this, "value")}></sts-text-field>
 	`;
 }

@@ -1,10 +1,10 @@
 :host {
 	box-sizing: border-box;
-	*, *::before, *::after {
-		box-sizing: border-box;
-	}
 
-	padding: 0.5rem 1rem;
+	display: flex;
+	flex-direction: column;
+	gap: 1.5rem;
+	padding: 1rem;
 	overflow: auto;
 
 	color: #FFFC;
@@ -26,4 +26,8 @@
 			background: transparent;
 		}
 	}
+}
+
+*, *::before, *::after {
+	box-sizing: border-box;
 }
