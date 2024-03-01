@@ -22,6 +22,7 @@ mod material;
 mod resources;
 mod rotation;
 mod translation;
+mod scale;
 
 const GIZMO_RENDER_LAYER: u8 = 1;
 
