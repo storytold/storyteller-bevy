@@ -26,7 +26,7 @@ use crate::{
     camera_controller::{CameraController, CameraControllerBundle},
     change_tracking::{ChangeTracker, ChangeTrackingPlugin},
     debug::DebugPoint,
-    headless::{self, is_headless, is_not_headless, HeadlessSettings},
+    headless::{is_headless, is_not_headless, HeadlessSettings},
     math::{Combinable, Extrema},
     screenshot::ScreenCapture,
     MainCamera,
