@@ -1,9 +1,18 @@
+use std::sync::Arc;
+
 use bevy::prelude::*;
 use bevy_mod_picking::PickableBundle;
-use space_editor::prelude::*;
+use space_editor::prelude::{
+    space_undo::{AddedEntity, NewChange},
+    *,
+};
 use wasm_bindgen::prelude::*;
 
-use crate::{interaction::Selectable, scene::SceneElement, wasm::{StaticBuffer, WasmMessageBuffer}};
+use crate::{
+    interaction::Selectable,
+    scene::SceneElement,
+    wasm::{StaticBuffer, WasmMessageBuffer},
+};
 
 pub struct UiBlockingPlugin;
 
@@ -13,9 +22,7 @@ impl Plugin for UiBlockingPlugin {
     }
 }
 
-fn read_command_system(
-    mut command: Commands
-) {
+fn read_command_system(mut command: Commands, mut change_event: EventWriter<NewChange>) {
     // info!("Blocking command");
     let Some(cmd) = COMMAND.take_message() else {
         info!("No blocking command");
@@ -27,46 +34,63 @@ fn read_command_system(
         return;
     };
 
+    let id;
     if cmd == "cube" {
-        command.spawn((
-            SpatialBundle::default(),
-            MeshPrimitivePrefab::Cube(1.0),
-            PrefabMarker,
-            Selectable,
-            SceneElement::Mesh,
-            PickableBundle::default()
-
-        ));
+        id = command
+            .spawn((
+                SpatialBundle::default(),
+                MeshPrimitivePrefab::Cube(1.0),
+                PrefabMarker,
+                Selectable,
+                SceneElement::Mesh,
+                PickableBundle::default(),
+                Name::new("Cube"),
+            ))
+            .id();
     } else if cmd == "sphere" {
-        command.spawn((
-            SpatialBundle::default(),
-            MeshPrimitivePrefab::Sphere(SpherePrefab { r: 1.0 }),
-            PrefabMarker,
-            Selectable,
-            SceneElement::Mesh,
-            PickableBundle::default()
-        ));
+        id = command
+            .spawn((
+                SpatialBundle::default(),
+                MeshPrimitivePrefab::Sphere(SpherePrefab { r: 1.0 }),
+                PrefabMarker,
+                Selectable,
+                SceneElement::Mesh,
+                PickableBundle::default(),
+                Name::new("Sphere"),
+            ))
+            .id();
     } else if cmd == "torus" {
-        command.spawn((
-            SpatialBundle::default(),
-            MeshPrimitivePrefab::Torus(TorusPrefab::default()),
-            PrefabMarker,
-            Selectable,
-            SceneElement::Mesh,
-            PickableBundle::default()
-        ));
+        id = command
+            .spawn((
+                SpatialBundle::default(),
+                MeshPrimitivePrefab::Torus(TorusPrefab::default()),
+                PrefabMarker,
+                Selectable,
+                SceneElement::Mesh,
+                PickableBundle::default(),
+                Name::new("Torus"),
+            ))
+            .id();
     } else if cmd == "cylinder" {
-        command.spawn((
-            SpatialBundle::default(),
-            MeshPrimitivePrefab::Cylinder(CylinderPrefab::default()),
-            PrefabMarker,
-            Selectable,
-            SceneElement::Mesh,
-            PickableBundle::default()
-        ));
+        id = command
+            .spawn((
+                SpatialBundle::default(),
+                MeshPrimitivePrefab::Cylinder(CylinderPrefab::default()),
+                PrefabMarker,
+                Selectable,
+                SceneElement::Mesh,
+                PickableBundle::default(),
+                Name::new("Cylinder"),
+            ))
+            .id();
     } else {
         error!("Unknown blocking command: {}", cmd);
+        return;
     }
+
+    change_event.send(NewChange {
+        change: Arc::new(AddedEntity { entity: id }),
+    });
 }
 
 static COMMAND: WasmMessageBuffer<Option<String>> = WasmMessageBuffer::new();
