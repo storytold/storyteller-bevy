@@ -25,10 +25,7 @@ import "@storyteller/studio-web/studio";
 import "@storyteller/studio-web/transform-toolbar";
 import "./anim-editor.element";
 import "./help.element";
-import "./icon.element";
-import "./toolbar.element";
-import "./transform-toolbar.element";
-import "./tree.element";
+
 import "./blocking.element";
 
 import "./app.element.scss";

@@ -33,7 +33,7 @@ fn read_command_system(
             MeshPrimitivePrefab::Cube(1.0),
             PrefabMarker,
             Selectable,
-            SceneElement,
+            SceneElement::Mesh,
             PickableBundle::default()
 
         ));
@@ -43,7 +43,7 @@ fn read_command_system(
             MeshPrimitivePrefab::Sphere(SpherePrefab { r: 1.0 }),
             PrefabMarker,
             Selectable,
-            SceneElement,
+            SceneElement::Mesh,
             PickableBundle::default()
         ));
     } else if cmd == "torus" {
@@ -52,7 +52,7 @@ fn read_command_system(
             MeshPrimitivePrefab::Torus(TorusPrefab::default()),
             PrefabMarker,
             Selectable,
-            SceneElement,
+            SceneElement::Mesh,
             PickableBundle::default()
         ));
     } else if cmd == "cylinder" {
@@ -61,7 +61,7 @@ fn read_command_system(
             MeshPrimitivePrefab::Cylinder(CylinderPrefab::default()),
             PrefabMarker,
             Selectable,
-            SceneElement,
+            SceneElement::Mesh,
             PickableBundle::default()
         ));
     } else {
