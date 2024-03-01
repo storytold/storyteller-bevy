@@ -1,4 +1,5 @@
 import { inject } from "@storyteller/framework";
+import * as studio from "@storyteller/studio";
 import { LitElement, type PropertyValues, html, unsafeCSS } from "lit";
 import { customElement } from "lit/decorators.js";
 
@@ -37,6 +38,7 @@ export class SceneHierarchyElement extends LitElement {
 				.name=${obj.name}
 				.icon=${obj.icon}
 				.treeChildren=${obj.children}
+				@tree-select=${(event: CustomEvent<string>) => studio.select(event.detail)}
 			></sts-tree>
 		`)}
 	`

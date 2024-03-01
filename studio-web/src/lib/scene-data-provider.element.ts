@@ -1,4 +1,4 @@
-import { Token, UniqueToken, on, provide } from "@storyteller/framework";
+import { DynamicProvider, Token, UniqueToken, on, provide } from "@storyteller/framework";
 import * as studio from "@storyteller/studio";
 import {
 	SceneElement,
@@ -8,28 +8,19 @@ import {
 	type EntitySpawnEvent,
 	type InspectorChanged,
 } from "@storyteller/studio";
-import { Fn, match } from "@storyteller/utility";
+import { TREE_SELECTION_PROVIDER, TreeSelectionProvider } from "@storyteller/studio-ui/tree";
+import { match } from "@storyteller/utility";
 import { LitElement, type PropertyValues, html } from "lit";
 import { customElement, state } from "lit/decorators.js";
 
 import { InspectorComponent } from "./inspector/inspector.types";
 
-export interface SceneDataProvider {
+export interface SceneDataProvider extends DynamicProvider<SceneDataProvider> {
 	readonly tree: readonly SceneObject[];
 	readonly entityMap: ReadonlyMap<string, SceneObject>;
 	readonly selectedEntity: string | null;
 	readonly selectedObject: SceneObject | null;
 	readonly selectionComponents: readonly InspectorComponent[];
-
-	addEventListener(
-		type: "property-changes",
-		listener: Fn<[CustomEvent<PropertyValues<SceneDataProvider>>], any>,
-	): void;
-
-	removeEventListener(
-		type: "property-changes",
-		listener: Fn<[CustomEvent<PropertyValues<SceneDataProvider>>], any>,
-	): void;
 }
 
 export const SCENE_DATA_PROVIDER: Token<SceneDataProvider> = new UniqueToken("SceneDataProvider");
@@ -41,14 +32,17 @@ export interface SceneObject extends Omit<studio.SceneObject, "children"> {
 
 @customElement("sts-scene-data-provider")
 @provide(SCENE_DATA_PROVIDER)
+@provide(TREE_SELECTION_PROVIDER)
 export class SceneDataProviderElement
 	extends LitElement
-	implements SceneDataProvider
+	implements SceneDataProvider, TreeSelectionProvider
 {
 	get tree() { return this._tree; }
 	get entityMap() { return this.#entityMap; }
 
 	get selectedEntity() { return this._selection; }
+	get selectedId() { return this._selection; }
+
 	get selectedObject() {
 		if (!this._selection) return null;
 		return this.#entityMap.get(this._selection) ?? null;
@@ -68,7 +62,8 @@ export class SceneDataProviderElement
 	//       properties change, but it's pretty fiddly to set up. Probably not
 	//       worth fixing before we migrate over to Bevy-native UI.
 	protected override update(changes: PropertyValues<this>): void {
-		const downstreamChanges: PropertyValues<SceneDataProvider> = new Map();
+		const downstreamChanges: PropertyValues<SceneDataProvider & TreeSelectionProvider>
+			= new Map();
 
 		if (changes.has("_tree")) {
 			downstreamChanges.set("tree", changes.get("_tree"));
@@ -78,6 +73,7 @@ export class SceneDataProviderElement
 		if (changes.has("_selection")) {
 			const prevSelection = changes.get("_selection");
 			downstreamChanges.set("selectedEntity", prevSelection);
+			downstreamChanges.set("selectedId", prevSelection);
 			downstreamChanges.set(
 				"selectedObject",
 				prevSelection

@@ -1,6 +1,4 @@
-import { inject } from "@storyteller/framework";
-import * as studio from "@storyteller/studio";
-import { SCENE_DATA_PROVIDER, type SceneDataProvider } from "@storyteller/studio-web";
+import { type DynamicProvider, inject, type Token, UniqueToken } from "@storyteller/framework";
 import { LitElement, type PropertyValues, html, nothing, unsafeCSS } from "lit";
 import { customElement, property } from "lit/decorators.js";
 import { classMap } from "lit/directives/class-map.js";
@@ -9,6 +7,13 @@ import { ifDefined } from "lit/directives/if-defined.js";
 import "./icon.element";
 
 import styles from "./tree.element.scss?inline";
+
+export const TREE_SELECTION_PROVIDER: Token<TreeSelectionProvider>
+	= new UniqueToken("TreeSelectionProvider");
+
+export interface TreeSelectionProvider extends DynamicProvider<TreeSelectionProvider> {
+	readonly selectedId: string | null;
+}
 
 export interface Tree {
 	id?: string;
@@ -27,24 +32,24 @@ export class TreeElement extends LitElement {
 	@property({ type: Boolean }) expanded = true;
 
 	get selected() {
-		return !!this.id && this._sceneData?.selectedEntity === this.id
+		return !!this.id && this._selectionProvider?.selectedId === this.id
 	}
 
-	@inject(SCENE_DATA_PROVIDER)
-	_sceneData?: SceneDataProvider;
+	@inject(TREE_SELECTION_PROVIDER)
+	_selectionProvider?: TreeSelectionProvider;
 
 	override connectedCallback(): void {
-		this._sceneData?.addEventListener("property-changes", this.onProviderChanges);
+		this._selectionProvider?.addEventListener("property-changes", this.onProviderChanges);
 		super.connectedCallback();
 	}
 
 	override disconnectedCallback(): void {
-		this._sceneData?.removeEventListener("property-changes", this.onProviderChanges);
+		this._selectionProvider?.removeEventListener("property-changes", this.onProviderChanges);
 		super.disconnectedCallback();
 	}
 
-	onProviderChanges = ({ detail: changes }: CustomEvent<PropertyValues<SceneDataProvider>>) => {
-		if (changes.has("selectedEntity"))
+	onProviderChanges = ({ detail: changes }: CustomEvent<PropertyValues<TreeSelectionProvider>>) => {
+		if (changes.has("selectedId"))
 			this.requestUpdate();
 	}
 
@@ -53,8 +58,13 @@ export class TreeElement extends LitElement {
 	}
 
 	selectEntity(): void {
-		if (this.id)
-			studio.select(this.id);
+		if (this.id) {
+			this.dispatchEvent(new CustomEvent("tree-select", {
+				detail: this.id,
+				bubbles: true,
+				composed: true,
+			}));
+		}
 	}
 
 	// TODO: A11y

@@ -1,4 +1,5 @@
-import { AbstractCtor, Ctor } from "@storyteller/utility";
+import { type AbstractCtor, type Ctor, type Fn } from "@storyteller/utility";
+import { type PropertyValues } from "lit";
 
 export class UniqueToken {
 	get id() { return this.#id; }
@@ -22,4 +23,16 @@ export type Token<T>
 export interface Provider<T> {
 	token: Token<T>;
 	value: T;
+}
+
+export interface DynamicProvider<T> {
+	addEventListener(
+		type: "property-changes",
+		listener: Fn<[CustomEvent<PropertyValues<T>>], any>,
+	): void;
+
+	removeEventListener(
+		type: "property-changes",
+		listener: Fn<[CustomEvent<PropertyValues<T>>], any>,
+	): void;
 }
