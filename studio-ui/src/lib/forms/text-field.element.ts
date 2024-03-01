@@ -1,3 +1,4 @@
+import { on } from "@storyteller/framework";
 import { html, unsafeCSS } from "lit";
 import { customElement, property } from "lit/decorators.js";
 
@@ -14,6 +15,13 @@ export class TextFieldElement extends FormFieldBaseElement {
 	}
 
 	@property() value = "";
+
+	@on("keydown")
+	@on("keyup")
+	blockKeypressBubbling(event: KeyboardEvent): void {
+		if (event.key !== "Alt" && event.key !== "Control")
+			event.stopPropagation();
+	}
 
 	#onInput(event: InputEvent): void {
 		const updated = (event.target as HTMLInputElement).value;
