@@ -1,0 +1,23 @@
+:host {
+	position: fixed;
+	inset: 0;
+
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 1rem;
+
+	background: #1A1A27;
+	color: #FFF;
+
+	font: {
+		family: "Fira Sans", sans-serif;
+		weight: 700;
+	}
+}
+
+.progress {
+	width: 512px;
+	border-radius: 0.25rem;
+}

@@ -25,6 +25,7 @@ import "@storyteller/studio-ui/icon";
 import "@storyteller/studio-ui/toolbar";
 import "@storyteller/studio-ui/tree";
 import "@storyteller/studio-web/canvas-provider";
+import "@storyteller/studio-web/loading";
 import "@storyteller/studio-web/scene-hierarchy";
 import "@storyteller/studio-web/studio";
 import "@storyteller/studio-web/transform-toolbar";
@@ -157,10 +158,7 @@ export class AppElement extends LitElement {
 			` : nothing}
 
 			${this.loading ? html`
-				<!-- TODO: Animated spinner or something -- talk to our designers -->
-				<div class="loading">
-					<h1>Loading</h1>
-				</div>
+				<sts-loading></sts-loading>
 			` : nothing}
 		</sts-canvas-provider>
 	`;

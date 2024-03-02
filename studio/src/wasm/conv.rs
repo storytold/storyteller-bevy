@@ -147,6 +147,12 @@ impl AsJsValue for u32 {
     }
 }
 
+impl AsJsValue for usize {
+    fn as_js(&self) -> Result<JsValue, String> {
+        Ok(JsValue::from_f64(*self as f64))
+    }
+}
+
 /// A crate-local version of `std::str::FromStr` that can be implemented for
 /// foreign types
 pub trait FromStr: Sized {

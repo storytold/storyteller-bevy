@@ -39,17 +39,3 @@ sts-button.active {
 	max-height: calc(100vh - 32px);
 	pointer-events: auto;
 }
-
-.loading {
-	position: absolute;
-	inset: 0;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	background: #222;
-	color: #FFF;
-	font: {
-		family: "Fira Sans", sans-serif;
-		weight: 700;
-	}
-}
