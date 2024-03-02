@@ -1,7 +1,4 @@
-use bevy::{
-    prelude::*, render::render_resource::Extent3d, transform::components::Transform,
-    window::PrimaryWindow,
-};
+use bevy::{prelude::*, render::render_resource::Extent3d, transform::components::Transform};
 use clap::{Args, Parser, Subcommand};
 use studio::headless::{start_headless, HeadlessMode};
 
