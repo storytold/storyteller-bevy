@@ -104,8 +104,11 @@ export class AppElement extends LitElement {
 	resizeHierarchyHeight(event: PointerEvent): void {
 		let availableHeight = this.#inspectorRef.value?.clientHeight;
 		if (availableHeight == null) return;
-		// Account for padding + resize-handle + minimal space for entity-inspector
-		availableHeight -= 32;
+		// Account for:
+		// - `section.inspector` padding (2rem ~= 32px)
+		// - resize-handle (0.5rem ~= 8px)
+		// - minimal space for `sts-entity-inspector` (2rem ~= 32px)
+		availableHeight -= 72;
 
 		const height = this.hierarchyHeight ?? this.#hierarchyRef.value?.offsetHeight;
 		if (height == null) return;
