@@ -9,9 +9,7 @@ import * as studio from "@storyteller/studio";
 export class BlockingElement extends LitElement {
     static override styles = unsafeCSS(styles);
 
-    override render = () => html`<div 
-            style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; position: absolute; top: 60px; left: 16px;">
-
+    override render = () => html`
         <sts-button
             @click=${() => {
                 console.log("cube clicked");
@@ -40,6 +38,5 @@ export class BlockingElement extends LitElement {
             }}>
             Torus
         </sts-button>
-
-    </div>`;
+    `;
 }
