@@ -134,7 +134,7 @@ pub(super) fn spawn_scale_gizmo(
             RenderLayers::layer(GIZMO_RENDER_LAYER),
             ScaleWidget::Axis(Vec3::Z),
             MaterialMeshBundle {
-                mesh: meshes.translate_arrow.clone(),
+                mesh: meshes.scale_cube.clone(),
                 material: mats.scale_z.clone(),
                 transform: Transform {
                     rotation: ROT_Z,
@@ -145,54 +145,54 @@ pub(super) fn spawn_scale_gizmo(
             },
         ));
 
-        // // YZ Plane
-        // cmd.spawn((
-        //     NotShadowCaster,
-        //     RenderLayers::layer(GIZMO_RENDER_LAYER),
-        //     ScaleWidget::Plane(Vec3::X),
-        //     MaterialMeshBundle {
-        //         mesh: meshes.translate_plane.clone(),
-        //         material: mats.translate_yz.clone(),
-        //         transform: Transform {
-        //             rotation: ROT_X,
-        //             translation: vec3(0., CIRC_45, CIRC_45),
-        //             ..default()
-        //         },
-        //         ..default()
-        //     },
-        // ));
-        // // XZ Plane
-        // cmd.spawn((
-        //     NotShadowCaster,
-        //     RenderLayers::layer(GIZMO_RENDER_LAYER),
-        //     ScaleWidget::Plane(Vec3::Y),
-        //     MaterialMeshBundle {
-        //         mesh: meshes.translate_plane.clone(),
-        //         material: mats.translate_xz.clone(),
-        //         transform: Transform {
-        //             rotation: ROT_Y,
-        //             translation: vec3(CIRC_45, 0., CIRC_45),
-        //             ..default()
-        //         },
-        //         ..default()
-        //     },
-        // ));
-        // // XY Plane
-        // cmd.spawn((
-        //     NotShadowCaster,
-        //     RenderLayers::layer(GIZMO_RENDER_LAYER),
-        //     ScaleWidget::Plane(Vec3::Z),
-        //     MaterialMeshBundle {
-        //         mesh: meshes.translate_plane.clone(),
-        //         material: mats.translate_xy.clone(),
-        //         transform: Transform {
-        //             rotation: ROT_Z,
-        //             translation: vec3(CIRC_45, CIRC_45, 0.),
-        //             ..default()
-        //         },
-        //         ..default()
-        //     },
-        // ));
+        // YZ Plane
+        cmd.spawn((
+            NotShadowCaster,
+            RenderLayers::layer(GIZMO_RENDER_LAYER),
+            ScaleWidget::Plane(Vec3::X),
+            MaterialMeshBundle {
+                mesh: meshes.translate_plane.clone(),
+                material: mats.translate_yz.clone(),
+                transform: Transform {
+                    rotation: ROT_X,
+                    translation: vec3(0., CIRC_45, CIRC_45),
+                    ..default()
+                },
+                ..default()
+            },
+        ));
+        // XZ Plane
+        cmd.spawn((
+            NotShadowCaster,
+            RenderLayers::layer(GIZMO_RENDER_LAYER),
+            ScaleWidget::Plane(Vec3::Y),
+            MaterialMeshBundle {
+                mesh: meshes.translate_plane.clone(),
+                material: mats.translate_xz.clone(),
+                transform: Transform {
+                    rotation: ROT_Y,
+                    translation: vec3(CIRC_45, 0., CIRC_45),
+                    ..default()
+                },
+                ..default()
+            },
+        ));
+        // XY Plane
+        cmd.spawn((
+            NotShadowCaster,
+            RenderLayers::layer(GIZMO_RENDER_LAYER),
+            ScaleWidget::Plane(Vec3::Z),
+            MaterialMeshBundle {
+                mesh: meshes.translate_plane.clone(),
+                material: mats.translate_xy.clone(),
+                transform: Transform {
+                    rotation: ROT_Z,
+                    translation: vec3(CIRC_45, CIRC_45, 0.),
+                    ..default()
+                },
+                ..default()
+            },
+        ));
     });
 }
 
@@ -237,7 +237,7 @@ pub(super) fn on_scale(
     let (cam, cam_xform) = q_camera.single();
 
     // Find the initial origin point in screen-space and add the total screen-space drag distance
-    let origin_ws = target_global_transform.translation();
+    let (origin_ws, _, _) = target_global_transform.to_scale_rotation_translation();
     let origin_ss = cam.world_to_viewport(cam_xform, origin_ws).unwrap();
     let target_ss = origin_ss + event.distance;
 
@@ -273,41 +273,41 @@ pub(super) fn on_scale(
                     q_all_global_transforms.get(target_parent.get())
                 {
                     let real_local_transform =
-                        GlobalTransform::from(Transform::from_translation(target_ws))
+                        GlobalTransform::from(Transform::from_scale(target_ws))
                             .reparented_to(parent_global_transform);
-                    target_transform.translation = real_local_transform.translation;
+                    target_transform.scale = real_local_transform.scale;
                 }
             } else {
-                target_transform.translation = target_ws;
+                target_transform.scale = target_ws;
             }
         }
-        // Ok(plane) => {
-        //     // Find the world-space normal of the plane we're translating on
-        //     let plane_normal = match plane {
-        //         ScreenSpace => cam_xform.back(),
-        //         Plane(normal) => gizmo_xform.affine().transform_vector3(*normal),
-        //         _ => unreachable!(),
-        //     };
+        Ok(plane) => {
+            // Find the world-space normal of the plane we're translating on
+            let plane_normal = match plane {
+                ScreenSpace => cam_xform.back(),
+                Plane(normal) => gizmo_xform.affine().transform_vector3(*normal),
+                _ => unreachable!(),
+            };
 
-        //     // Find the intersection of the camera-to-world ray against that plane
-        //     let Some(hit_dist) = ray.intersect_plane(origin_ws, plane_normal) else {
-        //         return;
-        //     };
-        //     let target_ws = ray.origin + ray.direction * hit_dist;
+            // Find the intersection of the camera-to-world ray against that plane
+            let Some(hit_dist) = ray.intersect_plane(origin_ws, plane_normal) else {
+                return;
+            };
+            let target_ws = ray.origin + ray.direction * hit_dist;
 
-        //     if let Some(target_parent) = target_parent {
-        //         if let Ok(parent_global_transform) =
-        //             q_all_global_transforms.get(target_parent.get())
-        //         {
-        //             let real_local_transform =
-        //                 GlobalTransform::from(Transform::from_translation(target_ws))
-        //                     .reparented_to(parent_global_transform);
-        //             target_transform.translation = real_local_transform.translation;
-        //         }
-        //     } else {
-        //         target_transform.translation = target_ws;
-        //     }
-        // }
+            if let Some(target_parent) = target_parent {
+                if let Ok(parent_global_transform) =
+                    q_all_global_transforms.get(target_parent.get())
+                {
+                    let real_local_transform =
+                        GlobalTransform::from(Transform::from_scale(target_ws))
+                            .reparented_to(parent_global_transform);
+                    target_transform.scale = real_local_transform.scale;
+                }
+            } else {
+                target_transform.scale = target_ws;
+            }
+        }
         _ => {}
     }
 }

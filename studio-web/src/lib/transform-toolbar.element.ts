@@ -92,7 +92,6 @@ export class TransformToolbarElement extends LitElement {
 					<sts-icon icon="scale">Scale</sts-icon>
 					<input type="checkbox"
 						name="scale"
-						disabled
 						?checked=${Boolean(this._type & TransformType.Scale)}
 						@input=${this.#onTypeChange}
 					/>
