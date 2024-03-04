@@ -81,7 +81,7 @@ pub(super) fn init_resources(
         subdivisions_segments: 40,
         subdivisions_sides: 6,
     }));
-    
+
     let scale_cube = ra_meshes.add(Mesh::from(shape::Cube { size: 0.2 }));
 
     cmd.insert_resource(GizmoMeshes {
@@ -110,7 +110,7 @@ pub(super) fn init_resources(
     let rotate_y = ra_mats.add(design_system::Color::GREEN.into());
     let rotate_z = ra_mats.add(design_system::Color::BLUE.into());
     let rotate_ss = ra_mats.add(Color::WHITE.into());
-    
+
     let scale_x = ra_mats.add(design_system::Color::RED.into());
     let scale_y = ra_mats.add(design_system::Color::GREEN.into());
     let scale_z = ra_mats.add(design_system::Color::BLUE.into());
