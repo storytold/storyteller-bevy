@@ -382,7 +382,7 @@ pub(super) fn notify_changed(q_window: &Window, msg: String) {
 
 static CHANGE_FROM_UI: WasmMessageBuffer<UpdateField> = WasmMessageBuffer::new();
 
-#[wasm_bindgen]
+#[wasm_bindgen(js_name = changeValue)]
 pub fn change_value(msg: String) {
     let Ok(msg) = serde_json::from_str::<UpdateField>(&msg) else {
         error!("Failed to parse message: {}", msg);
