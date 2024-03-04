@@ -93,10 +93,19 @@ fn read_command_system(mut command: Commands, mut change_event: EventWriter<NewC
     });
 }
 
-static COMMAND: WasmMessageBuffer<Option<String>> = WasmMessageBuffer::new();
+#[derive(Clone, Copy, Debug)]
+#[wasm_bindgen]
+pub enum BlockingCommand {
+    Cube,
+    Sphere,
+    Torus,
+    Cylinder,
+}
+
+static COMMAND: WasmMessageBuffer<BlockingCommand> = WasmMessageBuffer::new();
 
 #[wasm_bindgen(js_name = dispatchBlockingCommand)]
-pub fn dispatch_command(command: String) {
-    info!("Dispatching blocking command: {}", &command);
-    COMMAND.write_message(Some(command));
+pub fn dispatch_command(command: BlockingCommand) {
+    info!("Dispatching blocking command: {command:?}");
+    COMMAND.write_message(command);
 }
