@@ -22,74 +22,46 @@ impl Plugin for UiBlockingPlugin {
     }
 }
 
-fn read_command_system(mut command: Commands, mut change_event: EventWriter<NewChange>) {
-    // info!("Blocking command");
+fn read_command_system(mut commands: Commands, mut change_event: EventWriter<NewChange>) {
     let Some(cmd) = COMMAND.take_message() else {
-        info!("No blocking command");
         return;
     };
 
-    let Some(cmd) = cmd else {
-        info!("No blocking command found");
-        return;
-    };
+    let mut new_entity = commands.spawn((
+        SpatialBundle::default(),
+        PrefabMarker,
+        Selectable,
+        SceneElement::Mesh,
+        PickableBundle::default(),
+    ));
 
-    let id;
-    if cmd == "cube" {
-        id = command
-            .spawn((
-                SpatialBundle::default(),
-                MeshPrimitivePrefab::Cube(1.0),
-                PrefabMarker,
-                Selectable,
-                SceneElement::Mesh,
-                PickableBundle::default(),
-                Name::new("Cube"),
-            ))
-            .id();
-    } else if cmd == "sphere" {
-        id = command
-            .spawn((
-                SpatialBundle::default(),
-                MeshPrimitivePrefab::Sphere(SpherePrefab { r: 1.0 }),
-                PrefabMarker,
-                Selectable,
-                SceneElement::Mesh,
-                PickableBundle::default(),
-                Name::new("Sphere"),
-            ))
-            .id();
-    } else if cmd == "torus" {
-        id = command
-            .spawn((
-                SpatialBundle::default(),
-                MeshPrimitivePrefab::Torus(TorusPrefab::default()),
-                PrefabMarker,
-                Selectable,
-                SceneElement::Mesh,
-                PickableBundle::default(),
-                Name::new("Torus"),
-            ))
-            .id();
-    } else if cmd == "cylinder" {
-        id = command
-            .spawn((
-                SpatialBundle::default(),
-                MeshPrimitivePrefab::Cylinder(CylinderPrefab::default()),
-                PrefabMarker,
-                Selectable,
-                SceneElement::Mesh,
-                PickableBundle::default(),
-                Name::new("Cylinder"),
-            ))
-            .id();
-    } else {
-        error!("Unknown blocking command: {}", cmd);
-        return;
-    }
+    match cmd {
+        BlockingCommand::Cube => {
+            new_entity
+                .insert(MeshPrimitivePrefab::Cube(1.0))
+                .insert(Name::new("Cube"));
+        }
+        BlockingCommand::Sphere => {
+            new_entity
+                .insert(MeshPrimitivePrefab::Sphere(SpherePrefab { r: 1.0 }))
+                .insert(Name::new("Sphere"));
+        }
+        BlockingCommand::Torus => {
+            new_entity
+                .insert(MeshPrimitivePrefab::Torus(TorusPrefab::default()))
+                .insert(Name::new("Torus"));
+        }
+        BlockingCommand::Cylinder => {
+            new_entity
+                .insert(MeshPrimitivePrefab::Cylinder(CylinderPrefab::default()))
+                .insert(Name::new("Cylinder"));
+        }
+    };
 
     change_event.send(NewChange {
-        change: Arc::new(AddedEntity { entity: id }),
+        change: Arc::new(AddedEntity {
+            entity: new_entity.id(),
+        }),
     });
 }
 
