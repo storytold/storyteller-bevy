@@ -4,7 +4,8 @@ use bevy_mod_picking::prelude::{Drag, DragEnd, DragStart, Listener, On, Out, Ove
 use crate::{interaction::TransformSpace, math::NearlyEq, MainCamera};
 
 use super::{
-    on_gizmo_element_hover, on_gizmo_element_unhover, GizmoMats, GizmoMeshes, InitialHitPoint, InitialTransform, TransformGizmo, TransformGizmoBundle, GIZMO_RENDER_LAYER
+    on_gizmo_element_hover, on_gizmo_element_unhover, GizmoMats, GizmoMeshes, InitialHitPoint,
+    InitialTransform, TransformGizmo, TransformGizmoBundle, GIZMO_RENDER_LAYER,
 };
 
 #[derive(Component)]
@@ -204,8 +205,9 @@ pub(super) fn on_scale_start(
     for gizmo_data in q_gizmos.iter() {
         if let Ok((ent, &world_xform)) = q_xform.get(gizmo_data.target) {
             let hit_point = event.hit.position.unwrap();
-            
-            cmd.entity(ent).insert((InitialTransform(world_xform), InitialHitPoint(hit_point)));
+
+            cmd.entity(ent)
+                .insert((InitialTransform(world_xform), InitialHitPoint(hit_point)));
         }
     }
 }
@@ -227,8 +229,7 @@ pub(super) fn on_scale(
     q_camera: Query<(&Camera, &GlobalTransform), With<MainCamera>>,
     q_gizmo: Query<(&GlobalTransform, &TransformGizmo), Without<MainCamera>>,
     q_widget: Query<&ScaleWidget>,
-    mut gizmos : Gizmos
-    // q_all_global_transforms: Query<&GlobalTransform>,
+    mut gizmos: Gizmos, // q_all_global_transforms: Query<&GlobalTransform>,
 ) {
     let (gizmo_xform, gizmo_data) = q_gizmo.single();
     let Ok((mut target_transform, init_global_transform, initial_hit_point)) =
@@ -241,7 +242,9 @@ pub(super) fn on_scale(
 
     // Find the initial origin point in screen-space and add the total screen-space drag distance
     let (initial_scale, _, origin_ws) = init_global_transform.to_scale_rotation_translation();
-    let origin_ss = cam.world_to_viewport(cam_xform, **initial_hit_point).unwrap();
+    let origin_ss = cam
+        .world_to_viewport(cam_xform, **initial_hit_point)
+        .unwrap();
     let target_ss = origin_ss + event.distance;
 
     // Create a camera-to-world ray that passes through the screen-space target point
@@ -270,14 +273,14 @@ pub(super) fn on_scale(
             let drag_vector = hit_point - origin_ws;
             let projection_length = drag_vector.dot(axis_ws);
             let target_ws = origin_ws + axis_ws * projection_length;
-            
+
             let distance_from_initial_click = initial_hit_point.distance(origin_ws);
             let distance_from_current = target_ws.distance(origin_ws);
-            
+
             let scale_factor = distance_from_current / distance_from_initial_click;
-            
+
             info!("Scale Factor {scale_factor}");
-            
+
             let (target_x, target_y, target_z) = initial_scale.into();
             let new_scale = if axis.nearly_eq(Vec3::Y) {
                 Vec3::new(target_x, target_y * scale_factor, target_z)
@@ -288,23 +291,26 @@ pub(super) fn on_scale(
             } else {
                 unreachable!();
             };
-            
+
             info!("New Scale {:?}", new_scale);
-            
+
             target_transform.scale = new_scale;
         }
         Ok(Plane(plane_normal)) => {
-            let normal_ws = gizmo_xform.affine().transform_vector3(*plane_normal).normalize();
+            let normal_ws = gizmo_xform
+                .affine()
+                .transform_vector3(*plane_normal)
+                .normalize();
             let Some(hit_dist) = ray.intersect_plane(origin_ws, normal_ws) else {
                 return;
             };
             let hit_point = ray.origin + ray.direction * hit_dist;
-            
+
             let distance_from_initial_click = initial_hit_point.distance(origin_ws);
             let distance_from_current = hit_point.distance(origin_ws);
-                        
+
             let scale = distance_from_current / distance_from_initial_click;
-            
+
             let scale_offset = if plane_normal.nearly_eq(Vec3::Z) {
                 Vec3::new(scale, scale, 1.0)
             } else if plane_normal.nearly_eq(Vec3::Y) {
@@ -314,17 +320,24 @@ pub(super) fn on_scale(
             } else {
                 unreachable!();
             };
-            
+
             target_transform.scale = initial_scale * scale_offset;
         }
-        Ok(UniformScale) => {    
-            let original_click_ss = cam.world_to_viewport(cam_xform, **initial_hit_point).unwrap();
-            
-            let sign = if original_click_ss.y > target_ss.y { 1.0 } else { -1.0 };
+        Ok(UniformScale) => {
+            let original_click_ss = cam
+                .world_to_viewport(cam_xform, **initial_hit_point)
+                .unwrap();
+
+            let sign = if original_click_ss.y > target_ss.y {
+                1.0
+            } else {
+                -1.0
+            };
             let divisor = original_click_ss.y;
             let distance_click = original_click_ss.distance(target_ss);
-            
-            target_transform.scale = initial_scale + Vec3::splat((distance_click / divisor * sign) * 1.5);
+
+            target_transform.scale =
+                initial_scale + Vec3::splat((distance_click / divisor * sign) * 1.5);
         }
         _ => {}
     }
