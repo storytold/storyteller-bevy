@@ -59,26 +59,21 @@ export class AppElement extends LitElement {
 	}
 
 	override connectedCallback(): void {
-		if (window.parent && window.parent !== window) {
+		if (window.parent && window.parent !== window)
 			this.#parentWindow = window.parent;
-			this.#parentWindow.addEventListener("message", this.onParentMessage.bind(this));
-			this.#parentWindow.postMessage("studio-ready", "https://fakeyou.com/*");
-		}
+
 		super.connectedCallback();
 	}
 
-	override disconnectedCallback(): void {
-		this.#parentWindow?.removeEventListener("message", this.onParentMessage.bind(this));
-		super.disconnectedCallback();
-	}
-
+	@on("window:message")
 	onParentMessage(event: MessageEvent<string>): void {
-		console.log("onParentMessage:", event);
-
-		if (!event.origin.startsWith("https://fakeyou.com/"))
+		// TODO: Use the correct origin(s)
+		if (event.origin !== "http://localhost:7000")
 			return;
 
 		if (event.data === "save-scene") {
+			console.log("Saving scene by external request");
+
 			this.#parentWindowPendingSceneSave = true;
 			studio.saveScene();
 		}
@@ -108,13 +103,14 @@ export class AppElement extends LitElement {
 
 				this.#parentWindowPendingSceneSave = false;
 
+				// TODO: Use the correct origin(s)
 				if (resultJson.success) {
 					this.#parentWindow?.postMessage(
-						resultJson.media_file_token,
-						"https://fakeyou.com/*"
+						`scene-saved:${resultJson.media_file_token}`,
+						"http://localhost:7000",
 					);
 				} else {
-					this.#parentWindow?.postMessage("save-failed", "https://fakeyou.com/*");
+					this.#parentWindow?.postMessage("scene-save-failed", "http://localhost:7000");
 				}
 			}
 		}
@@ -131,6 +127,11 @@ export class AppElement extends LitElement {
 			[SceneState.Active]: () => false,
 			_: () => true,
 		});
+
+		// TODO: Use the correct origin(s)
+		if (!this.loading) {
+			this.#parentWindow?.postMessage("studio-ready", "http://localhost:7000");
+		}
 	}
 
 	onPanelResizeStart(): void {
