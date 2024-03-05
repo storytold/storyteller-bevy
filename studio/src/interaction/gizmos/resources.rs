@@ -84,7 +84,7 @@ pub(super) fn init_resources(
     }));
 
     let scale_cube = ra_meshes.add(Mesh::from(shape::Cube { size: 0.2 }));
-    let uniform_scale_cube = ra_meshes.add(Mesh::from(shape::Cube { size: 0.4 }));
+    let uniform_scale_cube = ra_meshes.add(Mesh::from(shape::Cube { size: 0.333 }));
 
     cmd.insert_resource(GizmoMeshes {
         translate_line,
