@@ -45,6 +45,8 @@ export class AppElement extends LitElement {
 	@state() inspectorWidth = 320;
 	@state() hierarchyHeight?: number;
 
+	#parentWindow?: Window;
+	#parentWindowPendingSceneSave = false; // TODO: Architecturally dubious
 	#enableAnimTimeline = false; // TODO
 
 	#inspectorRef = createRef<HTMLDivElement>();
@@ -54,6 +56,32 @@ export class AppElement extends LitElement {
 
 	protected override createRenderRoot(): Element | ShadowRoot {
 		return this;
+	}
+
+	override connectedCallback(): void {
+		if (window.parent && window.parent !== window) {
+			this.#parentWindow = window.parent;
+			this.#parentWindow.addEventListener("message", this.onParentMessage.bind(this));
+			this.#parentWindow.postMessage("studio-ready", "https://fakeyou.com/*");
+		}
+		super.connectedCallback();
+	}
+
+	override disconnectedCallback(): void {
+		this.#parentWindow?.removeEventListener("message", this.onParentMessage.bind(this));
+		super.disconnectedCallback();
+	}
+
+	onParentMessage(event: MessageEvent<string>): void {
+		console.log("onParentMessage:", event);
+
+		if (!event.origin.startsWith("https://fakeyou.com/"))
+			return;
+
+		if (event.data === "save-scene") {
+			this.#parentWindowPendingSceneSave = true;
+			studio.saveScene();
+		}
 	}
 
 	@on("scene-saved")
@@ -71,7 +99,24 @@ export class AppElement extends LitElement {
 				headers: { "Accept": "text/plain" },
 				body: formData,
 			});
-			console.log(response);
+
+			if (this.#parentWindowPendingSceneSave) {
+				const resultJson: {
+					success: boolean;
+					media_file_token: string;
+				} = await response.json();
+
+				this.#parentWindowPendingSceneSave = false;
+
+				if (resultJson.success) {
+					this.#parentWindow?.postMessage(
+						resultJson.media_file_token,
+						"https://fakeyou.com/*"
+					);
+				} else {
+					this.#parentWindow?.postMessage("save-failed", "https://fakeyou.com/*");
+				}
+			}
 		}
 		catch (err) {
 			console.error(err);
