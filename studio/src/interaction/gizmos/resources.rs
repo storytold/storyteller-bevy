@@ -10,6 +10,7 @@ pub(super) struct GizmoMeshes {
     pub translate_line: Handle<Mesh>,
     pub translate_arrow: Handle<Mesh>,
     pub scale_cube: Handle<Mesh>,
+    pub uniform_scale_cube: Handle<Mesh>,
     pub translate_plane: Handle<Mesh>,
     pub translate_ss: Handle<Mesh>,
     pub rotate_ring: Handle<Mesh>,
@@ -83,6 +84,7 @@ pub(super) fn init_resources(
     }));
 
     let scale_cube = ra_meshes.add(Mesh::from(shape::Cube { size: 0.2 }));
+    let uniform_scale_cube = ra_meshes.add(Mesh::from(shape::Cube { size: 0.4 }));
 
     cmd.insert_resource(GizmoMeshes {
         translate_line,
@@ -93,6 +95,7 @@ pub(super) fn init_resources(
         rotate_ball,
         rotate_ss,
         scale_cube,
+        uniform_scale_cube,
     });
 
     let translate_x = ra_mats.add(design_system::Color::RED.into());

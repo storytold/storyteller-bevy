@@ -1,18 +1,17 @@
 use bevy::{math::vec3, pbr::NotShadowCaster, prelude::*, render::view::RenderLayers};
 use bevy_mod_picking::prelude::{Drag, DragEnd, DragStart, Listener, On, Out, Over, Pointer};
 
-use crate::{interaction::TransformSpace, MainCamera};
+use crate::{interaction::TransformSpace, math::NearlyEq, MainCamera};
 
 use super::{
-    on_gizmo_element_hover, on_gizmo_element_unhover, GizmoMats, GizmoMeshes, InitialTransform,
-    TransformGizmo, TransformGizmoBundle, GIZMO_RENDER_LAYER,
+    on_gizmo_element_hover, on_gizmo_element_unhover, GizmoMats, GizmoMeshes, InitialHitPoint, InitialTransform, TransformGizmo, TransformGizmoBundle, GIZMO_RENDER_LAYER
 };
 
 #[derive(Component)]
 pub(super) enum ScaleWidget {
     Axis(Vec3),
     Plane(Vec3),
-    ScreenSpace,
+    UniformScale,
 }
 
 #[inline]
@@ -40,9 +39,9 @@ pub(super) fn spawn_scale_gizmo(
         cmd.spawn((
             NotShadowCaster,
             RenderLayers::layer(GIZMO_RENDER_LAYER),
-            ScaleWidget::ScreenSpace,
+            ScaleWidget::UniformScale,
             MaterialMeshBundle {
-                mesh: meshes.translate_ss.clone(),
+                mesh: meshes.uniform_scale_cube.clone(),
                 material: mats.translate_ss.clone(),
                 transform: Transform::IDENTITY,
                 ..default()
@@ -197,14 +196,16 @@ pub(super) fn spawn_scale_gizmo(
 }
 
 pub(super) fn on_scale_start(
-    _: Listener<Pointer<DragStart>>,
+    event: Listener<Pointer<DragStart>>,
     mut cmd: Commands,
     q_xform: Query<(Entity, &GlobalTransform)>,
     q_gizmos: Query<&TransformGizmo>,
 ) {
     for gizmo_data in q_gizmos.iter() {
         if let Ok((ent, &world_xform)) = q_xform.get(gizmo_data.target) {
-            cmd.entity(ent).insert(InitialTransform(world_xform));
+            let hit_point = event.hit.position.unwrap();
+            
+            cmd.entity(ent).insert((InitialTransform(world_xform), InitialHitPoint(hit_point)));
         }
     }
 }
@@ -220,15 +221,17 @@ pub(super) fn on_scale_end(
 }
 
 pub(super) fn on_scale(
+    // mut commands : Commands,
     event: Listener<Pointer<Drag>>,
-    mut q_root: Query<(&mut Transform, &InitialTransform, Option<&Parent>)>,
+    mut q_root: Query<(&mut Transform, &InitialTransform, &InitialHitPoint)>,
     q_camera: Query<(&Camera, &GlobalTransform), With<MainCamera>>,
     q_gizmo: Query<(&GlobalTransform, &TransformGizmo), Without<MainCamera>>,
     q_widget: Query<&ScaleWidget>,
-    q_all_global_transforms: Query<&GlobalTransform>,
+    mut gizmos : Gizmos
+    // q_all_global_transforms: Query<&GlobalTransform>,
 ) {
     let (gizmo_xform, gizmo_data) = q_gizmo.single();
-    let Ok((mut target_transform, target_global_transform, target_parent)) =
+    let Ok((mut target_transform, init_global_transform, initial_hit_point)) =
         q_root.get_mut(gizmo_data.target)
     else {
         error!("Scale gizmo target not found");
@@ -237,8 +240,8 @@ pub(super) fn on_scale(
     let (cam, cam_xform) = q_camera.single();
 
     // Find the initial origin point in screen-space and add the total screen-space drag distance
-    let (origin_ws, _, _) = target_global_transform.to_scale_rotation_translation();
-    let origin_ss = cam.world_to_viewport(cam_xform, origin_ws).unwrap();
+    let (initial_scale, _, origin_ws) = init_global_transform.to_scale_rotation_translation();
+    let origin_ss = cam.world_to_viewport(cam_xform, **initial_hit_point).unwrap();
     let target_ss = origin_ss + event.distance;
 
     // Create a camera-to-world ray that passes through the screen-space target point
@@ -267,46 +270,61 @@ pub(super) fn on_scale(
             let drag_vector = hit_point - origin_ws;
             let projection_length = drag_vector.dot(axis_ws);
             let target_ws = origin_ws + axis_ws * projection_length;
-
-            if let Some(target_parent) = target_parent {
-                if let Ok(parent_global_transform) =
-                    q_all_global_transforms.get(target_parent.get())
-                {
-                    let real_local_transform =
-                        GlobalTransform::from(Transform::from_scale(target_ws))
-                            .reparented_to(parent_global_transform);
-                    target_transform.scale = real_local_transform.scale;
-                }
+            
+            let distance_from_initial_click = initial_hit_point.distance(origin_ws);
+            let distance_from_current = target_ws.distance(origin_ws);
+            
+            let scale_factor = distance_from_current / distance_from_initial_click;
+            
+            info!("Scale Factor {scale_factor}");
+            
+            let (target_x, target_y, target_z) = initial_scale.into();
+            let new_scale = if axis.nearly_eq(Vec3::Y) {
+                Vec3::new(target_x, target_y * scale_factor, target_z)
+            } else if axis.nearly_eq(Vec3::X) {
+                Vec3::new(target_x * scale_factor, target_y, target_z)
+            } else if axis.nearly_eq(Vec3::Z) {
+                Vec3::new(target_x, target_y, target_z * scale_factor)
             } else {
-                target_transform.scale = target_ws;
-            }
-        }
-        Ok(plane) => {
-            // Find the world-space normal of the plane we're translating on
-            let plane_normal = match plane {
-                ScreenSpace => cam_xform.back(),
-                Plane(normal) => gizmo_xform.affine().transform_vector3(*normal),
-                _ => unreachable!(),
+                unreachable!();
             };
-
-            // Find the intersection of the camera-to-world ray against that plane
-            let Some(hit_dist) = ray.intersect_plane(origin_ws, plane_normal) else {
+            
+            info!("New Scale {:?}", new_scale);
+            
+            target_transform.scale = new_scale;
+        }
+        Ok(Plane(plane_normal)) => {
+            let normal_ws = gizmo_xform.affine().transform_vector3(*plane_normal).normalize();
+            let Some(hit_dist) = ray.intersect_plane(origin_ws, normal_ws) else {
                 return;
             };
-            let target_ws = ray.origin + ray.direction * hit_dist;
-
-            if let Some(target_parent) = target_parent {
-                if let Ok(parent_global_transform) =
-                    q_all_global_transforms.get(target_parent.get())
-                {
-                    let real_local_transform =
-                        GlobalTransform::from(Transform::from_scale(target_ws))
-                            .reparented_to(parent_global_transform);
-                    target_transform.scale = real_local_transform.scale;
-                }
+            let hit_point = ray.origin + ray.direction * hit_dist;
+            
+            let distance_from_initial_click = initial_hit_point.distance(origin_ws);
+            let distance_from_current = hit_point.distance(origin_ws);
+                        
+            let scale = distance_from_current / distance_from_initial_click;
+            
+            let scale_offset = if plane_normal.nearly_eq(Vec3::Z) {
+                Vec3::new(scale, scale, 1.0)
+            } else if plane_normal.nearly_eq(Vec3::Y) {
+                Vec3::new(scale, 1.0, scale)
+            } else if plane_normal.nearly_eq(Vec3::X) {
+                Vec3::new(1.0, scale, scale)
             } else {
-                target_transform.scale = target_ws;
-            }
+                unreachable!();
+            };
+            
+            target_transform.scale = initial_scale * scale_offset;
+        }
+        Ok(UniformScale) => {    
+            let original_click_ss = cam.world_to_viewport(cam_xform, **initial_hit_point).unwrap();
+            
+            let sign = if original_click_ss.y > target_ss.y { 1.0 } else { -1.0 };
+            let divisor = original_click_ss.y;
+            let distance_click = original_click_ss.distance(target_ss);
+            
+            target_transform.scale = initial_scale + Vec3::splat((distance_click / divisor * sign) * 1.5);
         }
         _ => {}
     }

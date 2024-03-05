@@ -84,3 +84,6 @@ pub(super) fn on_gizmo_element_unhover(
     let mat = ra_mats.get_mut(q_target.get(ev.target).unwrap()).unwrap();
     mat.color *= 0.5;
 }
+
+#[derive(Component, Deref)]
+pub(super) struct InitialHitPoint(pub Vec3);
