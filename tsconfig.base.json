@@ -27,6 +27,7 @@
       "@storyteller/studio-web": ["studio-web/src/index.ts"],
       "@storyteller/studio-web/canvas-provider": ["studio-web/src/lib/canvas-provider.element.ts"],
       "@storyteller/studio-web/entity-inspector": ["studio-web/src/lib/inspector/entity-inspector.element.ts"],
+      "@storyteller/studio-web/iframe-messaging-bridge": ["studio-web/src/lib/iframe-messaging-bridge.element.ts"],
       "@storyteller/studio-web/loading": ["studio-web/src/lib/loading.element.ts"],
       "@storyteller/studio-web/scene-data-provider": ["studio-web/src/lib/scene-data-provider.element.ts"],
       "@storyteller/studio-web/scene-hierarchy": ["studio-web/src/lib/scene-hierarchy.element.ts"],

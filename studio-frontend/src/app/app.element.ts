@@ -24,6 +24,7 @@ import "@storyteller/studio-ui/toolbar";
 import "@storyteller/studio-ui/tree";
 import "@storyteller/studio-web/canvas-provider";
 import "@storyteller/studio-web/entity-inspector";
+import "@storyteller/studio-web/iframe-messaging-bridge";
 import "@storyteller/studio-web/loading";
 import "@storyteller/studio-web/scene-hierarchy";
 import "@storyteller/studio-web/studio";
@@ -45,8 +46,6 @@ export class AppElement extends LitElement {
 	@state() inspectorWidth = 320;
 	@state() hierarchyHeight?: number;
 
-	#parentWindow?: Window;
-	#parentWindowPendingSceneSave = false; // TODO: Architecturally dubious
 	#enableAnimTimeline = false; // TODO
 
 	#inspectorRef = createRef<HTMLDivElement>();
@@ -56,27 +55,6 @@ export class AppElement extends LitElement {
 
 	protected override createRenderRoot(): Element | ShadowRoot {
 		return this;
-	}
-
-	override connectedCallback(): void {
-		if (window.parent && window.parent !== window)
-			this.#parentWindow = window.parent;
-
-		super.connectedCallback();
-	}
-
-	@on("window:message")
-	onParentMessage(event: MessageEvent<string>): void {
-		// TODO: Use the correct origin(s)
-		if (event.origin !== "http://localhost:7000")
-			return;
-
-		if (event.data === "save-scene") {
-			console.log("Saving scene by external request");
-
-			this.#parentWindowPendingSceneSave = true;
-			studio.saveScene();
-		}
 	}
 
 	@on("scene-saved")
@@ -95,22 +73,18 @@ export class AppElement extends LitElement {
 				body: formData,
 			});
 
-			if (this.#parentWindowPendingSceneSave) {
+			if (response.ok) {
 				const resultJson: {
 					success: boolean;
 					media_file_token: string;
 				} = await response.json();
 
-				this.#parentWindowPendingSceneSave = false;
-
-				// TODO: Use the correct origin(s)
 				if (resultJson.success) {
-					this.#parentWindow?.postMessage(
-						`scene-saved:${resultJson.media_file_token}`,
-						"http://localhost:7000",
-					);
-				} else {
-					this.#parentWindow?.postMessage("scene-save-failed", "http://localhost:7000");
+					this.dispatchEvent(new CustomEvent("scene-uploaded", {
+						detail: resultJson.media_file_token,
+						bubbles: true,
+						composed: true,
+					}));
 				}
 			}
 		}
@@ -127,11 +101,6 @@ export class AppElement extends LitElement {
 			[SceneState.Active]: () => false,
 			_: () => true,
 		});
-
-		// TODO: Use the correct origin(s)
-		if (!this.loading) {
-			this.#parentWindow?.postMessage("studio-ready", "http://localhost:7000");
-		}
 	}
 
 	onPanelResizeStart(): void {
@@ -178,6 +147,8 @@ export class AppElement extends LitElement {
 	protected override render = () => html`
 		<sts-canvas-provider class="app-root">
 		<sts-scene-data-provider>
+			<sts-iframe-messaging-bridge></sts-iframe-messaging-bridge>
+
 			<!-- Scene view -->
 			<sts-studio
 				class=${classMap({
