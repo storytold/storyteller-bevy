@@ -40,6 +40,10 @@ jobs:
       - uses: dtolnay/rust-toolchain@1.76
         with:
           components: clippy
+      - uses: "actions/setup-node@v4"
+        with:
+          node-version: 18
+          cache: 'npm'
       - name: Install Linux dependencies
         run: |
               sudo apt-get update
