@@ -35,7 +35,7 @@ impl Plugin for DebugPlugin {
             .insert_resource(State::new(DebugPickingMode::Disabled))
             .insert_resource(GizmoConfig {
                 enabled: true,
-                depth_bias: -1.0,
+                depth_bias: -0.1,
                 line_perspective: false,
                 line_width: 2.,
                 ..default()
