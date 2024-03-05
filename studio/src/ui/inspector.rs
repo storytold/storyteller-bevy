@@ -124,7 +124,7 @@ impl EditorTab for TestInspectorTab {
             CHANGE_FROM_UI.write_message(UpdateField {
                 component: "bevy_transform::components::transform::Transform".to_string(),
                 reflect_path: ".translation.x".to_string(),
-                value: 0.to_string(),
+                value: serde_json::Value::from(0.0),
             });
         }
     }
@@ -183,57 +183,57 @@ fn update_field_by_ui(world: &mut World) {
 
         getter.as_ref()(&mut entity_mut, &msg.reflect_path, &|reflect_field| {
             if let Some(val) = reflect_field.downcast_mut::<f32>() {
-                let Ok(msg_value) = msg.value.parse::<f32>() else {
+                let Ok(msg_value) = serde_json::from_value(msg.value.clone()) else {
                     error!("Failed to parse value: {}", msg.value);
                     return;
                 };
                 *val = msg_value;
             } else if let Some(val) = reflect_field.downcast_mut::<f64>() {
-                let Ok(msg_value) = msg.value.parse::<f64>() else {
+                let Ok(msg_value) = serde_json::from_value(msg.value.clone()) else {
                     error!("Failed to parse value: {}", msg.value);
                     return;
                 };
                 *val = msg_value;
             } else if let Some(val) = reflect_field.downcast_mut::<u32>() {
-                let Ok(msg_value) = msg.value.parse::<u32>() else {
+                let Ok(msg_value) = serde_json::from_value(msg.value.clone()) else {
                     error!("Failed to parse value: {}", msg.value);
                     return;
                 };
                 *val = msg_value;
             } else if let Some(val) = reflect_field.downcast_mut::<u64>() {
-                let Ok(msg_value) = msg.value.parse::<u64>() else {
+                let Ok(msg_value) = serde_json::from_value(msg.value.clone()) else {
                     error!("Failed to parse value: {}", msg.value);
                     return;
                 };
                 *val = msg_value;
             } else if let Some(val) = reflect_field.downcast_mut::<i32>() {
-                let Ok(msg_value) = msg.value.parse::<i32>() else {
+                let Ok(msg_value) = serde_json::from_value(msg.value.clone()) else {
                     error!("Failed to parse value: {}", msg.value);
                     return;
                 };
                 *val = msg_value;
             } else if let Some(val) = reflect_field.downcast_mut::<i64>() {
-                let Ok(msg_value) = msg.value.parse::<i64>() else {
+                let Ok(msg_value) = serde_json::from_value(msg.value.clone()) else {
                     error!("Failed to parse value: {}", msg.value);
                     return;
                 };
                 *val = msg_value;
             } else if let Some(val) = reflect_field.downcast_mut::<bool>() {
-                let Ok(msg_value) = msg.value.parse::<bool>() else {
+                let Ok(msg_value) = serde_json::from_value(msg.value.clone()) else {
                     error!("Failed to parse value: {}", msg.value);
                     return;
                 };
                 *val = msg_value;
             } else if let Some(val) = reflect_field.downcast_mut::<String>() {
-                *val = msg.value.clone();
+                *val = msg.value.as_str().unwrap().to_string();
             } else if let Some(val) = reflect_field.downcast_mut::<Vec3>() {
-                let Ok(msg_value) = serde_json::from_str::<Vec3>(&msg.value) else {
+                let Ok(msg_value) = serde_json::from_value(msg.value.clone()) else {
                     error!("Failed to parse value: {}", msg.value);
                     return;
                 };
                 *val = msg_value;
             } else if let Some(val) = reflect_field.downcast_mut::<Quat>() {
-                let Ok(msg_value) = serde_json::from_str::<Quat>(&msg.value) else {
+                let Ok(msg_value) = serde_json::from_value(msg.value.clone()) else {
                     error!("Failed to parse value: {}", msg.value);
                     return;
                 };
@@ -356,7 +356,7 @@ fn update_description(
 pub struct UpdateField {
     pub component: String,
     pub reflect_path: String,
-    pub value: String,
+    pub value: serde_json::Value,
 }
 
 #[wasm_bindgen(typescript_custom_section)]
@@ -383,9 +383,9 @@ pub(super) fn notify_changed(q_window: &Window, msg: String) {
 static CHANGE_FROM_UI: WasmMessageBuffer<UpdateField> = WasmMessageBuffer::new();
 
 #[wasm_bindgen(js_name = changeValue)]
-pub fn change_value(msg: String) {
-    let Ok(msg) = serde_json::from_str::<UpdateField>(&msg) else {
-        error!("Failed to parse message: {}", msg);
+pub fn change_value(msg: JsValue) {
+    let Ok(msg) = serde_wasm_bindgen::from_value(msg) else {
+        error!("Failed to parse message");
         return;
     };
     CHANGE_FROM_UI.write_message(msg);
