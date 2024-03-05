@@ -223,13 +223,11 @@ pub(super) fn on_scale_end(
 }
 
 pub(super) fn on_scale(
-    // mut commands : Commands,
     event: Listener<Pointer<Drag>>,
     mut q_root: Query<(&mut Transform, &InitialTransform, &InitialHitPoint)>,
     q_camera: Query<(&Camera, &GlobalTransform), With<MainCamera>>,
     q_gizmo: Query<(&GlobalTransform, &TransformGizmo), Without<MainCamera>>,
     q_widget: Query<&ScaleWidget>,
-    mut gizmos: Gizmos, // q_all_global_transforms: Query<&GlobalTransform>,
 ) {
     let (gizmo_xform, gizmo_data) = q_gizmo.single();
     let Ok((mut target_transform, init_global_transform, initial_hit_point)) =
