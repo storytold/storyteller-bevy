@@ -1,18 +1,78 @@
 import { StudioMode } from "@storyteller/studio";
 import { match } from "@storyteller/utility";
 
+/**
+ * A thin wrapper around
+ * {@linkcode https://developer.mozilla.org/en-US/docs/Web/API/URLSearchParams URLSearchParams}
+ * for retrieving URL parameters supported by the Storyteller Studio
+ * microfrontend and (where applicable) translating them into the types expected
+ * by the [`StudioElement`](./studio.element.ts) component.
+ *
+ * The following parameters are mutually exclusive, and one of them must be
+ * present in order to progress past the "Loading" screen:
+ *
+ * - {@linkcode objectId}
+ * - {@linkcode bvh}
+ * - {@linkcode mixamo}
+ * - {@linkcode sceneImport}
+ * - {@linkcode scene}
+ */
 export class StudioURLParams {
 	#_nativeParams?: URLSearchParams;
 	get #nativeParams() {
 		return this.#_nativeParams ??= new URLSearchParams(document.location.search);
 	}
 
+	/**
+	 * Initialize the application from an asset in the "bundled" asset library.
+	 * Takes a filename, including the extension, that can be found under
+	 * `studio/assets/gltf` (e.g., "base-human-female.gltf").
+	 */
 	get objectId() { return this.#nativeParams.get("objectId") ?? undefined; }
+
+	/**
+	 * Initialize the application by retargeting a BVH animation (currently only
+	 * supports the MocapNET skeleton) onto the bundled `Mannequin.gltf` model.
+	 */
 	get bvh() { return this.#nativeParams.get("bvh") ?? undefined; }
+
+	/**
+	 * Initialize the application by retargeting a Mixamo animation onto the
+	 * bundled `Mannequin.gltf` model.
+	 */
 	get mixamo() { return this.#nativeParams.get("mixamo") ?? undefined; }
+
+	/**
+	 * Initialize the application by loading an arbitrary glTF scene from any
+	 * source.
+	 */
 	get sceneImport() { return this.#nativeParams.get("sceneImport") ?? undefined; }
+
+	/**
+	 * Initialize the application by loading a previously saved Storyteller
+	 * Studio scene in `*.scn.ron` format.
+	 */
 	get scene() { return this.#nativeParams.get("scene") ?? undefined; }
+
+	/**
+	 * One of:
+	 * - A skybox name that corresponds to a matching set of assets under
+	 *   `studio/assets/skyboxes`, _not_ including file extensions or "diffuse" /
+	 *   "specular" qualifiers (e.g., "gum_trees_4k").
+	 * - A hex-formatted color, without the leading `#` (e.g., "1A1A27")
+	 */
 	get skybox() { return this.#nativeParams.get("skybox") ?? undefined; }
+
+	/**
+	 * Determines whether the app initializes in a minimal, read-only "viewer"
+	 * mode or the full "Studio" mode with editor controls.
+	 *
+	 * URL parameters:
+	 * - `?mode=viewer` outputs `StudioMode.Viewer`
+	 * - `?mode=studio` outputs `StudioMode.Editor`
+	 *
+	 * @default StudioMode.Viewer
+	 */
 	get mode(): StudioMode {
 		return match(this.#nativeParams.get("mode"), {
 			"studio": () => StudioMode.Editor,
