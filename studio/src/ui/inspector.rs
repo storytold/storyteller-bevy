@@ -1,6 +1,7 @@
 use std::{marker::PhantomData, sync::Arc};
 
 use bevy::{
+    ecs::world::unsafe_world_cell::UnsafeWorldCell,
     prelude::*,
     reflect::{serde::ReflectSerializer, GetTypeRegistration},
     utils::HashMap,
@@ -55,7 +56,6 @@ impl Plugin for InspectorPlugin {
             TestInspectorTab::default(),
         );
 
-
         app.init_resource::<InspectGetters>();
 
         app.register_inspect::<Transform>();
@@ -80,6 +80,23 @@ impl Plugin for InspectorPlugin {
                     Update,
                     serialize_standart_materal.in_set(InspectorSystem::PerComponentCollect),
                 );
+
+            app.world.resource_mut::<InspectGetters>().getters.insert(
+                StandardMaterial::get_type_registration()
+                    .type_info()
+                    .type_path()
+                    .to_string(),
+                Arc::new(|entity, path, world, f| unsafe {
+                    let handle = entity.get::<Handle<StandardMaterial>>().unwrap();
+                    let mut assets = world
+                        .get_resource_mut::<Assets<StandardMaterial>>()
+                        .unwrap();
+                    let mut material = assets.get_mut(handle).unwrap();
+
+                    let reflect_field = material.reflect_path_mut(path).unwrap();
+                    (f)(reflect_field);
+                }),
+            );
         }
     }
 }
@@ -88,7 +105,11 @@ impl Plugin for InspectorPlugin {
 struct InspectGetters {
     getters: HashMap<
         String,
-        Arc<dyn Fn(&mut EntityWorldMut, &str, &dyn Fn(&mut dyn Reflect)) + Send + Sync>,
+        Arc<
+            dyn Fn(&mut EntityWorldMut, &str, &mut UnsafeWorldCell, &dyn Fn(&mut dyn Reflect))
+                + Send
+                + Sync,
+        >,
     >,
 }
 
@@ -122,7 +143,7 @@ impl AppInspectable for App {
                     .type_info()
                     .type_path()
                     .to_string(),
-                Arc::new(|entity, path, f| {
+                Arc::new(|entity, path, cell, f| {
                     let mut component = entity.get_mut::<T>().unwrap();
                     let reflect_field = component.reflect_path_mut(path).unwrap();
                     (f)(reflect_field);
@@ -201,7 +222,7 @@ impl<T> Default for UpdateInspect<T> {
 
 fn update_field_by_ui(world: &mut World) {
     unsafe {
-        let unsafe_world = world.as_unsafe_world_cell();
+        let mut unsafe_world = world.as_unsafe_world_cell();
         let Some(msg) = CHANGE_FROM_UI.take_message() else {
             return;
         };
@@ -222,68 +243,73 @@ fn update_field_by_ui(world: &mut World) {
             return;
         };
 
-        getter.as_ref()(&mut entity_mut, &msg.reflect_path, &|reflect_field| {
-            if let Some(val) = reflect_field.downcast_mut::<f32>() {
-                let Ok(msg_value) = serde_json::from_value(msg.value.clone()) else {
-                    error!("Failed to parse value: {}", msg.value);
+        getter.as_ref()(
+            &mut entity_mut,
+            &msg.reflect_path,
+            &mut unsafe_world,
+            &|reflect_field| {
+                if let Some(val) = reflect_field.downcast_mut::<f32>() {
+                    let Ok(msg_value) = serde_json::from_value(msg.value.clone()) else {
+                        error!("Failed to parse value: {}", msg.value);
+                        return;
+                    };
+                    *val = msg_value;
+                } else if let Some(val) = reflect_field.downcast_mut::<f64>() {
+                    let Ok(msg_value) = serde_json::from_value(msg.value.clone()) else {
+                        error!("Failed to parse value: {}", msg.value);
+                        return;
+                    };
+                    *val = msg_value;
+                } else if let Some(val) = reflect_field.downcast_mut::<u32>() {
+                    let Ok(msg_value) = serde_json::from_value(msg.value.clone()) else {
+                        error!("Failed to parse value: {}", msg.value);
+                        return;
+                    };
+                    *val = msg_value;
+                } else if let Some(val) = reflect_field.downcast_mut::<u64>() {
+                    let Ok(msg_value) = serde_json::from_value(msg.value.clone()) else {
+                        error!("Failed to parse value: {}", msg.value);
+                        return;
+                    };
+                    *val = msg_value;
+                } else if let Some(val) = reflect_field.downcast_mut::<i32>() {
+                    let Ok(msg_value) = serde_json::from_value(msg.value.clone()) else {
+                        error!("Failed to parse value: {}", msg.value);
+                        return;
+                    };
+                    *val = msg_value;
+                } else if let Some(val) = reflect_field.downcast_mut::<i64>() {
+                    let Ok(msg_value) = serde_json::from_value(msg.value.clone()) else {
+                        error!("Failed to parse value: {}", msg.value);
+                        return;
+                    };
+                    *val = msg_value;
+                } else if let Some(val) = reflect_field.downcast_mut::<bool>() {
+                    let Ok(msg_value) = serde_json::from_value(msg.value.clone()) else {
+                        error!("Failed to parse value: {}", msg.value);
+                        return;
+                    };
+                    *val = msg_value;
+                } else if let Some(val) = reflect_field.downcast_mut::<String>() {
+                    *val = msg.value.as_str().unwrap().to_string();
+                } else if let Some(val) = reflect_field.downcast_mut::<Vec3>() {
+                    let Ok(msg_value) = serde_json::from_value(msg.value.clone()) else {
+                        error!("Failed to parse value: {}", msg.value);
+                        return;
+                    };
+                    *val = msg_value;
+                } else if let Some(val) = reflect_field.downcast_mut::<Quat>() {
+                    let Ok(msg_value) = serde_json::from_value(msg.value.clone()) else {
+                        error!("Failed to parse value: {}", msg.value);
+                        return;
+                    };
+                    *val = msg_value;
+                } else {
+                    error!("Unsupported type {}!", &msg.reflect_path);
                     return;
-                };
-                *val = msg_value;
-            } else if let Some(val) = reflect_field.downcast_mut::<f64>() {
-                let Ok(msg_value) = serde_json::from_value(msg.value.clone()) else {
-                    error!("Failed to parse value: {}", msg.value);
-                    return;
-                };
-                *val = msg_value;
-            } else if let Some(val) = reflect_field.downcast_mut::<u32>() {
-                let Ok(msg_value) = serde_json::from_value(msg.value.clone()) else {
-                    error!("Failed to parse value: {}", msg.value);
-                    return;
-                };
-                *val = msg_value;
-            } else if let Some(val) = reflect_field.downcast_mut::<u64>() {
-                let Ok(msg_value) = serde_json::from_value(msg.value.clone()) else {
-                    error!("Failed to parse value: {}", msg.value);
-                    return;
-                };
-                *val = msg_value;
-            } else if let Some(val) = reflect_field.downcast_mut::<i32>() {
-                let Ok(msg_value) = serde_json::from_value(msg.value.clone()) else {
-                    error!("Failed to parse value: {}", msg.value);
-                    return;
-                };
-                *val = msg_value;
-            } else if let Some(val) = reflect_field.downcast_mut::<i64>() {
-                let Ok(msg_value) = serde_json::from_value(msg.value.clone()) else {
-                    error!("Failed to parse value: {}", msg.value);
-                    return;
-                };
-                *val = msg_value;
-            } else if let Some(val) = reflect_field.downcast_mut::<bool>() {
-                let Ok(msg_value) = serde_json::from_value(msg.value.clone()) else {
-                    error!("Failed to parse value: {}", msg.value);
-                    return;
-                };
-                *val = msg_value;
-            } else if let Some(val) = reflect_field.downcast_mut::<String>() {
-                *val = msg.value.as_str().unwrap().to_string();
-            } else if let Some(val) = reflect_field.downcast_mut::<Vec3>() {
-                let Ok(msg_value) = serde_json::from_value(msg.value.clone()) else {
-                    error!("Failed to parse value: {}", msg.value);
-                    return;
-                };
-                *val = msg_value;
-            } else if let Some(val) = reflect_field.downcast_mut::<Quat>() {
-                let Ok(msg_value) = serde_json::from_value(msg.value.clone()) else {
-                    error!("Failed to parse value: {}", msg.value);
-                    return;
-                };
-                *val = msg_value;
-            } else {
-                error!("Unsupported type {}!", &msg.reflect_path);
-                return;
-            }
-        });
+                }
+            },
+        );
     }
 }
 
