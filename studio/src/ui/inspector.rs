@@ -91,7 +91,7 @@ impl Plugin for InspectorPlugin {
                     let mut assets = world
                         .get_resource_mut::<Assets<StandardMaterial>>()
                         .unwrap();
-                    let mut material = assets.get_mut(handle).unwrap();
+                    let material = assets.get_mut(handle).unwrap();
 
                     let reflect_field = material.reflect_path_mut(path).unwrap();
                     (f)(reflect_field);
@@ -143,7 +143,7 @@ impl AppInspectable for App {
                     .type_info()
                     .type_path()
                     .to_string(),
-                Arc::new(|entity, path, cell, f| {
+                Arc::new(|entity, path, _, f| {
                     let mut component = entity.get_mut::<T>().unwrap();
                     let reflect_field = component.reflect_path_mut(path).unwrap();
                     (f)(reflect_field);
