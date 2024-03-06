@@ -23,8 +23,8 @@ import { match } from "@storyteller/utility";
  *   `studio/assets` directory
  * - **http[s]://remote/path/to/file** - Any http(s) URL to an asset type
  *   supported by Bevy Engine
- * - **remote://&lt;media-token&gt;.&lt;file-extension&gt;** - A token for a media file that
- *   can be fetched from the Storyteller.ai API
+ * - **remote://&lt;media-token&gt;.&lt;file-extension&gt;** - A token for a
+ *   media file that can be fetched from the Storyteller.ai API
  */
 export class StudioURLParams {
 	#_nativeParams?: URLSearchParams;
