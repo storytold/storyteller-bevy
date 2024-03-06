@@ -1,5 +1,4 @@
 use std::{marker::PhantomData, sync::Arc};
-use std::{marker::PhantomData, sync::Arc};
 
 use bevy::{
     prelude::*,
@@ -34,7 +33,6 @@ impl Plugin for InspectorPlugin {
             Update,
             (
                 InspectorSystem::WriteChanges,
-                InspectorSystem::WriteChanges,
                 InspectorSystem::DetectChanges,
                 InspectorSystem::PerComponentCollect,
                 InspectorSystem::CollectChanges,
@@ -57,17 +55,6 @@ impl Plugin for InspectorPlugin {
             TestInspectorTab::default(),
         );
 
-        app.init_resource::<InspectGetters>();
-
-        app.add_systems(
-            Update,
-            update_field_by_ui.in_set(InspectorSystem::WriteChanges),
-        );
-
-        app.editor_tab_by_trait(
-            EditorTabName::Other("Inspector tester".to_string()),
-            TestInspectorTab::default(),
-        );
 
         app.init_resource::<InspectGetters>();
 
