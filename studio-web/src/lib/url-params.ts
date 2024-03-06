@@ -16,6 +16,15 @@ import { match } from "@storyteller/utility";
  * - {@linkcode mixamo}
  * - {@linkcode sceneImport}
  * - {@linkcode scene}
+ *
+ * `bvh`, `mixamo`, `sceneImport` and `scene` can accept an "asset path" in any
+ * of the following formats:
+ * - **relative/path/to/file** - Looks for the given file path relative to the
+ *   `studio/assets` directory
+ * - **http[s]://remote/path/to/file** - Any http(s) URL to an asset type
+ *   supported by Bevy Engine
+ * - **remote://&lt;media-token&gt;.&lt;file-extension&gt;** - A token for a media file that
+ *   can be fetched from the Storyteller.ai API
  */
 export class StudioURLParams {
 	#_nativeParams?: URLSearchParams;
