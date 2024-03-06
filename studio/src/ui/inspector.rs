@@ -60,6 +60,26 @@ impl Plugin for InspectorPlugin {
         app.register_inspect::<Transform>();
         app.register_inspect::<Name>();
         app.register_inspect::<MeshPrimitivePrefab>();
+
+        //refister standart material
+        {
+            app.register_type::<ShortMaterial>()
+                .add_event::<UpdateInspect<Handle<StandardMaterial>>>()
+                .add_systems(
+                    Update,
+                    (
+                        update_inspect_by_select_change::<Handle<StandardMaterial>>,
+                        update_inspect_by_remove::<Handle<StandardMaterial>>,
+                        update_inspect_by_change::<Handle<StandardMaterial>>,
+                        notify_asset_change_system::<StandardMaterial>,
+                    )
+                        .in_set(InspectorSystem::DetectChanges),
+                )
+                .add_systems(
+                    Update,
+                    serialize_standart_materal.in_set(InspectorSystem::PerComponentCollect),
+                );
+        }
     }
 }
 
@@ -73,6 +93,7 @@ struct InspectGetters {
 
 trait AppInspectable {
     fn register_inspect<T: Component + Reflect + GetTypeRegistration>(&mut self);
+    fn register_asset_inspect<T: Asset + Reflect + GetTypeRegistration>(&mut self);
 }
 
 impl AppInspectable for App {
@@ -107,6 +128,25 @@ impl AppInspectable for App {
                 }),
             );
         }
+    }
+
+    fn register_asset_inspect<T: Asset + Reflect + GetTypeRegistration>(&mut self) {
+        self.register_type::<T>()
+            .add_event::<UpdateInspect<Handle<T>>>()
+            .add_systems(
+                Update,
+                (
+                    update_inspect_by_select_change::<Handle<T>>,
+                    update_inspect_by_remove::<Handle<T>>,
+                    update_inspect_by_change::<Handle<T>>,
+                    notify_asset_change_system::<T>,
+                )
+                    .in_set(InspectorSystem::DetectChanges),
+            )
+            .add_systems(
+                Update,
+                auto_serialize_asset::<T>.in_set(InspectorSystem::PerComponentCollect),
+            );
     }
 }
 
@@ -311,6 +351,130 @@ fn auto_serialize_system<T: Component + Reflect + GetTypeRegistration>(
         description
             .components
             .remove(T::get_type_registration().type_info().type_path());
+    }
+
+    ev_update_description.send(UpdateEntityDescription);
+}
+
+fn notify_asset_change_system<T: Asset>(
+    mut ev_inspect: EventWriter<UpdateInspect<Handle<T>>>,
+    mut asset_changing: EventReader<AssetEvent<T>>,
+    mut selected: Query<&Handle<T>, With<Selected>>,
+) {
+    for ev in asset_changing.read() {
+        for handle in selected.iter_mut() {
+            if ev.is_modified(handle.id()) {
+                ev_inspect.send(UpdateInspect::<Handle<T>>::default());
+            }
+        }
+    }
+}
+
+fn auto_serialize_asset<T: Asset + Reflect + GetTypeRegistration>(
+    q_t: Query<&Handle<T>, With<Selected>>,
+    mut description: ResMut<EntityDescription>,
+    registry: Res<AppTypeRegistry>,
+    mut ev_inspect: EventReader<UpdateInspect<Handle<T>>>,
+    mut ev_update_description: EventWriter<UpdateEntityDescription>,
+    assets: Res<Assets<T>>,
+) {
+    if ev_inspect.is_empty() {
+        return;
+    }
+
+    ev_inspect.clear();
+
+    if let Some(handle) = q_t.iter().next() {
+        if let Some(asset) = assets.get(handle) {
+            let registry = registry.read();
+            info!(
+                "type: {:?}",
+                T::get_type_registration()
+                    .type_info()
+                    .type_path()
+                    .to_string()
+            );
+
+            let json = serde_json::to_value(ReflectSerializer::new(asset, &registry)).unwrap();
+            info!("json: {:?}", json.to_string());
+            description.components.insert(
+                T::get_type_registration()
+                    .type_info()
+                    .type_path()
+                    .to_string(),
+                json,
+            );
+        }
+    } else {
+        description
+            .components
+            .remove(T::get_type_registration().type_info().type_path());
+    }
+
+    ev_update_description.send(UpdateEntityDescription);
+}
+
+#[derive(Reflect, Default)]
+#[reflect(Default)]
+struct ShortMaterial {
+    pub base_color: Color,
+}
+
+impl ShortMaterial {
+    pub fn new(material: &StandardMaterial) -> Self {
+        Self {
+            base_color: material.base_color,
+        }
+    }
+}
+
+fn serialize_standart_materal(
+    q_m: Query<&Handle<StandardMaterial>>,
+    mut description: ResMut<EntityDescription>,
+    registry: Res<AppTypeRegistry>,
+    mut ev_inspect: EventReader<UpdateInspect<Handle<StandardMaterial>>>,
+    mut ev_update_description: EventWriter<UpdateEntityDescription>,
+    assets: Res<Assets<StandardMaterial>>,
+) {
+    if ev_inspect.is_empty() {
+        return;
+    }
+
+    ev_inspect.clear();
+
+    if let Some(handle) = q_m.iter().next() {
+        if let Some(material) = assets.get(handle) {
+            let registry = registry.read();
+            let short_material = ShortMaterial::new(material);
+            let json =
+                serde_json::to_value(ReflectSerializer::new(&short_material, &registry)).unwrap();
+            let json = json[ShortMaterial::get_type_registration()
+                .type_info()
+                .type_path()
+                .to_string()]
+            .clone();
+            let json = json!(
+            {
+                StandardMaterial::get_type_registration()
+                .type_info()
+                .type_path()
+                .to_string(): json
+            });
+            info!("json: {:?}", json.to_string());
+            description.components.insert(
+                StandardMaterial::get_type_registration()
+                    .type_info()
+                    .type_path()
+                    .to_string(),
+                json,
+            );
+        }
+    } else {
+        description.components.remove(
+            StandardMaterial::get_type_registration()
+                .type_info()
+                .type_path(),
+        );
     }
 
     ev_update_description.send(UpdateEntityDescription);
