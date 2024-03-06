@@ -1,0 +1,46 @@
+name: Run unit tests
+on:
+  pull_request:
+    branches:
+      - production
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test:
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin
+            ~/.cargo/registry/index/
+            ~/.cargp/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-lint-and-test-${{ hashFiles('**/Cargo.toml') }}
+      - uses: dtolnay/rust-toolchain@1.76
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: npm
+      - name: Install Linux dependencies
+        run: |
+              sudo apt-get update
+              sudo apt-get install -y --no-install-recommends \
+                libasound2-dev \
+                libudev-dev \
+                git
+      - name: Install JS dependencies
+        run: npm ci
+      - name: Ensure unambiguous `production`
+        if: github.ref != 'refs/heads/production'
+        run: |
+              git remote set-branches origin production
+              git fetch --depth 1 origin production
+              git branch production origin/production
+      - name: Run Nx-configured `test` targets
+        run: npx nx affected -t test --base=production --head=HEAD

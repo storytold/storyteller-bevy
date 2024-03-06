@@ -1,3 +1,5 @@
+@use "sass:math";
+
 $hierarchy-width: 290px;
 
 .app-root {
@@ -20,12 +22,13 @@ $hierarchy-width: 290px;
 }
 .h-start { left: 16px }
 .h-end  { right: 16px }
-.h-before-hierarchy {
-	right: $hierarchy-width + 32px;
-}
 .h-center {
 	left: 50%;
 	transform: translateX(-50%);
+}
+
+.studio-scene.block-pointer-events::part(canvas) {
+	pointer-events: none;
 }
 
 sts-button.active {
@@ -33,23 +36,132 @@ sts-button.active {
 	color: #FFF;
 }
 
-// Hierarchy (TODO: Probably move this)
-.hierarchy {
-	width: $hierarchy-width;
-	max-height: calc(100vh - 32px);
-	pointer-events: auto;
-}
-
-.loading {
-	position: absolute;
-	inset: 0;
+// TODO: Probably move this
+.inspector-open {
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	background: #222;
-	color: #FFF;
-	font: {
-		family: "Fira Sans", sans-serif;
-		weight: 700;
+	width: 52px;
+	height: 52px;
+	border-radius: 24px;
+
+	appearance: none;
+	border: none;
+	background: #0006;
+	backdrop-filter: blur(16px);
+	color: #FFFC;
+	transition: {
+		property: background-color, color;
+		duration: 100ms;
+		timing-function: linear;
+	}
+	cursor: pointer;
+
+	font-size: 20px;
+
+	&:hover {
+		background: #0008;
+		color: #FFFF;
+	}
+}
+
+.inspector {
+	display: flex;
+	flex-direction: column;
+	border-radius: 0.5rem;
+	border: 0.5rem solid #0004 {
+		block-start: none;
+		inline-start: none;
+	}
+	padding: {
+		block-start: 2rem;
+		inline-start: 0.5rem;
+	}
+
+	background: #0006;
+	backdrop-filter: blur(16px);
+
+	&__hierarchy {
+		flex: 0 0 calc(50% - 0.25rem);
+	}
+
+	&__entity {
+		flex: 1 0 0;
+		height: 0;
+	}
+
+	.resize-handle {
+		background: #0004;
+		transition: 66.666ms background linear;
+
+		&:hover {
+			background: #FFF1;
+		}
+
+		&--h-start {
+			position: absolute;
+			top: 0;
+			left: 0;
+			bottom: 0;
+			width: 0.5rem;
+			cursor: ew-resize;
+		}
+
+		&--v-center {
+			height: 0.5rem;
+			cursor: ns-resize
+		}
+	}
+}
+
+.inspector-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	height: 2rem;
+	padding: 0 {
+		inline-start: 0.75rem;
+	}
+
+	position: absolute;
+	top: 0;
+	right: 0;
+	left: 0;
+
+	background: #0004;
+
+	&__label {
+		margin: 0;
+		color: #FFF9;
+		font: {
+			family: "Fira Sans", sans-serif;
+			size: math.div(15, 16) * 1rem;
+			weight: 500;
+		}
+	}
+
+	&__minimize {
+		width: math.div(24, 16) * 1rem;
+		height: math.div(24, 16) * 1rem;
+		border-radius: math.div(12, 16) * 1rem;
+		margin: 0;
+		padding: 0;
+
+		appearance: none;
+		background: transparent;
+		border: none;
+		color: #FFFC;
+		transition: {
+			property: color, background-color;
+			duration: 66.666ms;
+			timing-function: linear;
+		}
+
+		font-size: 1rem;
+
+		&:hover {
+			background: #FFF1;
+			color: #FFFF;
+		}
 	}
 }

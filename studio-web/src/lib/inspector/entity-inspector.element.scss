@@ -1,0 +1,33 @@
+:host {
+	box-sizing: border-box;
+
+	display: flex;
+	flex-direction: column;
+	gap: 1.5rem;
+	padding: 1rem;
+	overflow: auto;
+
+	color: #FFFC;
+
+	&::-webkit-scrollbar {
+		width: 0.5rem;
+		height: 0.5rem;
+
+		&-thumb {
+			border-radius: 2px;
+			background: #FFF2;
+
+			&:hover {
+				background: #FFF3;
+			}
+		}
+
+		&-corner {
+			background: transparent;
+		}
+	}
+}
+
+*, *::before, *::after {
+	box-sizing: border-box;
+}

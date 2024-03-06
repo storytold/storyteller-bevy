@@ -1,14 +1,18 @@
-import { on } from "@storyteller/framework";
-import * as studio from "@storyteller/studio";
-import { type EntitySelectEvent } from "@storyteller/studio";
-import { LitElement, html, nothing, unsafeCSS } from "lit";
-import { customElement, property, state } from "lit/decorators.js";
+import { type DynamicProvider, inject, UniqueToken } from "@storyteller/framework";
+import { LitElement, type PropertyValues, html, nothing, unsafeCSS } from "lit";
+import { customElement, property } from "lit/decorators.js";
 import { classMap } from "lit/directives/class-map.js";
 import { ifDefined } from "lit/directives/if-defined.js";
 
 import "./icon.element";
 
 import styles from "./tree.element.scss?inline";
+
+export const TREE_SELECTION_PROVIDER = UniqueToken.create<TreeSelectionProvider>();
+
+export interface TreeSelectionProvider extends DynamicProvider<TreeSelectionProvider> {
+	readonly selectedId: string | null;
+}
 
 export interface Tree {
 	id?: string;
@@ -26,20 +30,40 @@ export class TreeElement extends LitElement {
 	@property({ attribute: false }) treeChildren?: Tree[];
 	@property({ type: Boolean }) expanded = true;
 
-	@state() selected = false;
+	get selected() {
+		return !!this.id && this._selectionProvider?.selectedId === this.id
+	}
+
+	@inject(TREE_SELECTION_PROVIDER)
+	_selectionProvider?: TreeSelectionProvider;
+
+	override connectedCallback(): void {
+		this._selectionProvider?.addEventListener("property-changes", this.onProviderChanges);
+		super.connectedCallback();
+	}
+
+	override disconnectedCallback(): void {
+		this._selectionProvider?.removeEventListener("property-changes", this.onProviderChanges);
+		super.disconnectedCallback();
+	}
+
+	onProviderChanges = ({ detail: changes }: CustomEvent<PropertyValues<TreeSelectionProvider>>) => {
+		if (changes.has("selectedId"))
+			this.requestUpdate();
+	}
 
 	toggleExpanded(): void {
 		this.expanded = !this.expanded;
 	}
 
-	@on("window:entity-select")
-	onEntitySelect({ detail: entity }: EntitySelectEvent): void {
-		this.selected = this.id === entity;
-	}
-
 	selectEntity(): void {
-		if (this.id)
-			studio.select(this.id);
+		if (this.id) {
+			this.dispatchEvent(new CustomEvent("tree-select", {
+				detail: this.id,
+				bubbles: true,
+				composed: true,
+			}));
+		}
 	}
 
 	// TODO: A11y

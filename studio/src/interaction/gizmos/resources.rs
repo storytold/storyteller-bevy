@@ -9,6 +9,8 @@ use super::material::GizmoMaterial;
 pub(super) struct GizmoMeshes {
     pub translate_line: Handle<Mesh>,
     pub translate_arrow: Handle<Mesh>,
+    pub scale_cube: Handle<Mesh>,
+    pub uniform_scale_cube: Handle<Mesh>,
     pub translate_plane: Handle<Mesh>,
     pub translate_ss: Handle<Mesh>,
     pub rotate_ring: Handle<Mesh>,
@@ -26,6 +28,9 @@ pub(super) struct GizmoMats {
     pub translate_xz: Handle<GizmoMaterial>,
     pub translate_xy: Handle<GizmoMaterial>,
     pub translate_ss: Handle<GizmoMaterial>,
+    pub scale_x: Handle<GizmoMaterial>,
+    pub scale_y: Handle<GizmoMaterial>,
+    pub scale_z: Handle<GizmoMaterial>,
     pub rotate_x: Handle<GizmoMaterial>,
     pub rotate_y: Handle<GizmoMaterial>,
     pub rotate_z: Handle<GizmoMaterial>,
@@ -78,6 +83,9 @@ pub(super) fn init_resources(
         subdivisions_sides: 6,
     }));
 
+    let scale_cube = ra_meshes.add(Mesh::from(shape::Cube { size: 0.2 }));
+    let uniform_scale_cube = ra_meshes.add(Mesh::from(shape::Cube { size: 0.333 }));
+
     cmd.insert_resource(GizmoMeshes {
         translate_line,
         translate_arrow,
@@ -86,6 +94,8 @@ pub(super) fn init_resources(
         rotate_ring,
         rotate_ball,
         rotate_ss,
+        scale_cube,
+        uniform_scale_cube,
     });
 
     let translate_x = ra_mats.add(design_system::Color::RED.into());
@@ -104,6 +114,10 @@ pub(super) fn init_resources(
     let rotate_z = ra_mats.add(design_system::Color::BLUE.into());
     let rotate_ss = ra_mats.add(Color::WHITE.into());
 
+    let scale_x = ra_mats.add(design_system::Color::RED.into());
+    let scale_y = ra_mats.add(design_system::Color::GREEN.into());
+    let scale_z = ra_mats.add(design_system::Color::BLUE.into());
+
     let rotate_trackball = ra_mats.add(GizmoMaterial {
         color: Color::WHITE.with_a(0.0),
         blend_mode: AlphaMode::Blend,
@@ -117,6 +131,9 @@ pub(super) fn init_resources(
         translate_xz,
         translate_xy,
         translate_ss,
+        scale_x,
+        scale_y,
+        scale_z,
         rotate_x,
         rotate_y,
         rotate_z,

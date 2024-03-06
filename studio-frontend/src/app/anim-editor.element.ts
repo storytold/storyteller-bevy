@@ -1,7 +1,7 @@
 import * as studio from "@storyteller/studio";
 import { type CameraKeyframesEvent } from "@storyteller/studio";
-import { drag, on } from "@storyteller/framework";
-import { LitElement, type PropertyValues, html, unsafeCSS } from "lit";
+import { bind, drag, on } from "@storyteller/framework";
+import { LitElement, type PropertyValues, html, unsafeCSS, TemplateResult } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { styleMap } from "lit/directives/style-map.js";
 
@@ -81,23 +81,7 @@ export class AnimEditorElement extends LitElement {
 		this.playHead = this.clipEnd;
 	}
 
-	#onTimelineStartChange(event: CustomEvent<number>): void {
-		this.timelineStart = event.detail;
-	}
-
-	#onTimelineEndChange(event: CustomEvent<number>): void {
-		this.timelineEnd = event.detail;
-	}
-
-	#onPlayHeadChange(event: CustomEvent<number>): void {
-		this.playHead = event.detail;
-	}
-
-	#onKeyframesChange(event: CustomEvent<Record<string, number>>): void {
-		this.keyframes = event.detail;
-	}
-
-	protected override render = () => html`
+	protected override render = (): TemplateResult => html`
 		<div class="sidebar"
 			style=${styleMap({
 				width: `${this.sidebarWidth}px`,
@@ -165,19 +149,12 @@ export class AnimEditorElement extends LitElement {
 		></div>
 
 		<sts-anim-timeline class="timeline"
-			.rangeStart=${this.timelineStart}
-			@rangeStartChange=${this.#onTimelineStartChange}
-			.rangeEnd=${this.timelineEnd}
-			@rangeEndChange=${this.#onTimelineEndChange}
-
+			.rangeStart=${bind(this, "timelineStart")}
+			.rangeEnd=${bind(this, "timelineEnd")}
 			.clipStart=${this.clipStart}
 			.clipEnd=${this.clipEnd}
-
-			.playHead=${this.playHead}
-			@playHeadChange=${this.#onPlayHeadChange}
-
-			.keyframes=${this.keyframes}
-			@keyframesChange=${this.#onKeyframesChange}
+			.playHead=${bind(this, "playHead")}
+			.keyframes=${bind(this, "keyframes")}
 		></sts-anim-timeline>
 	`;
 }

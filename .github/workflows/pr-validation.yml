@@ -1,8 +1,6 @@
-name: Run formatter, linter and tests
+name: Run formatter and linter
 on:
-  merge_group:
   pull_request:
-  push:
     branches:
       - main
 
@@ -21,8 +19,8 @@ jobs:
       - name: Check Rust formatting
         run: cargo fmt --all -- --check
 
-  lint-and-test:
-    timeout-minutes: 30
+  lint:
+    timeout-minutes: 10
     strategy:
       max-parallel: 1
     runs-on: ubuntu-latest
@@ -40,6 +38,10 @@ jobs:
       - uses: dtolnay/rust-toolchain@1.76
         with:
           components: clippy
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: npm
       - name: Install Linux dependencies
         run: |
               sudo apt-get update
@@ -55,5 +57,5 @@ jobs:
               git remote set-branches origin main
               git fetch --depth 1 origin main
               git branch main origin/main
-      - name: Run Nx-configured `lint` and `test` targets
-        run: npx nx affected -t lint test --base=main --head=HEAD
+      - name: Run Nx-configured `lint` targets
+        run: npx nx affected -t lint --base=main --head=HEAD

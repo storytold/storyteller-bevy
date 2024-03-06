@@ -1,4 +1,4 @@
-import { Token, UniqueToken, on, provide } from "@storyteller/framework";
+import { UniqueToken, on, provide } from "@storyteller/framework";
 import { LitElement, html, unsafeCSS } from "lit";
 import { customElement } from "lit/decorators.js";
 
@@ -35,7 +35,7 @@ export interface CanvasProvider {
 	returnCanvas(canvas: HTMLCanvasElement): void;
 }
 
-export const CANVAS_PROVIDER: Token<CanvasProvider> = new UniqueToken("CanvasProvider");
+export const CANVAS_PROVIDER = UniqueToken.create<CanvasProvider>();
 
 @customElement("sts-canvas-provider")
 @provide(CANVAS_PROVIDER)

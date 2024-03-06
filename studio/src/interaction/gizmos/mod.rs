@@ -9,6 +9,7 @@ use self::{
     material::GizmoMaterial,
     resources::{init_resources, GizmoMats, GizmoMeshes},
     rotation::{spawn_rotation_gizmo, update_ss_ring_rotation},
+    scale::spawn_scale_gizmo,
     translation::spawn_translation_gizmo,
 };
 pub use common::TransformGizmo;
@@ -21,6 +22,7 @@ mod common;
 mod material;
 mod resources;
 mod rotation;
+mod scale;
 mod translation;
 
 const GIZMO_RENDER_LAYER: u8 = 1;
@@ -130,6 +132,15 @@ fn spawn_gizmo(
                 &r_mats,
             );
         }
+        TransformType::SCALE => spawn_scale_gizmo(
+            &mut cmd,
+            target,
+            xform,
+            r_xform_mode.space,
+            normalizing_scale,
+            &r_meshes,
+            &r_mats,
+        ),
         ttype if ttype.contains(TransformType::TRANSLATE | TransformType::ROTATE) => {
             spawn_combo_translation_rotation_gizmo(
                 &mut cmd,

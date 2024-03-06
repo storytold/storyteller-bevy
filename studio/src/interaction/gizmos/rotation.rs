@@ -8,7 +8,7 @@ use bevy_mod_picking::prelude::*;
 use bevy_mod_raycast::prelude::{Raycast, RaycastSettings};
 
 use crate::{
-    interaction::TransformSpace,
+    interaction::{gizmos::InitialHitPoint, TransformSpace},
     math::{MatrixExtras, NearlyZero},
     MainCamera,
 };
@@ -24,9 +24,6 @@ pub(super) enum RotationWidget {
     ScreenSpace,
     Trackball,
 }
-
-#[derive(Component, Deref)]
-pub(super) struct InitialHitPoint(pub Vec3);
 
 #[derive(Component, Deref, DerefMut)]
 pub(super) struct LastHitPoint(pub Vec3);

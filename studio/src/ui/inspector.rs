@@ -1,4 +1,5 @@
 use std::{marker::PhantomData, sync::Arc};
+use std::{marker::PhantomData, sync::Arc};
 
 use bevy::{
     prelude::*,
@@ -15,8 +16,19 @@ use space_editor::{
     },
     space_prefab::component::MeshPrimitivePrefab,
 };
+use space_editor::{
+    space_editor_ui::{
+        editor_tab::{EditorTab, EditorTabName},
+        EditorUiAppExt,
+    },
+    space_prefab::component::MeshPrimitivePrefab,
+};
 use wasm_bindgen::prelude::*;
 
+use crate::{
+    interaction::Selected,
+    wasm::{self, StaticBuffer, WasmMessageBuffer},
+};
 use crate::{
     interaction::Selected,
     wasm::{self, StaticBuffer, WasmMessageBuffer},
@@ -33,6 +45,7 @@ impl Plugin for InspectorPlugin {
             Update,
             (
                 InspectorSystem::WriteChanges,
+                InspectorSystem::WriteChanges,
                 InspectorSystem::DetectChanges,
                 InspectorSystem::PerComponentCollect,
                 InspectorSystem::CollectChanges,
@@ -44,6 +57,18 @@ impl Plugin for InspectorPlugin {
             Update,
             update_description.in_set(InspectorSystem::CollectChanges),
         );
+
+        app.add_systems(
+            Update,
+            update_field_by_ui.in_set(InspectorSystem::WriteChanges),
+        );
+
+        app.editor_tab_by_trait(
+            EditorTabName::Other("Inspector tester".to_string()),
+            TestInspectorTab::default(),
+        );
+
+        app.init_resource::<InspectGetters>();
 
         app.add_systems(
             Update,
@@ -177,6 +202,7 @@ impl EditorTab for TestInspectorTab {
 #[derive(SystemSet, Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub enum InspectorSystem {
     WriteChanges,
+    WriteChanges,
     DetectChanges,
     PerComponentCollect,
     CollectChanges,
@@ -195,6 +221,94 @@ impl<T> Default for UpdateInspect<T> {
         Self {
             _phantom: PhantomData,
         }
+    }
+}
+
+fn update_field_by_ui(world: &mut World) {
+    unsafe {
+        let unsafe_world = world.as_unsafe_world_cell();
+        let Some(msg) = CHANGE_FROM_UI.take_message() else {
+            return;
+        };
+
+        let mut selected_query = unsafe_world
+            .world_mut()
+            .query_filtered::<Entity, With<Selected>>();
+        let Ok(entity) = selected_query.get_single(unsafe_world.world_mut()) else {
+            return;
+        };
+
+        let getters = unsafe_world.get_resource_mut::<InspectGetters>().unwrap();
+
+        let mut entity_mut = unsafe_world.world_mut().entity_mut(entity);
+
+        let Some(getter) = getters.getters.get(&msg.component) else {
+            error!("Failed to find getter for component: {}", msg.component);
+            return;
+        };
+
+        getter.as_ref()(&mut entity_mut, &msg.reflect_path, &|reflect_field| {
+            if let Some(val) = reflect_field.downcast_mut::<f32>() {
+                let Ok(msg_value) = serde_json::from_value(msg.value.clone()) else {
+                    error!("Failed to parse value: {}", msg.value);
+                    return;
+                };
+                *val = msg_value;
+            } else if let Some(val) = reflect_field.downcast_mut::<f64>() {
+                let Ok(msg_value) = serde_json::from_value(msg.value.clone()) else {
+                    error!("Failed to parse value: {}", msg.value);
+                    return;
+                };
+                *val = msg_value;
+            } else if let Some(val) = reflect_field.downcast_mut::<u32>() {
+                let Ok(msg_value) = serde_json::from_value(msg.value.clone()) else {
+                    error!("Failed to parse value: {}", msg.value);
+                    return;
+                };
+                *val = msg_value;
+            } else if let Some(val) = reflect_field.downcast_mut::<u64>() {
+                let Ok(msg_value) = serde_json::from_value(msg.value.clone()) else {
+                    error!("Failed to parse value: {}", msg.value);
+                    return;
+                };
+                *val = msg_value;
+            } else if let Some(val) = reflect_field.downcast_mut::<i32>() {
+                let Ok(msg_value) = serde_json::from_value(msg.value.clone()) else {
+                    error!("Failed to parse value: {}", msg.value);
+                    return;
+                };
+                *val = msg_value;
+            } else if let Some(val) = reflect_field.downcast_mut::<i64>() {
+                let Ok(msg_value) = serde_json::from_value(msg.value.clone()) else {
+                    error!("Failed to parse value: {}", msg.value);
+                    return;
+                };
+                *val = msg_value;
+            } else if let Some(val) = reflect_field.downcast_mut::<bool>() {
+                let Ok(msg_value) = serde_json::from_value(msg.value.clone()) else {
+                    error!("Failed to parse value: {}", msg.value);
+                    return;
+                };
+                *val = msg_value;
+            } else if let Some(val) = reflect_field.downcast_mut::<String>() {
+                *val = msg.value.as_str().unwrap().to_string();
+            } else if let Some(val) = reflect_field.downcast_mut::<Vec3>() {
+                let Ok(msg_value) = serde_json::from_value(msg.value.clone()) else {
+                    error!("Failed to parse value: {}", msg.value);
+                    return;
+                };
+                *val = msg_value;
+            } else if let Some(val) = reflect_field.downcast_mut::<Quat>() {
+                let Ok(msg_value) = serde_json::from_value(msg.value.clone()) else {
+                    error!("Failed to parse value: {}", msg.value);
+                    return;
+                };
+                *val = msg_value;
+            } else {
+                error!("Unsupported type {}!", &msg.reflect_path);
+                return;
+            }
+        });
     }
 }
 
@@ -523,6 +637,13 @@ pub struct UpdateField {
     pub value: serde_json::Value,
 }
 
+#[derive(Deserialize, Serialize)]
+pub struct UpdateField {
+    pub component: String,
+    pub reflect_path: String,
+    pub value: serde_json::Value,
+}
+
 #[wasm_bindgen(typescript_custom_section)]
 const EVENT_DECLARATION: &str = r#"
 
@@ -542,6 +663,17 @@ pub(super) fn notify_changed(q_window: &Window, msg: String) {
     if let Err(e) = res {
         error!("Failed to dispatch inspector-changed: {}", e);
     }
+}
+
+static CHANGE_FROM_UI: WasmMessageBuffer<UpdateField> = WasmMessageBuffer::new();
+
+#[wasm_bindgen(js_name = changeValue)]
+pub fn change_value(msg: JsValue) {
+    let Ok(msg) = serde_wasm_bindgen::from_value(msg) else {
+        error!("Failed to parse message");
+        return;
+    };
+    CHANGE_FROM_UI.write_message(msg);
 }
 
 static CHANGE_FROM_UI: WasmMessageBuffer<UpdateField> = WasmMessageBuffer::new();

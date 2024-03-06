@@ -96,6 +96,7 @@ impl Plugin for ScenePlugin {
                 wasm::notify_state_changes
                     .map(bevy::utils::error)
                     .run_if(resource_changed::<State<SceneState>>()),
+                wasm::notify_loading_queue_changes.map(bevy::utils::error),
             ),
         );
     }
@@ -516,7 +517,7 @@ mod wasm {
     use bevy::{prelude::*, window::PrimaryWindow};
     use wasm_bindgen::prelude::*;
 
-    use super::{LoadLibraryObjectEvent, SceneState};
+    use super::{LoadLibraryObjectEvent, LoadingQueue, SceneState};
     use crate::wasm::{self, StaticBuffer, WasmMessageBuffer};
 
     static OBJECT_LOAD_REQUEST: WasmMessageBuffer<String> = WasmMessageBuffer::new();
@@ -557,6 +558,42 @@ declare global {
         if let Ok(window) = q_window.get_single() {
             wasm::dispatch_to_js(window, "scene-state", &(**r_state as u32))?;
         }
+        Ok(())
+    }
+
+    #[wasm_bindgen(typescript_custom_section)]
+    const LOADING_QUEUE_EVENT: &str = r#"
+export interface LoadingQueueEvent extends CustomEvent {
+    type: "loading-queue";
+    detail: number;
+}
+
+declare global {
+    export interface GlobalEventHandlersEventMap {
+        "loading-queue": LoadingQueueEvent;
+    }
+}
+    "#;
+
+    pub(super) fn notify_loading_queue_changes(
+        mut l_last_sent: Local<Option<usize>>,
+        r_loading: Res<LoadingQueue>,
+        q_window: Query<&Window, With<PrimaryWindow>>,
+    ) -> Result<(), String> {
+        let queue_len = r_loading.queue.len();
+        if let Some(last_sent) = *l_last_sent {
+            if last_sent == queue_len {
+                return Ok(());
+            }
+        }
+
+        let Ok(window) = q_window.get_single() else {
+            return Ok(());
+        };
+
+        wasm::dispatch_to_js(window, "loading-queue", &queue_len)?;
+        *l_last_sent = Some(queue_len);
+
         Ok(())
     }
 }
