@@ -15,7 +15,7 @@ export function on(eventSelector: string) {
 		? eventSelector.split(":")
 		: [null, eventSelector];
 
-	let target = match (targetName, {
+	const target = match (targetName, {
 		"window": () => window as EventTarget,
 		"document": () => document as EventTarget,
 		_: () => null,
@@ -23,15 +23,24 @@ export function on(eventSelector: string) {
 
 	return <T extends LitElement>(proto: T, propName: keyof T, desc: PropertyDescriptor) => {
 		const handler = getMethodDescriptor(proto, propName)?.value ?? (() => {});
+		const boundHandlerKey = Symbol(String(propName));
 
 		prependRoutine(proto, "connectedCallback", function (this: T) {
-			target ??= this;
-			target.addEventListener(eventName, handler.bind(this));
+			(this as any)[boundHandlerKey] ??= handler.bind(this);
+
+			if (target) {
+				target.addEventListener(eventName, (this as any)[boundHandlerKey]);
+			} else {
+				this.addEventListener(eventName, (this as any)[boundHandlerKey]);
+			}
 		});
 
 		prependRoutine(proto, "disconnectedCallback", function (this: T) {
-			target ??= this;
-			target.removeEventListener(eventName, handler.bind(this));
+			if (target) {
+				target.removeEventListener(eventName, (this as any)[boundHandlerKey]);
+			} else {
+				this.removeEventListener(eventName, (this as any)[boundHandlerKey]);
+			}
 		});
 
 		return desc;
