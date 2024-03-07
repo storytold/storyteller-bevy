@@ -1,4 +1,4 @@
-import { Ctor, Fn, Method } from "@storyteller/utility";
+import { Ctor, Fn } from "@storyteller/utility";
 import { LitElement } from "lit";
 
 import { appendRoutine, prependRoutine } from "../decorators/internal";
@@ -7,6 +7,10 @@ import { Token } from "./types";
 
 const $injector = Symbol("injector");
 const $$injector = Symbol("#injector");
+const $fulfillInjectionRequest = Symbol("fulfillInjectionRequest");
+
+const $onProvided = Symbol("onProvided");
+const $onRemoved = Symbol("onRemoved");
 
 export type ProviderOptions<T, E extends LitElement>
 	= Token<T>
@@ -41,6 +45,7 @@ export function provide<T, E extends LitElement>(options: ProviderOptions<T, E>)
 	type Decorated = E & {
 		[$$injector]?: Map<Token<any>, any> | undefined;
 		readonly [$injector]: Map<Token<any>, any>;
+		[$fulfillInjectionRequest](event: InjectionRequest<T>): void;
 	}
 
 	return (Target: Ctor<E>) => {
@@ -48,9 +53,7 @@ export function provide<T, E extends LitElement>(options: ProviderOptions<T, E>)
 		assertType<Decorated>(proto);
 
 		let descriptor = Object.getOwnPropertyDescriptor(proto, $injector);
-		let needsInit = false;
 		if (!($injector in proto) || !descriptor) {
-			needsInit = true;
 			Object.defineProperty(proto, $injector, {
 				get(this: Decorated) { return this[$$injector] ??= new Map() },
 				configurable: false,
@@ -73,10 +76,8 @@ export function provide<T, E extends LitElement>(options: ProviderOptions<T, E>)
 			this[$injector].set(token, value);
 			this.dispatchEvent(new DependencyProvision(token, value));
 
-			if (needsInit) {
-				const fulfill = fulfillInjectionRequest.bind(this);
-				this.addEventListener(DIEvent.InjectionRequest, fulfill as Method<HTMLElement>);
-			}
+			this[$fulfillInjectionRequest] ??= fulfillInjectionRequest.bind(this);
+			this.addEventListener(DIEvent.InjectionRequest, this[$fulfillInjectionRequest]);
 		});
 
 		appendRoutine(proto, "disconnectedCallback", function (this: Decorated): void {
@@ -84,6 +85,7 @@ export function provide<T, E extends LitElement>(options: ProviderOptions<T, E>)
 			const value = this[$injector].get(token);
 
 			this.dispatchEvent(new ProviderRemoval(token, value));
+			this.removeEventListener(DIEvent.InjectionRequest, this[$fulfillInjectionRequest]);
 		});
 	}
 }
@@ -140,6 +142,11 @@ export function inject<T, E extends LitElement>(token: Token<T>) {
  */
 export function queryProviders<T, E extends LitElement>(token: Token<T>) {
 	return <K extends keyof E>(proto: E, key: K) => {
+		type Decorated = E & {
+			[$onProvided](event: DependencyProvision<T>): void;
+			[$onRemoved](event: ProviderRemoval<T>): void;
+		}
+
 		function onProvided(this: E, event: DependencyProvision<T>): void {
 			const array = this[key] ?? [];
 			assertType<E[K] & T[]>(array);
@@ -158,25 +165,20 @@ export function queryProviders<T, E extends LitElement>(token: Token<T>) {
 
 		appendRoutine(proto, "connectedCallback", function (this: E): void {
 			this[key] = [] as E[K];
-			this.addEventListener(
-				DIEvent.DependencyProvision,
-				onProvided.bind(this) as Method<HTMLElement>,
-			);
-			this.addEventListener(
-				DIEvent.ProviderRemoval,
-				onRemoved.bind(this) as Method<HTMLElement>,
-			);
+			assertType<Decorated>(this);
+
+			this[$onProvided] ??= onProvided.bind(this);
+			this[$onRemoved] ??= onRemoved.bind(this);
+
+			this.addEventListener(DIEvent.DependencyProvision, this[$onProvided]);
+			this.addEventListener(DIEvent.ProviderRemoval, this[$onRemoved]);
 		});
 
 		appendRoutine(proto, "disconnectedCallback", function (this: E): void {
-			this.removeEventListener(
-				DIEvent.DependencyProvision,
-				onProvided.bind(this) as Method<HTMLElement>,
-			);
-			this.removeEventListener(
-				DIEvent.ProviderRemoval,
-				onRemoved.bind(this) as Method<HTMLElement>,
-			);
+			assertType<Decorated>(this);
+
+			this.removeEventListener(DIEvent.DependencyProvision, this[$onProvided]);
+			this.removeEventListener(DIEvent.ProviderRemoval, this[$onRemoved]);
 		});
 	}
 }
