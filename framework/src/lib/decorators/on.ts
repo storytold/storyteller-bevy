@@ -23,26 +23,35 @@ export function on(eventSelector: string) {
 
 	return <T extends LitElement>(proto: T, propName: keyof T, desc: PropertyDescriptor) => {
 		const handler = getMethodDescriptor(proto, propName)?.value ?? (() => {});
-		const boundHandlerKey = Symbol(String(propName));
+		const $handler = Symbol(String(propName));
+
+		type Decorated = T & {
+			[$handler]: typeof handler;
+		}
 
 		prependRoutine(proto, "connectedCallback", function (this: T) {
-			(this as any)[boundHandlerKey] ??= handler.bind(this);
+			assertType<Decorated>(this);
+			this[$handler] ??= handler.bind(this);
 
 			if (target) {
-				target.addEventListener(eventName, (this as any)[boundHandlerKey]);
+				target.addEventListener(eventName, this[$handler]);
 			} else {
-				this.addEventListener(eventName, (this as any)[boundHandlerKey]);
+				this.addEventListener(eventName, this[$handler]);
 			}
 		});
 
 		prependRoutine(proto, "disconnectedCallback", function (this: T) {
+			assertType<Decorated>(this);
+
 			if (target) {
-				target.removeEventListener(eventName, (this as any)[boundHandlerKey]);
+				target.removeEventListener(eventName, this[$handler]);
 			} else {
-				this.removeEventListener(eventName, (this as any)[boundHandlerKey]);
+				this.removeEventListener(eventName, this[$handler]);
 			}
 		});
 
 		return desc;
 	}
 }
+
+function assertType<T>(value: unknown): asserts value is T {}
