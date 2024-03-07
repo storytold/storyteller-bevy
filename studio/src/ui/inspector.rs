@@ -62,7 +62,7 @@ impl Plugin for InspectorPlugin {
         app.register_inspect::<Name>();
         app.register_inspect::<MeshPrimitivePrefab>();
 
-        //refister standart material
+        //register standart material
         {
             app.register_type::<ShortMaterial>()
                 .add_event::<UpdateInspect<Handle<StandardMaterial>>>()
