@@ -9,9 +9,6 @@ const $injector = Symbol("injector");
 const $$injector = Symbol("#injector");
 const $fulfillInjectionRequest = Symbol("fulfillInjectionRequest");
 
-const $onProvided = Symbol("onProvided");
-const $onRemoved = Symbol("onRemoved");
-
 export type ProviderOptions<T, E extends LitElement>
 	= Token<T>
 	| CustomProvider<T, E>;
@@ -80,7 +77,7 @@ export function provide<T, E extends LitElement>(options: ProviderOptions<T, E>)
 			this.addEventListener(DIEvent.InjectionRequest, this[$fulfillInjectionRequest]);
 		});
 
-		appendRoutine(proto, "disconnectedCallback", function (this: Decorated): void {
+		prependRoutine(proto, "disconnectedCallback", function (this: Decorated): void {
 			const token = "token" in options ? options.token : options;
 			const value = this[$injector].get(token);
 
@@ -142,30 +139,34 @@ export function inject<T, E extends LitElement>(token: Token<T>) {
  */
 export function queryProviders<T, E extends LitElement>(token: Token<T>) {
 	return <K extends keyof E>(proto: E, key: K) => {
+		const $onProvided = Symbol(`onProvided:${String(key)}`);
+		const $onRemoved = Symbol(`onRemoved:${String(key)}`);
+
 		type Decorated = E & {
 			[$onProvided](event: DependencyProvision<T>): void;
 			[$onRemoved](event: ProviderRemoval<T>): void;
 		}
 
-		function onProvided(this: E, event: DependencyProvision<T>): void {
+		assertType<Decorated>(proto);
+
+		function onProvided(this: Decorated, event: DependencyProvision<T>): void {
 			const array = this[key] ?? [];
-			assertType<E[K] & T[]>(array);
+			assertType<Decorated[K] & T[]>(array);
 
 			if (event.detail.token === token)
-				this[key] = array.concat(event.detail.value) as E[K];
+				this[key] = array.concat(event.detail.value) as Decorated[K];
 		}
 
-		function onRemoved(this: E, event: ProviderRemoval<T>): void {
+		function onRemoved(this: Decorated, event: ProviderRemoval<T>): void {
 			const array = this[key] ?? [];
-			assertType<E[K] & T[]>(array);
+			assertType<Decorated[K] & T[]>(array);
 
 			if (event.detail.token === token)
-				this[key] = array.filter(el => el !== event.detail.value) as E[K];
+				this[key] = array.filter(el => el !== event.detail.value) as Decorated[K];
 		}
 
-		appendRoutine(proto, "connectedCallback", function (this: E): void {
-			this[key] = [] as E[K];
-			assertType<Decorated>(this);
+		appendRoutine(proto, "connectedCallback", function (this: Decorated): void {
+			this[key] = [] as Decorated[K];
 
 			this[$onProvided] ??= onProvided.bind(this);
 			this[$onRemoved] ??= onRemoved.bind(this);
@@ -174,9 +175,7 @@ export function queryProviders<T, E extends LitElement>(token: Token<T>) {
 			this.addEventListener(DIEvent.ProviderRemoval, this[$onRemoved]);
 		});
 
-		appendRoutine(proto, "disconnectedCallback", function (this: E): void {
-			assertType<Decorated>(this);
-
+		appendRoutine(proto, "disconnectedCallback", function (this: Decorated): void {
 			this.removeEventListener(DIEvent.DependencyProvision, this[$onProvided]);
 			this.removeEventListener(DIEvent.ProviderRemoval, this[$onRemoved]);
 		});

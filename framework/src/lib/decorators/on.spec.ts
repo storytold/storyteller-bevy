@@ -30,4 +30,18 @@ describe("@on(eventName)", () => {
 
 		expect(counter.count).toBe(3);
 	});
+
+	it("exhibits correct `this` handling when multiple instances are present", () => {
+		const counter1 = document.createElement("test-counter");
+		document.body.appendChild(counter1);
+
+		const counter2 = document.createElement("test-counter");
+		document.body.appendChild(counter2);
+
+		counter1.click();
+		counter2.click();
+
+		expect(counter1.count).toBe(1);
+		expect(counter2.count).toBe(1);
+	});
 });
