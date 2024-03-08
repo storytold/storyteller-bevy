@@ -28,13 +28,19 @@ export class IframeMessagingBridgeElement extends LitElement {
 	#parentOrigin?: string;
 
 	override connectedCallback(): void {
-		if (
-			window.parent
-			&& window.parent !== window
-			&& PARENT_ORIGIN_WHITELIST.includes(window.parent.origin)
-		) {
-			this.#parentWindow = window.parent;
-			this.#parentOrigin = window.parent.origin;
+		try {
+			if (
+				window.parent
+				&& window.parent !== window
+				&& PARENT_ORIGIN_WHITELIST.includes(window.parent.origin)
+			) {
+				this.#parentWindow = window.parent;
+				this.#parentOrigin = window.parent.origin;
+			}
+		}
+		catch {
+			this.#parentWindow = undefined;
+			this.#parentOrigin = undefined;
 		}
 
 		super.connectedCallback();
