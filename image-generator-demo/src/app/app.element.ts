@@ -12,6 +12,7 @@ import { customElement, state } from "lit/decorators.js";
 import { classMap } from "lit/directives/class-map.js";
 import { createRef, ref } from "lit/directives/ref.js";
 import { styleMap } from "lit/directives/style-map.js";
+import { v4 as uuid } from "uuid";
 
 import { ImageInfo, LcmClient } from "./lcm-client";
 
@@ -38,7 +39,7 @@ export class AppElement extends LitElement {
 	@state() inputUrl?: string;
 	@state() outputUrl?: string;
 
-	#lcmClient = new LcmClient(crypto.randomUUID());
+	#lcmClient = new LcmClient(uuid());
 	#outputImageRef = createRef<HTMLImageElement>();
 
 	constructor () {
