@@ -186,25 +186,11 @@ export class MediaLibraryDialogElement extends LitElement {
 	}
 
 	protected override willUpdate(changes: PropertyValues<this>): void {
-		if (changes.has("activeCategory")) {
-			const prevCat = changes.get("activeCategory");
-			if (prevCat) {
-				const prevPredIdx = this.filters.indexOf(prevCat.predicate);
-				const newPred = this.activeCategory.predicate;
-
-				this.filters.splice(prevPredIdx, 1, newPred);
-			} else {
-				this.filters.push(this.activeCategory.predicate);
-			}
-		}
-
-		if (changes.has("searchTerm")) {
-			const prevTerm = changes.get("searchTerm");
-			if (prevTerm)
-				this.filters.pop();
-
-			if (this.searchTerm)
-				this.filters.push(it => it.displayName.includes(this.searchTerm));
+		if (changes.has("activeCategory") || changes.has("searchTerm")) {
+			this.filters = [
+				this.activeCategory.predicate,
+				it => it.displayName.includes(this.searchTerm),
+			];
 		}
 
 		super.willUpdate(changes);
