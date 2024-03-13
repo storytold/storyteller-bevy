@@ -1,6 +1,7 @@
 import { on } from "@storyteller/framework";
-import { html, unsafeCSS } from "lit";
+import { html, nothing, unsafeCSS } from "lit";
 import { customElement, property } from "lit/decorators.js";
+import { ifDefined } from "lit/directives/if-defined.js";
 
 import { FormFieldBaseElement } from "./form-field-base.element";
 
@@ -14,7 +15,17 @@ export class TextFieldElement extends FormFieldBaseElement {
 		delegatesFocus: true,
 	}
 
+	@property({
+		attribute: "type",
+		reflect: true,
+	})
+	fieldType = "text";
+
+	@property() placeholder?: string;
 	@property() value = "";
+
+	@property({ attribute: "icon-pre" }) iconPre?: string;
+	@property({ attribute: "icon-post" }) iconPost?: string;
 
 	@on("keydown")
 	@on("keyup")
@@ -31,11 +42,18 @@ export class TextFieldElement extends FormFieldBaseElement {
 	}
 
 	protected override render = () => html`
+		${this.iconPre ? html`
+			<sts-icon part="icon-pre" .icon=${this.iconPre}></sts-icon>
+		` : nothing}
 		<input
 			class="input"
-			type="text"
+			.type=${this.fieldType}
+			placeholder=${ifDefined(this.placeholder)}
 			.value=${this.value}
 			@input=${this.#onInput}
 		/>
+		${this.iconPost ? html`
+			<sts-icon part="icon-post" .icon=${this.iconPost}></sts-icon>
+		` : nothing}
 	`;
 }

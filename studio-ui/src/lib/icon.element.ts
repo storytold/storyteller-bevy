@@ -35,6 +35,12 @@ import fasPlusLarge from "@fortawesome/fontawesome-pro/svgs/solid/plus-large.svg
 import farFileImport from "@fortawesome/fontawesome-pro/svgs/regular/file-import.svg?raw";
 import farPhotoFilmMusic from "@fortawesome/fontawesome-pro/svgs/regular/photo-film-music.svg?raw";
 import fasChevronDown from "@fortawesome/fontawesome-pro/svgs/solid/chevron-down.svg?raw";
+import farVolume from "@fortawesome/fontawesome-pro/svgs/regular/volume.svg?raw";
+import farFilm from "@fortawesome/fontawesome-pro/svgs/regular/film.svg?raw";
+import fasPersonRunning from "@fortawesome/fontawesome-pro/svgs/solid/person-running.svg?raw";
+import farMountainSun from "@fortawesome/fontawesome-pro/svgs/regular/mountain-sun.svg?raw";
+import farArrowRightToBracket from "@fortawesome/fontawesome-pro/svgs/regular/arrow-right-to-bracket.svg?raw";
+import farMagnifyingGlass from "@fortawesome/fontawesome-pro/svgs/regular/magnifying-glass.svg?raw";
 
 import customCylinder from "../assets/icons/cylinder.svg?raw";
 import customSphere from "../assets/icons/sphere.svg?raw";
@@ -78,10 +84,13 @@ function renderSvg(iconId: string) {
 		"crosshairs": () => farCrosshairs,
 		"cube": () => farCube,
 		"cylinder": () => customCylinder,
+		"figure": () => fasPersonRunning,
 		"file-import": () => farFileImport,
+		"film": () => farFilm,
 		"floppy-disk": () => fasFloppyDisk,
 		"fwd-fast": () => fasFwdFast,
 		"fwd-step": () => fasFwdStep,
+		"import": () => farArrowRightToBracket,
 		"key": () => fasKey,
 		"light": () => fasBrightness,
 		"list-tree": () => fasListTree,
@@ -93,11 +102,14 @@ function renderSvg(iconId: string) {
 		"question": () => fasQuestion,
 		"rotate": () => farRotate,
 		"scale": () => farScale,
+		"scene": () => farMountainSun,
+		"search": () => farMagnifyingGlass,
 		"skeleton": () => farSkeleton,
 		"sphere": () => customSphere,
 		"torus": () => customTorus,
 		"up-down-left-right": () => farUpDownLeftRight,
 		"video": () => farVideo,
+		"volume": () => farVolume,
 		"xmark": () => fasXmark,
 		_: () => null,
 	});

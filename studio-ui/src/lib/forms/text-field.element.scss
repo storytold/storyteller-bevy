@@ -2,10 +2,12 @@
 
 :host {
 	box-sizing: border-box;
-	display: block;
+	display: flex;
+	align-items: center;
 	width: 100%;
 	padding: 0.5rem 0.75rem;
 	border-radius: 0.25rem;
+	gap: 0.75rem;
 
 	background: #0004;
 	border: 1px solid #FFF2;
@@ -22,6 +24,10 @@
 	}
 }
 
+[part^="icon-"] {
+	color: #FFF6;
+}
+
 :host(:focus) {
 	outline: none;
 	border-color: #FFF4;
@@ -30,11 +36,16 @@
 }
 
 .input {
-	width: 100%;
+	flex: 1 0 0;
 	appearance: none;
 	background: transparent;
 	border: none;
 	font: inherit;
 	color: inherit;
 	outline: none !important;
+
+	&::placeholder {
+		font: inherit;
+		color: #FFF6;
+	}
 }
