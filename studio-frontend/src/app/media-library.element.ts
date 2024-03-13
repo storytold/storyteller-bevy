@@ -12,6 +12,7 @@ import {
 	MediaFileSubtype,
 	Visibility,
 } from "@storyteller/studio-web";
+import { type Pred } from "@storyteller/utility";
 import {
 	html,
 	LitElement,
@@ -29,6 +30,7 @@ import "@storyteller/studio-ui/icon";
 import "@storyteller/studio-ui/forms/text-field";
 
 import dialogStyles from "./media-library.element.scss?inline";
+import { ifDefined } from "lit/directives/if-defined.js";
 
 @customElement("sts-media-library")
 export class MediaLibraryElement extends LitElement {
@@ -87,6 +89,44 @@ export class MediaLibraryElement extends LitElement {
 	}
 }
 
+interface MediaFileCategory {
+	name: string;
+	icon: string;
+	disabled?: boolean;
+	tooltip?: string;
+	predicate: Pred<MediaFile>;
+}
+
+const MEDIA_FILE_CATEGORIES: readonly MediaFileCategory[] = [
+	{
+		name: "Animation",
+		icon: "film",
+		predicate: it => true, // TODO
+	},
+	{
+		name: "Audio",
+		icon: "volume",
+		disabled: true,
+		tooltip: "Coming soon!",
+		predicate: it => true, // TODO
+	},
+	{
+		name: "Characters",
+		icon: "figure",
+		predicate: it => true, // TODO
+	},
+	{
+		name: "Props",
+		icon: "cube",
+		predicate: it => true, // TODO
+	},
+	{
+		name: "Scenes",
+		icon: "scene",
+		predicate: it => true, // TODO
+	},
+]
+
 @customElement("sts-media-library-dialog")
 export class MediaLibraryDialogElement extends LitElement {
 	static override styles = unsafeCSS(dialogStyles);
@@ -99,6 +139,8 @@ export class MediaLibraryDialogElement extends LitElement {
 	@state() mediaFiles?: MediaFile[];
 	@state() searchTerm = "";
 	@state() selected: MediaFileToken[] = [];
+	@state() activeCategory: MediaFileCategory = MEDIA_FILE_CATEGORIES[0];
+	@state() filters: Pred<MediaFile>[] = [];
 
 	@inject(StorytellerApi)
 	_api!: StorytellerApi;
@@ -128,7 +170,10 @@ export class MediaLibraryDialogElement extends LitElement {
 				result.results.map(({ token }) =>
 					this._api
 						.mediaFile(token)
-						.then(info => new MediaFile(info))
+						.then(info => {
+							console.log(info);
+							return new MediaFile(info);
+						})
 				)
 			))
 			.catch(err => {
@@ -138,6 +183,31 @@ export class MediaLibraryDialogElement extends LitElement {
 			.then(result => this.mediaFiles = result);
 
 		super.connectedCallback();
+	}
+
+	protected override willUpdate(changes: PropertyValues<this>): void {
+		if (changes.has("activeCategory")) {
+			const prevCat = changes.get("activeCategory");
+			if (prevCat) {
+				const prevPredIdx = this.filters.indexOf(prevCat.predicate);
+				const newPred = this.activeCategory.predicate;
+
+				this.filters.splice(prevPredIdx, 1, newPred);
+			} else {
+				this.filters.push(this.activeCategory.predicate);
+			}
+		}
+
+		if (changes.has("searchTerm")) {
+			const prevTerm = changes.get("searchTerm");
+			if (prevTerm)
+				this.filters.pop();
+
+			if (this.searchTerm)
+				this.filters.push(it => it.displayName.includes(this.searchTerm));
+		}
+
+		super.willUpdate(changes);
 	}
 
 	onSelect(token: MediaFileToken) {
@@ -204,27 +274,24 @@ export class MediaLibraryDialogElement extends LitElement {
 		<section class="main">
 			<nav class="sidebar">
 				<ul class="sidebar__list">
-					<li class="sidebar__listitem">
-						<sts-button icon="film">Animation</sts-button>
-					</li>
-					<li class="sidebar__listitem">
-						<sts-button
-							icon="volume"
-							title="Coming soon!"
-							disabled
-						>
-							Audio
-						</sts-button>
-					</li>
-					<li class="sidebar__listitem">
-						<sts-button icon="figure">Characters</sts-button>
-					</li>
-					<li class="sidebar__listitem">
-						<sts-button icon="cube">Props</sts-button>
-					</li>
-					<li class="sidebar__listitem">
-						<sts-button icon="scene">Scenes</sts-button>
-					</li>
+					${MEDIA_FILE_CATEGORIES.map(cat => html`
+						<li class="sidebar__listitem">
+							<sts-button
+								class=${classMap({
+									active: cat === this.activeCategory,
+								})}
+								.icon=${cat.icon}
+								title=${ifDefined(cat.tooltip)}
+								?disabled=${cat.disabled}
+								@click=${() => {
+									if (!cat.disabled)
+										this.activeCategory = cat;
+								}}
+							>
+								${cat.name}
+							</sts-button>
+						</li>
+					`)}
 				</ul>
 			</nav>
 			<section class="content">
@@ -242,25 +309,27 @@ export class MediaLibraryDialogElement extends LitElement {
 					class="content__results"
 					@click=${this.clearSelection}
 				>
-					${this.mediaFiles ? this.mediaFiles.map(file => html`
-						<div
-							class=${classMap({
-								"content__media-file": true,
-								"selected": this.selected.includes(file.token),
-							})}
-							@click=${this.onSelect(file.token)}
-							tabindex="0"
-						>
-							<span class="last-updated">
-								${this.#dateFmt.format(file.updated)}
-							</span>
-							<h4 class="name">
-								${file.filename ?? file.token}
-							</h4>
-						</div>
-					`) : html`
-						<span>Loading...</span>
-					`}
+					${this.mediaFiles ? this.mediaFiles
+						.filter(it => this.filters.every(pred => pred(it)))
+						.map(file => html`
+							<div
+								class=${classMap({
+									"content__media-file": true,
+									"selected": this.selected.includes(file.token),
+								})}
+								@click=${this.onSelect(file.token)}
+								tabindex="0"
+							>
+								<span class="last-updated">
+									${this.#dateFmt.format(file.updated)}
+								</span>
+								<h4 class="name">
+									${file.filename ?? file.token}
+								</h4>
+							</div>
+						`) : html`
+							<span>Loading...</span>
+						`}
 				</div>
 				<sts-button
 					class="content__add-to-scene"
@@ -283,6 +352,10 @@ class MediaFile {
 	filename?: string;
 	created: Date;
 	updated: Date;
+
+	get displayName(): string {
+		return this.filename ?? this.token;
+	}
 
 	constructor (info: IMediaFile) {
 		this.token = info.token;

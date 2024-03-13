@@ -16,6 +16,9 @@ export interface Method<T, Args extends any[] = any[], R = any> {
 	(this: T, ...args: Args): R;
 }
 
+export type Pred<T> = Fn<[T], boolean>;
+export type IndexedPred<T> = Fn<[T, number], boolean>;
+
 export type Opt<T> = T | null | undefined;
 
 export type WithOpt<T, K extends keyof T>

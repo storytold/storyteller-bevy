@@ -35,10 +35,9 @@ export class TextFieldElement extends FormFieldBaseElement {
 	}
 
 	#onInput(event: InputEvent): void {
-		const updated = (event.target as HTMLInputElement).value;
-		console.log("updated:", updated);
-
-		this.dispatchEvent(new CustomEvent("value-change", { detail: updated }));
+		this.dispatchEvent(new CustomEvent("value-change", {
+			detail: (event.target as HTMLInputElement).value,
+		}));
 	}
 
 	protected override render = () => html`
