@@ -162,7 +162,7 @@ export class OverlayProviderElement
 		options: AttachOptions = {},
 	): WeakRef<OverlayHandle> {
 		// Create and append a new handle for the overlay
-		const index = this.#templates.length;
+		const index = this.#handles.length;
 		const handle = new OverlayHandleInternal(index);
 		this.#handles.push(handle);
 
@@ -193,7 +193,7 @@ export class OverlayProviderElement
 	detach(handle: WeakRef<OverlayHandle>): void {
 		// Find the index of the overlay to remove
 		const index = handle.deref()?.id;
-		if (index == null) return;
+		if (index == null || index === -1) return;
 
 		// Remove the corresponding entry from each array
 		const [removedHandle] = this.#handles.splice(index, 1);
@@ -215,7 +215,8 @@ export class OverlayProviderElement
 	//       Needs further testing.
 	reRender(handle: WeakRef<OverlayHandle>): void {
 		const index = handle.deref()?.id;
-		if (index == null) return;
+		if (index == null || index === -1)
+			return;
 
 		const container = this.#containerRefs[index]?.value;
 		if (!container) return;
