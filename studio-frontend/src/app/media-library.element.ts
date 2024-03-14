@@ -13,7 +13,7 @@ import {
 	StorytellerApi,
 	Visibility,
 } from "@storyteller/studio-web";
-import { type Pred } from "@storyteller/utility";
+import { match, type Pred } from "@storyteller/utility";
 import {
 	html,
 	LitElement,
@@ -100,6 +100,11 @@ interface MediaFileCategory {
 
 const MEDIA_FILE_CATEGORIES: readonly MediaFileCategory[] = [
 	{
+		name: "Home",
+		icon: "home",
+		predicate: () => true,
+	},
+	{
 		name: "Animation",
 		icon: "film",
 		predicate: it => it.mediaClass === MediaFileClass.Animation,
@@ -126,7 +131,14 @@ const MEDIA_FILE_CATEGORIES: readonly MediaFileCategory[] = [
 		icon: "scene",
 		predicate: it => it.mediaClass === MediaFileClass.Scene,
 	},
-]
+];
+
+enum ResultsStatus {
+	Loading,
+	Empty,
+	NonEmpty,
+	Error,
+}
 
 @customElement("sts-media-library-dialog")
 export class MediaLibraryDialogElement extends LitElement {
@@ -142,46 +154,33 @@ export class MediaLibraryDialogElement extends LitElement {
 	@state() selected: MediaFileToken[] = [];
 	@state() activeCategory: MediaFileCategory = MEDIA_FILE_CATEGORIES[0];
 	@state() filters: Pred<MediaFile>[] = [];
+	@state() apiError?: Error;
 
 	@inject(StorytellerApi)
 	_api!: StorytellerApi;
 
 	#dateFmt = new Intl.DateTimeFormat("en-us");
 
-	override async connectedCallback(): Promise<void> {
+	get #mediaFiles() {
+		return this.mediaFiles?.filter(it =>
+			this.filters.every(pred => pred(it))
+		);
+	}
+
+	get #resultsStatus() {
+		if (this.apiError)
+			return ResultsStatus.Error;
+		if (!this.#mediaFiles)
+			return ResultsStatus.Loading;
+		if (!this.#mediaFiles.length)
+			return ResultsStatus.Empty;
+
+		return ResultsStatus.NonEmpty;
+	}
+
+	override connectedCallback(): void {
 		this.focus();
-
-		this._api
-			.session()
-			.then(session => {
-				if (!session.logged_in || !session.user?.username)
-					return Promise.reject(new Error("Not logged in"));
-
-				return this._api.listMediaFiles({
-					username: session.user.username,
-					filterMediaType: [
-						MediaFileType.Bvh,
-						MediaFileType.Glb,
-						MediaFileType.Gltf,
-						MediaFileType.ScnRon,
-					],
-				});
-			})
-			.then(result => Promise.all(
-				result.results.map(({ token }) =>
-					this._api
-						.mediaFile(token)
-						.then(info => {
-							console.log(info);
-							return new MediaFile(info);
-						})
-				)
-			))
-			.catch(err => {
-				console.error(err);
-				return [];
-			})
-			.then(result => this.mediaFiles = result);
+		this.loadResults();
 
 		super.connectedCallback();
 	}
@@ -195,6 +194,40 @@ export class MediaLibraryDialogElement extends LitElement {
 		}
 
 		super.willUpdate(changes);
+	}
+
+	async loadResults(): Promise<void> {
+		this.mediaFiles = undefined;
+		this.apiError = undefined;
+
+		try {
+			const session = await this._api.session();
+			if (!session.logged_in || !session.user?.username)
+				throw new Error("Not logged in");
+
+			const response = await this._api.listMediaFiles({
+				username: session.user.username,
+				filterMediaType: [
+					MediaFileType.Bvh,
+					MediaFileType.Glb,
+					MediaFileType.Gltf,
+					MediaFileType.ScnRon,
+				],
+			});
+
+			const results = await Promise.all(
+				response.results.map(({ token }) => this._api.mediaFile(token))
+			);
+
+			this.mediaFiles = results.map(info => new MediaFile(info));
+		}
+		catch (err) {
+			if (typeof err === "object" && err !== null && err instanceof Error) {
+				this.apiError = err;
+			} else {
+				this.apiError = new Error(String(err));
+			}
+		}
 	}
 
 	onSelect(token: MediaFileToken) {
@@ -283,7 +316,12 @@ export class MediaLibraryDialogElement extends LitElement {
 			</nav>
 			<section class="content">
 				<div class="content__ui">
-					<sts-button icon="import">Import...</sts-button>
+					<sts-button
+						class="btn-secondary"
+						icon="import"
+					>
+						Import...
+					</sts-button>
 					<sts-text-field
 						class="search-field"
 						type="search"
@@ -293,12 +331,43 @@ export class MediaLibraryDialogElement extends LitElement {
 					></sts-text-field>
 				</div>
 				<div
-					class="content__results"
+					class=${classMap({
+						"content__results": true,
+						"content__results--centered": this.#resultsStatus !== ResultsStatus.NonEmpty,
+						"content__results--grid": this.#resultsStatus === ResultsStatus.NonEmpty,
+					})}
 					@click=${this.clearSelection}
 				>
-					${this.mediaFiles ? this.mediaFiles
-						.filter(it => this.filters.every(pred => pred(it)))
-						.map(file => html`
+					${match (this.#resultsStatus, {
+						[ResultsStatus.Loading]: () => html`
+							<span>Loading...</span>
+						`,
+						[ResultsStatus.Empty]: () => html`
+							<div class="placeholder">
+								<h2 class="heading">No results found</h2>
+								<p>Import a new asset to get started!</p>
+								<sts-button
+									class="btn-secondary"
+									icon="import"
+								>
+									Import...
+								</sts-button>
+							</div>
+						`,
+						[ResultsStatus.Error]: () => html`
+							<div class="error">
+								<h2 class="heading">Error</h2>
+								<p>${this.apiError!.message}</p>
+								<sts-button
+									class="btn-secondary"
+									icon="rotate"
+									@click=${this.loadResults}
+								>
+									Retry
+								</sts-button>
+							</div>
+						`,
+						[ResultsStatus.NonEmpty]: () => this.#mediaFiles!.map(file => html`
 							<div
 								class=${classMap({
 									"content__media-file": true,
@@ -314,12 +383,11 @@ export class MediaLibraryDialogElement extends LitElement {
 									${file.filename ?? file.token}
 								</h4>
 							</div>
-						`) : html`
-							<span>Loading...</span>
-						`}
+						`),
+					})}
 				</div>
 				<sts-button
-					class="content__add-to-scene"
+					class="btn-primary content__add-to-scene"
 					icon="plus-large"
 					?disabled=${!this.selected.length}
 				>

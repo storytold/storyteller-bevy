@@ -41,6 +41,7 @@ import fasPersonRunning from "@fortawesome/fontawesome-pro/svgs/solid/person-run
 import farMountainSun from "@fortawesome/fontawesome-pro/svgs/regular/mountain-sun.svg?raw";
 import farArrowRightToBracket from "@fortawesome/fontawesome-pro/svgs/regular/arrow-right-to-bracket.svg?raw";
 import farMagnifyingGlass from "@fortawesome/fontawesome-pro/svgs/regular/magnifying-glass.svg?raw";
+import fasHouse from "@fortawesome/fontawesome-pro/svgs/solid/house.svg?raw";
 
 import customCylinder from "../assets/icons/cylinder.svg?raw";
 import customSphere from "../assets/icons/sphere.svg?raw";
@@ -90,6 +91,7 @@ function renderSvg(iconId: string) {
 		"floppy-disk": () => fasFloppyDisk,
 		"fwd-fast": () => fasFwdFast,
 		"fwd-step": () => fasFwdStep,
+		"home": () => fasHouse,
 		"import": () => farArrowRightToBracket,
 		"key": () => fasKey,
 		"light": () => fasBrightness,

@@ -1,6 +1,7 @@
 @use "sass:math";
 
 *, *::before, *::after {
+	font-family: "Fira Sans", sans-serif;
 	box-sizing: border-box;
 }
 
@@ -43,7 +44,6 @@ header {
 	h3 {
 		color: #FFFC;
 		font: {
-			family: "Fira Sans", sans-serif;
 			weight: 500;
 			size: math.div(15, 16) * 1rem;
 		}
@@ -118,14 +118,6 @@ header {
 		display: flex;
 		gap: 0.5rem;
 
-		sts-button {
-			background: #44445B;
-
-			&:hover {
-				background: #39394C;
-			}
-		}
-
 		.search-field {
 			border: none;
 			border-radius: 0.5rem;
@@ -137,11 +129,21 @@ header {
 	}
 
 	&__results {
-		display: grid;
-		grid-template-columns: 1fr 1fr 1fr;
-		gap: 1rem;
-		overflow-y: auto;
 		padding-block-end: 3rem;
+
+		&--centered {
+			display: flex;
+			flex: 1 0 0;
+			align-items: center;
+			justify-content: center;
+		}
+
+		&--grid {
+			display: grid;
+			grid-template-columns: 1fr 1fr 1fr;
+			gap: 1rem;
+			overflow-y: auto;
+		}
 
 		&::-webkit-scrollbar {
 			width: 0.5rem;
@@ -171,7 +173,6 @@ header {
 		border-radius: 0.5rem;
 		overflow: hidden;
 		background: #FFF1;
-		font-family: "Fira Sans", sans-serif;
 
 		&.selected {
 			border: 2px solid #E66462;
@@ -210,16 +211,52 @@ header {
 		position: absolute;
 		bottom: 1rem;
 		right: 1rem;
-		backdrop-filter: none;
+	}
+}
 
-		&:not(.disabled) {
-			background: #E66462;
+.error, .placeholder {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	aling-self: center;
+
+	.heading, p {
+		text-align: center;
+	}
+
+	.heading {
+		margin: 0;
+	}
+
+	p {
+		margin: 1em 0;
+		font-size: 1.25rem;
+		line-height: 1.5;
+	}
+}
+
+.btn-primary {
+	backdrop-filter: none;
+
+	&:not(.disabled) {
+		background: #E66462;
+		color: #FFFF;
+
+		&:hover {
+			background: #EA7A78;
 			color: #FFFF;
+		}
+	}
+}
 
-			&:hover {
-				background: #EA7A78;
-				color: #FFFF;
-			}
+.btn-secondary {
+	backdrop-filter: none;
+
+	&:not(:disabled) {
+		background: #44445B;
+
+		&:hover {
+			background: #39394C;
 		}
 	}
 }
