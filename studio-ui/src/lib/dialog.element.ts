@@ -2,6 +2,7 @@ import { inject, on } from "@storyteller/framework";
 import { LitElement, type PropertyValues } from "lit";
 import { html, unsafeStatic } from "lit/static-html.js";
 import { customElement, property } from "lit/decorators.js";
+import { ifDefined } from "lit/directives/if-defined.js";
 import { createRef, ref } from "lit/directives/ref.js";
 import {
 	OVERLAY_PROVIDER,
@@ -83,23 +84,32 @@ import {
  */
 @customElement("sts-dialog")
 export class DialogElement extends LitElement {
+	/**
+	 * Tag-name of a custom element inheriting from {@linkcode DialogBaseElement}`
+	 */
 	@property() tag!: string;
-	@property() dialogRole = "dialog";
 
+	/** ARIA role to pass to the custom element defined by `tag`. */
+	@property() dialogRole?: "dialog" | "alert";
+
+	/**
+	 * @optional
+	 * Ref of the HTML element which should open the dialog when clicked.
+	 */
 	@property({ attribute: false })
 	trigger = createRef<HTMLElement>();
 
 	@inject(OVERLAY_PROVIDER)
-	overlay!: OverlayProvider;
+	_overlay!: OverlayProvider;
 
 	#overlayHandle?: WeakRef<OverlayHandle>;
 	#dialogRef = createRef<DialogBaseElement>();
 
 	open(): void {
-		this.#overlayHandle = this.overlay.attach(this, html`
+		this.#overlayHandle = this._overlay.attach(this, html`
 			<${unsafeStatic(this.tag)}
 				${ref(this.#dialogRef)}
-				.role=${this.dialogRole}
+				role=${ifDefined(this.dialogRole)}
 				@close=${() => this.close()}
 			></${unsafeStatic(this.tag)}>
 		`, {
@@ -113,7 +123,7 @@ export class DialogElement extends LitElement {
 
 	close(): void {
 		if (this.#overlayHandle)
-			this.overlay.detach(this.#overlayHandle);
+			this._overlay.detach(this.#overlayHandle);
 	}
 
 	override connectedCallback(): void {
