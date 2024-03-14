@@ -27,6 +27,239 @@ import "@storyteller/studio-ui/forms/text-field";
 
 import styles from "./media-library-dialog.element.scss?inline";
 
+@customElement("sts-media-library-dialog")
+export class MediaLibraryDialogElement extends DialogBaseElement {
+	static override styles = unsafeCSS(styles);
+
+	@state() _mediaFiles?: MediaFile[];
+	@state() _searchTerm = "";
+	@state() _selected: MediaFileToken[] = [];
+	@state() _activeCategory: MediaFileCategory = MEDIA_FILE_CATEGORIES[0];
+	@state() _filters: Pred<MediaFile>[] = [];
+	@state() _apiError?: Error;
+
+	@inject(StorytellerApi)
+	_api!: StorytellerApi;
+
+	#dateFmt = new Intl.DateTimeFormat("en-us");
+
+	get #mediaFiles() {
+		return this._mediaFiles?.filter(it =>
+			this._filters.every(pred => pred(it))
+		);
+	}
+
+	get #resultsStatus() {
+		if (this._apiError)
+			return ResultsStatus.Error;
+		if (!this.#mediaFiles)
+			return ResultsStatus.Loading;
+		if (!this.#mediaFiles.length)
+			return ResultsStatus.Empty;
+
+		return ResultsStatus.NonEmpty;
+	}
+
+	override connectedCallback(): void {
+		this.loadResults();
+		super.connectedCallback();
+	}
+
+	protected override willUpdate(changes: PropertyValues<this>): void {
+		if (changes.has("_activeCategory") || changes.has("_searchTerm")) {
+			this._filters = [
+				this._activeCategory.predicate,
+				it => it.displayName.includes(this._searchTerm),
+			];
+		}
+
+		super.willUpdate(changes);
+	}
+
+	async loadResults(): Promise<void> {
+		this._mediaFiles = undefined;
+		this._apiError = undefined;
+
+		try {
+			const session = await this._api.session();
+			if (!session.logged_in || !session.user?.username)
+				throw new Error("Not logged in");
+
+			const response = await this._api.listMediaFiles({
+				username: session.user.username,
+				filterMediaType: [
+					MediaFileType.Bvh,
+					MediaFileType.Glb,
+					MediaFileType.Gltf,
+					MediaFileType.ScnRon,
+				],
+			});
+
+			const results = await Promise.all(
+				response.results.map(({ token }) => this._api.mediaFile(token))
+			);
+
+			this._mediaFiles = results.map(info => new MediaFile(info));
+		}
+		catch (err) {
+			if (typeof err === "object" && err !== null && err instanceof Error) {
+				this._apiError = err;
+			} else {
+				this._apiError = new Error(String(err));
+			}
+		}
+	}
+
+	onSelect(token: MediaFileToken) {
+		return (event: PointerEvent) => {
+			event.stopPropagation();
+
+			if (event.getModifierState("Control") || event.getModifierState("Shift"))
+				this.toggleSelected(token);
+			else
+				this.select(token);
+		}
+	}
+
+	select(token: MediaFileToken): void {
+		this._selected = [token];
+	}
+
+	toggleSelected(token: MediaFileToken): void {
+		if (this._selected.includes(token))
+			this._selected = this._selected.filter(it => it !== token);
+		else
+			this._selected = this._selected.concat(token);
+	}
+
+	clearSelection(): void {
+		this._selected = [];
+	}
+
+	protected override render = (): TemplateResult => html`
+		<header part="header">
+			<div class="title">
+				<sts-icon icon="photo-film-music"></sts-icon>
+				<h3>Media Library</h3>
+			</div>
+			${/*
+				Note: "Close" button is intentionally hidden from the a11y tree
+				because because the Esc key is the ARIA-standard interaction for
+				closing a dialog.
+			*/ nothing}
+			<sts-icon
+				class="close"
+				icon="xmark"
+				@click=${() => this.dispatchEvent(new CustomEvent("close"))}
+			></sts-icon>
+		</header>
+		<section class="main">
+			<nav class="sidebar">
+				<ul class="sidebar__list">
+					${MEDIA_FILE_CATEGORIES.map(cat => html`
+						<li class="sidebar__listitem">
+							<sts-button
+								class=${classMap({
+									active: cat === this._activeCategory,
+								})}
+								.icon=${cat.icon}
+								title=${ifDefined(cat.tooltip)}
+								?disabled=${cat.disabled}
+								@click=${() => {
+									if (!cat.disabled)
+										this._activeCategory = cat;
+								}}
+							>
+								${cat.name}
+							</sts-button>
+						</li>
+					`)}
+				</ul>
+			</nav>
+			<section class="content">
+				<div class="content__ui">
+					<sts-button
+						class="btn-secondary"
+						icon="import"
+					>
+						Import...
+					</sts-button>
+					<sts-text-field
+						class="search-field"
+						type="search"
+						placeholder="Search"
+						icon-pre="search"
+						.value=${bind(this, "_searchTerm")}
+					></sts-text-field>
+				</div>
+				<div
+					class=${classMap({
+						"content__results": true,
+						"content__results--centered": this.#resultsStatus !== ResultsStatus.NonEmpty,
+						"content__results--grid": this.#resultsStatus === ResultsStatus.NonEmpty,
+					})}
+					@click=${this.clearSelection}
+				>
+					${match (this.#resultsStatus, {
+						[ResultsStatus.Loading]: () => html`
+							<span>Loading...</span>
+						`,
+						[ResultsStatus.Empty]: () => html`
+							<div class="placeholder">
+								<h2 class="heading">No results found</h2>
+								<p>Import a new asset to get started!</p>
+								<sts-button
+									class="btn-secondary"
+									icon="import"
+								>
+									Import...
+								</sts-button>
+							</div>
+						`,
+						[ResultsStatus.Error]: () => html`
+							<div class="error">
+								<h2 class="heading">Error</h2>
+								<p>${this._apiError!.message}</p>
+								<sts-button
+									class="btn-secondary"
+									icon="rotate"
+									@click=${this.loadResults}
+								>
+									Retry
+								</sts-button>
+							</div>
+						`,
+						[ResultsStatus.NonEmpty]: () => this.#mediaFiles!.map(file => html`
+							<div
+								class=${classMap({
+									"content__media-file": true,
+									"selected": this._selected.includes(file.token),
+								})}
+								@click=${this.onSelect(file.token)}
+								tabindex="0"
+							>
+								<span class="last-updated">
+									${this.#dateFmt.format(file.updated)}
+								</span>
+								<h4 class="name">
+									${file.filename ?? file.token}
+								</h4>
+							</div>
+						`),
+					})}
+				</div>
+				<sts-button
+					class="btn-primary content__add-to-scene"
+					icon="plus-large"
+					?disabled=${!this._selected.length}
+				>
+					Add to Scene
+				</sts-button>
+			</section>
+		</section>
+	`;
+}
+
 interface MediaFileCategory {
 	name: string;
 	icon: string;
@@ -75,239 +308,6 @@ enum ResultsStatus {
 	Empty,
 	NonEmpty,
 	Error,
-}
-
-@customElement("sts-media-library-dialog")
-export class MediaLibraryDialogElement extends DialogBaseElement {
-	static override styles = unsafeCSS(styles);
-
-	@state() mediaFiles?: MediaFile[];
-	@state() searchTerm = "";
-	@state() selected: MediaFileToken[] = [];
-	@state() activeCategory: MediaFileCategory = MEDIA_FILE_CATEGORIES[0];
-	@state() filters: Pred<MediaFile>[] = [];
-	@state() apiError?: Error;
-
-	@inject(StorytellerApi)
-	_api!: StorytellerApi;
-
-	#dateFmt = new Intl.DateTimeFormat("en-us");
-
-	get #mediaFiles() {
-		return this.mediaFiles?.filter(it =>
-			this.filters.every(pred => pred(it))
-		);
-	}
-
-	get #resultsStatus() {
-		if (this.apiError)
-			return ResultsStatus.Error;
-		if (!this.#mediaFiles)
-			return ResultsStatus.Loading;
-		if (!this.#mediaFiles.length)
-			return ResultsStatus.Empty;
-
-		return ResultsStatus.NonEmpty;
-	}
-
-	override connectedCallback(): void {
-		this.loadResults();
-		super.connectedCallback();
-	}
-
-	protected override willUpdate(changes: PropertyValues<this>): void {
-		if (changes.has("activeCategory") || changes.has("searchTerm")) {
-			this.filters = [
-				this.activeCategory.predicate,
-				it => it.displayName.includes(this.searchTerm),
-			];
-		}
-
-		super.willUpdate(changes);
-	}
-
-	async loadResults(): Promise<void> {
-		this.mediaFiles = undefined;
-		this.apiError = undefined;
-
-		try {
-			const session = await this._api.session();
-			if (!session.logged_in || !session.user?.username)
-				throw new Error("Not logged in");
-
-			const response = await this._api.listMediaFiles({
-				username: session.user.username,
-				filterMediaType: [
-					MediaFileType.Bvh,
-					MediaFileType.Glb,
-					MediaFileType.Gltf,
-					MediaFileType.ScnRon,
-				],
-			});
-
-			const results = await Promise.all(
-				response.results.map(({ token }) => this._api.mediaFile(token))
-			);
-
-			this.mediaFiles = results.map(info => new MediaFile(info));
-		}
-		catch (err) {
-			if (typeof err === "object" && err !== null && err instanceof Error) {
-				this.apiError = err;
-			} else {
-				this.apiError = new Error(String(err));
-			}
-		}
-	}
-
-	onSelect(token: MediaFileToken) {
-		return (event: PointerEvent) => {
-			event.stopPropagation();
-
-			if (event.getModifierState("Control") || event.getModifierState("Shift"))
-				this.toggleSelected(token);
-			else
-				this.select(token);
-		}
-	}
-
-	select(token: MediaFileToken): void {
-		this.selected = [token];
-	}
-
-	toggleSelected(token: MediaFileToken): void {
-		if (this.selected.includes(token))
-			this.selected = this.selected.filter(it => it !== token);
-		else
-			this.selected = this.selected.concat(token);
-	}
-
-	clearSelection(): void {
-		this.selected = [];
-	}
-
-	protected override render = (): TemplateResult => html`
-		<header part="header">
-			<div class="title">
-				<sts-icon icon="photo-film-music"></sts-icon>
-				<h3>Media Library</h3>
-			</div>
-			${/*
-				Note: "Close" button is intentionally hidden from the a11y tree
-				because because the Esc key is the ARIA-standard interaction for
-				closing a dialog.
-			*/ nothing}
-			<sts-icon
-				class="close"
-				icon="xmark"
-				@click=${() => this.dispatchEvent(new CustomEvent("close"))}
-			></sts-icon>
-		</header>
-		<section class="main">
-			<nav class="sidebar">
-				<ul class="sidebar__list">
-					${MEDIA_FILE_CATEGORIES.map(cat => html`
-						<li class="sidebar__listitem">
-							<sts-button
-								class=${classMap({
-									active: cat === this.activeCategory,
-								})}
-								.icon=${cat.icon}
-								title=${ifDefined(cat.tooltip)}
-								?disabled=${cat.disabled}
-								@click=${() => {
-									if (!cat.disabled)
-										this.activeCategory = cat;
-								}}
-							>
-								${cat.name}
-							</sts-button>
-						</li>
-					`)}
-				</ul>
-			</nav>
-			<section class="content">
-				<div class="content__ui">
-					<sts-button
-						class="btn-secondary"
-						icon="import"
-					>
-						Import...
-					</sts-button>
-					<sts-text-field
-						class="search-field"
-						type="search"
-						placeholder="Search"
-						icon-pre="search"
-						.value=${bind(this, "searchTerm")}
-					></sts-text-field>
-				</div>
-				<div
-					class=${classMap({
-						"content__results": true,
-						"content__results--centered": this.#resultsStatus !== ResultsStatus.NonEmpty,
-						"content__results--grid": this.#resultsStatus === ResultsStatus.NonEmpty,
-					})}
-					@click=${this.clearSelection}
-				>
-					${match (this.#resultsStatus, {
-						[ResultsStatus.Loading]: () => html`
-							<span>Loading...</span>
-						`,
-						[ResultsStatus.Empty]: () => html`
-							<div class="placeholder">
-								<h2 class="heading">No results found</h2>
-								<p>Import a new asset to get started!</p>
-								<sts-button
-									class="btn-secondary"
-									icon="import"
-								>
-									Import...
-								</sts-button>
-							</div>
-						`,
-						[ResultsStatus.Error]: () => html`
-							<div class="error">
-								<h2 class="heading">Error</h2>
-								<p>${this.apiError!.message}</p>
-								<sts-button
-									class="btn-secondary"
-									icon="rotate"
-									@click=${this.loadResults}
-								>
-									Retry
-								</sts-button>
-							</div>
-						`,
-						[ResultsStatus.NonEmpty]: () => this.#mediaFiles!.map(file => html`
-							<div
-								class=${classMap({
-									"content__media-file": true,
-									"selected": this.selected.includes(file.token),
-								})}
-								@click=${this.onSelect(file.token)}
-								tabindex="0"
-							>
-								<span class="last-updated">
-									${this.#dateFmt.format(file.updated)}
-								</span>
-								<h4 class="name">
-									${file.filename ?? file.token}
-								</h4>
-							</div>
-						`),
-					})}
-				</div>
-				<sts-button
-					class="btn-primary content__add-to-scene"
-					icon="plus-large"
-					?disabled=${!this.selected.length}
-				>
-					Add to Scene
-				</sts-button>
-			</section>
-		</section>
-	`;
 }
 
 class MediaFile {

@@ -9,9 +9,82 @@ import {
 	type OverlayProvider,
 } from "./overlay-provider.element";
 
+/**
+ * A simple, WIP [dialog widget](https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/)
+ * implementation.
+ *
+ * @warning
+ * This component should be considered experimental! Its API is still a work-in-
+ * progress, potential use cases have not been thoroughly explored, and it may
+ * not behave as expected in all circumstances.
+ *
+ * @example
+ * ```
+ * \@customElement("my-dialog")
+ * class MyDialogElement extends DialogBaseElement {
+ *   render = () => html`
+ *     <header>
+ *       <h4>My Dialog</h4>
+ *       <sts-icon
+ *         icon="xmark"
+ *         \@click=${() => this.dispatchEvent(new CustomEvent("close"))}
+ *       ></sts-icon>
+ *     </header>
+ *     <section>
+ *       <p>Hello, world!</p>
+ *     </section>
+ *   `
+ * }
+ * ```
+ * ### Trigger-based implementation
+ * ```
+ * \@customElement("my-app")
+ * class MyApp extends LitElement {
+ *   dialogTriggerRef = createRef<ButtonElement>();
+ *
+ *   render = () => html`
+ *     <sts-overlay-provider>
+ *       <sts-button ${ref(this.dialogTriggerRef)}>
+ *         Open Dialog
+ *       </sts-button>
+ *
+ *       <sts-dialog
+ *         tag="my-dialog"
+ *         .trigger=${this.dialogTriggerRef}
+ *       ></sts-dialog>
+ *     </sts-overlay-provider>
+ *   `
+ * }
+ * ```
+ * ### Manual-open implementation
+ * ```
+ * \@customElement("my-app")
+ * class MyApp extends LitElement {
+ *   dialogRef = createRef<DialogElement>();
+ *
+ *   render = () => html`
+ *     <sts-overlay-provider>
+ *       <sts-button
+ *         \@click=${() => {
+ *           this.dialogRef.value?.open();
+ *         }}
+ *       >
+ *         Open Dialog
+ *       </sts-button>
+ *
+ *       <sts-dialog
+ *         ${ref(this.dialogRef)}
+ *         tag="my-dialog"
+ *       ></sts-dialog>
+ *     </sts-overlay-provider>
+ *   `
+ * }
+ * ```
+ */
 @customElement("sts-dialog")
 export class DialogElement extends LitElement {
 	@property() tag!: string;
+	@property() dialogRole = "dialog";
 
 	@property({ attribute: false })
 	trigger = createRef<HTMLElement>();
@@ -26,6 +99,7 @@ export class DialogElement extends LitElement {
 		this.#overlayHandle = this.overlay.attach(this, html`
 			<${unsafeStatic(this.tag)}
 				${ref(this.#dialogRef)}
+				.role=${this.dialogRole}
 				@close=${() => this.close()}
 			></${unsafeStatic(this.tag)}>
 		`, {

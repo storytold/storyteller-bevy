@@ -2,11 +2,9 @@ import { inject, on } from "@storyteller/framework";
 import { LitElement, PropertyValues, css, html, unsafeCSS } from "lit";
 import { customElement, property } from "lit/decorators.js";
 import { ifDefined } from "lit/directives/if-defined.js";
-import { createRef, ref } from "lit/directives/ref.js";
+import { createRef, ref, type Ref } from "lit/directives/ref.js";
 import { styleMap } from "lit/directives/style-map.js";
 import { v4 as uuid } from "uuid";
-
-import panelStyles from "./menu.element.scss?inline";
 
 import {
 	OVERLAY_PROVIDER,
@@ -14,6 +12,50 @@ import {
 	type OverlayProvider,
 } from "./overlay-provider.element";
 
+import panelStyles from "./menu.element.scss?inline";
+
+/**
+ * A simple, WIP [menu widget](https://www.w3.org/WAI/ARIA/apg/patterns/menubar/)
+ * implementation.
+ *
+ * @note
+ * This should _not_ be used for a `<select />` style combo-box widget, as it
+ * does not implement the correct ARIA roles/behavior for that use case.
+ *
+ * @warning
+ * This component should be considered experimental! Its API is still a work-in-
+ * progress, potential use cases have not been thoroughly explored, and it may
+ * not behave as expected in all circumstances.
+ *
+ * @example
+ * ```
+ * \@customElement("my-app")
+ * class MyApp extends LitElement {
+ *   menuTriggerRef = createRef<ButtonElement>();
+ *
+ *   render = () => html`
+ *     <sts-overlay-provider>
+ *       <sts-button ${ref(this.menuTriggerRef)}>
+ *         Open Menu
+ *       </sts-button>
+ *
+ *       <sts-menu
+ *         autoClose
+ *         .trigger=${this.menuTriggerRef}
+ *       >
+ *         <sts-button role="menuitem">Lorem</sts-button>
+ *         <sts-button role="menuitem">Ipsum</sts-button>
+ *         <sts-button role="menuitem">Dolor</sts-button>
+ *         <sts-button role="menuitem">Sit Amet</sts-button>
+ *         <hr />
+ *         <sts-button role="menuitem">Consectetur</sts-button>
+ *         <sts-button role="menuitem">Adipiscing Elit</sts-button>
+ *       </sts-menu>
+ *     </sts-overlay-provider>
+ *   `
+ * }
+ * ```
+ */
 @customElement("sts-menu")
 export class MenuElement extends LitElement {
 	static override styles = css`
@@ -22,6 +64,9 @@ export class MenuElement extends LitElement {
 		}
 	`;
 
+	/**
+	 * A {@linkcode Ref} of the button that should open this menu when pressed.
+	 */
 	@property({ attribute: false })
 	trigger = createRef<HTMLElement>();
 
@@ -30,7 +75,7 @@ export class MenuElement extends LitElement {
 	autoClose = false;
 
 	@inject(OVERLAY_PROVIDER)
-	overlay!: OverlayProvider;
+	_overlay!: OverlayProvider;
 
 	#menuId = uuid();
 	#slotRef = createRef<HTMLSlotElement>();
@@ -46,7 +91,7 @@ export class MenuElement extends LitElement {
 
 		const rect = trigger.getBoundingClientRect();
 
-		this.#handle = this.overlay.attach(this, html`
+		this.#handle = this._overlay.attach(this, html`
 			<sts-menu-panel
 				${ref(this.#panelRef)}
 				id=${this.#menuId}
@@ -81,7 +126,7 @@ export class MenuElement extends LitElement {
 		}
 
 		if (this.#handle)
-			this.overlay.detach(this.#handle);
+			this._overlay.detach(this.#handle);
 
 		this.#handle = undefined;
 	}
@@ -90,7 +135,7 @@ export class MenuElement extends LitElement {
 		super.update(changes);
 
 		if (this.#handle)
-			this.overlay.reRender(this.#handle);
+			this._overlay.reRender(this.#handle);
 	}
 
 	protected override updated(changes: PropertyValues<this>): void {
