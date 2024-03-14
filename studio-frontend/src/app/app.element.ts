@@ -31,14 +31,12 @@ import "@storyteller/studio-web/canvas-provider";
 import "@storyteller/studio-web/entity-inspector";
 import "@storyteller/studio-web/iframe-messaging-bridge";
 import "@storyteller/studio-web/loading";
+import "@storyteller/studio-web/media-library-dialog";
 import "@storyteller/studio-web/scene-hierarchy";
 import "@storyteller/studio-web/studio";
 import "@storyteller/studio-web/transform-toolbar";
 import "./anim-editor.element";
 import "./help.element";
-
-import "./blocking.element";
-import "./media-library.element";
 
 import "./app.element.scss";
 

@@ -25,7 +25,7 @@ import "@storyteller/studio-ui/button";
 import "@storyteller/studio-ui/icon";
 import "@storyteller/studio-ui/forms/text-field";
 
-import styles from "./media-library.element.scss?inline";
+import styles from "./media-library-dialog.element.scss?inline";
 
 interface MediaFileCategory {
 	name: string;
