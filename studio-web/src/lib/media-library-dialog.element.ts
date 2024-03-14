@@ -98,7 +98,6 @@ export class MediaLibraryDialogElement extends DialogBaseElement {
 			const results = await Promise.all(
 				response.results.map(({ token }) => this._api.mediaFile(token))
 			);
-			console.log(results);
 
 			this._mediaFiles = results.map(info => new MediaFile(info));
 		}
