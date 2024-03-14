@@ -161,6 +161,7 @@ export interface MediaFile {
 	creator_set_visibility: Visibility;
 	maybe_text_transcript?: string;
 	maybe_prompt_token?: unknown;
+	maybe_title?: string;
 	maybe_original_filename?: string;
 	is_emulated_media_file: boolean;
 	stats: Stats;

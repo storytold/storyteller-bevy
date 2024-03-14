@@ -98,6 +98,7 @@ export class MediaLibraryDialogElement extends DialogBaseElement {
 			const results = await Promise.all(
 				response.results.map(({ token }) => this._api.mediaFile(token))
 			);
+			console.log(results);
 
 			this._mediaFiles = results.map(info => new MediaFile(info));
 		}
@@ -242,7 +243,7 @@ export class MediaLibraryDialogElement extends DialogBaseElement {
 									${this.#dateFmt.format(file.updated)}
 								</span>
 								<h4 class="name">
-									${file.filename ?? file.token}
+									${file.displayName}
 								</h4>
 							</div>
 						`),
@@ -312,26 +313,35 @@ enum ResultsStatus {
 
 class MediaFile {
 	token: MediaFileToken;
+
 	type: MediaFileType;
 	subtype?: MediaFileSubtype;
 	mediaClass: MediaFileClass;
-	bucketPath: string;
-	visibility: Visibility;
+
+	title?: string;
 	filename?: string;
+
+	visibility: Visibility;
+	bucketPath: string;
 	created: Date;
 	updated: Date;
 
 	get displayName(): string {
-		return this.filename ?? this.token;
+		return this.title ?? this.filename ?? this.token;
 	}
 
 	constructor (info: IMediaFile) {
 		this.token = info.token;
+
 		this.type = info.media_type;
 		this.subtype = info.maybe_media_subtype ?? undefined;
 		this.mediaClass = info.media_class;
-		this.bucketPath = info.public_bucket_path;
+
+		this.title = info.maybe_title ?? undefined;
+		this.filename = info.maybe_original_filename ?? undefined;
+
 		this.visibility = info.creator_set_visibility;
+		this.bucketPath = info.public_bucket_path;
 		this.created = new Date(info.created_at);
 		this.updated = new Date(info.updated_at);
 	}
