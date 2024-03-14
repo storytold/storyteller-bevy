@@ -53,15 +53,6 @@ export class StorytellerApi {
 	}
 
 	async uploadMediaFile(file: File, subtype: MediaFileSubtype): Promise<MediaFileToken> {
-		const [, _basename, extension] = file.name.match(/(.+?)\.(.+)/) ?? [];
-		const mimeType = match (extension, {
-			"fbx": () => "application/fbx",
-			"gltf": () => "model/gltf+json",
-			"glb": () => "model/gltf-binary",
-			"scn.ron": () => "text/ron",
-			_: () => "application/octet-stream",
-		});
-
 		const response = await this.#api.postForm<MediaUploadResponse>(
 			"v1/media_files/upload/engine_asset",
 			{
@@ -70,7 +61,7 @@ export class StorytellerApi {
 				media_file_subtype: subtype,
 			},
 			{
-				headers: { Accept: mimeType },
+				headers: { Accept: file.type },
 			},
 		);
 		this.#validateResponse(response);
