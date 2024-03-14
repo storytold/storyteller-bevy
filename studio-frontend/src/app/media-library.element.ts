@@ -1,9 +1,5 @@
-import { bind, inject, on } from "@storyteller/framework";
-import {
-	OVERLAY_PROVIDER,
-	type OverlayHandle,
-	type OverlayProvider,
-} from "@storyteller/studio-ui/overlay-provider";
+import { bind, inject } from "@storyteller/framework";
+import { DialogBaseElement } from "@storyteller/studio-ui/dialog";
 import {
 	type MediaFile as IMediaFile,
 	MediaFileClass,
@@ -16,79 +12,20 @@ import {
 import { match, type Pred } from "@storyteller/utility";
 import {
 	html,
-	LitElement,
 	nothing,
 	type PropertyValues,
 	TemplateResult,
 	unsafeCSS,
 } from "lit";
-import { customElement, property, state } from "lit/decorators.js";
+import { customElement, state } from "lit/decorators.js";
 import { classMap } from "lit/directives/class-map.js";
-import { createRef, ref } from "lit/directives/ref.js";
+import { ifDefined } from "lit/directives/if-defined.js";
 
 import "@storyteller/studio-ui/button";
 import "@storyteller/studio-ui/icon";
 import "@storyteller/studio-ui/forms/text-field";
 
-import dialogStyles from "./media-library.element.scss?inline";
-import { ifDefined } from "lit/directives/if-defined.js";
-
-@customElement("sts-media-library")
-export class MediaLibraryElement extends LitElement {
-	@property({ attribute: false })
-	trigger = createRef<HTMLElement>();
-
-	@inject(OVERLAY_PROVIDER)
-	overlay!: OverlayProvider;
-
-	#overlayHandle?: WeakRef<OverlayHandle>;
-	#dialogRef = createRef<MediaLibraryDialogElement>();
-
-	open(): void {
-		this.#overlayHandle = this.overlay.attach(this, html`
-			<sts-media-library-dialog
-				${ref(this.#dialogRef)}
-				@close=${() => this.close()}
-			></sts-media-library-dialog>
-		`, {
-			containerStyles: {
-				display: "flex",
-				alignItems: "center",
-				justifyContent: "center",
-			},
-		});
-	}
-
-	close(): void {
-		if (this.#overlayHandle)
-			this.overlay.detach(this.#overlayHandle);
-	}
-
-	protected override updated(changes: PropertyValues<this>): void {
-		if (changes.has("trigger")) {
-			const prevTrigger = changes.get("trigger");
-			if (prevTrigger?.value) {
-				prevTrigger.value.removeEventListener("click", this.onTriggerClick);
-			}
-
-			const trigger = this.trigger.value;
-			if (!trigger) return;
-
-			trigger.addEventListener("click", this.onTriggerClick);
-		}
-
-		super.updated(changes);
-	}
-
-	override disconnectedCallback(): void {
-		this.trigger.value?.removeEventListener("click", this.onTriggerClick);
-		super.disconnectedCallback();
-	}
-
-	onTriggerClick = (): void => {
-		this.open();
-	}
-}
+import styles from "./media-library.element.scss?inline";
 
 interface MediaFileCategory {
 	name: string;
@@ -141,13 +78,8 @@ enum ResultsStatus {
 }
 
 @customElement("sts-media-library-dialog")
-export class MediaLibraryDialogElement extends LitElement {
-	static override styles = unsafeCSS(dialogStyles);
-
-	@property({ reflect: true })
-	override role = "dialog";
-
-	override tabIndex = -1;
+export class MediaLibraryDialogElement extends DialogBaseElement {
+	static override styles = unsafeCSS(styles);
 
 	@state() mediaFiles?: MediaFile[];
 	@state() searchTerm = "";
@@ -179,9 +111,7 @@ export class MediaLibraryDialogElement extends LitElement {
 	}
 
 	override connectedCallback(): void {
-		this.focus();
 		this.loadResults();
-
 		super.connectedCallback();
 	}
 
@@ -254,24 +184,6 @@ export class MediaLibraryDialogElement extends LitElement {
 
 	clearSelection(): void {
 		this.selected = [];
-	}
-
-	@on("window:click")
-	onWindowClick(event: PointerEvent): void {
-		if (!event.composedPath().includes(this))
-			this.dispatchEvent(new CustomEvent("close"));
-	}
-
-	@on("keydown")
-	onKeydown(event: KeyboardEvent): void {
-		if (/^(Escape|Shift|Control)$/.test(event.key))
-			event.stopPropagation();
-
-		if (/^(Shift|Control)$/.test(event.key))
-			event.preventDefault();
-
-		if (event.key === "Escape")
-			this.dispatchEvent(new CustomEvent("close"));
 	}
 
 	protected override render = (): TemplateResult => html`

@@ -7,6 +7,7 @@ import {
 	StudioMode,
 } from "@storyteller/studio";
 import { ButtonElement } from "@storyteller/studio-ui/button";
+import { DialogElement } from "@storyteller/studio-ui/dialog";
 import {
 	SceneHierarchyElement,
 	StorytellerApi,
@@ -18,9 +19,9 @@ import { customElement, state } from "lit/decorators.js";
 import { classMap } from "lit/directives/class-map.js";
 import { createRef, ref } from "lit/directives/ref.js";
 import { styleMap } from "lit/directives/style-map.js";
-import { MediaLibraryElement } from "./media-library.element";
 
 import "@storyteller/studio-ui/button";
+import "@storyteller/studio-ui/dialog";
 import "@storyteller/studio-ui/icon";
 import "@storyteller/studio-ui/overlay-provider";
 import "@storyteller/studio-ui/toolbar";
@@ -59,7 +60,7 @@ export class AppElement extends LitElement {
 	#enableAnimTimeline = false; // TODO
 
 	#addToSceneButtonRef = createRef<ButtonElement>();
-	#mediaLibraryRef = createRef<MediaLibraryElement>();
+	#mediaLibraryRef = createRef<DialogElement>();
 	#inspectorRef = createRef<HTMLDivElement>();
 	#hierarchyRef = createRef<SceneHierarchyElement>();
 
@@ -197,7 +198,10 @@ export class AppElement extends LitElement {
 						this.#mediaLibraryRef.value?.open();
 					}}
 				></sts-add-to-scene-menu>
-				<sts-media-library ${ref(this.#mediaLibraryRef)}></sts-media-library>
+				<sts-dialog
+					${ref(this.#mediaLibraryRef)}
+					tag="sts-media-library-dialog"
+				></sts-dialog>
 
 				<sts-transform-toolbar class="v-start h-center"></sts-transform-toolbar>
 
