@@ -214,9 +214,11 @@ header {
 
 		&:not(.disabled) {
 			background: #E66462;
+			color: #FFFF;
 
 			&:hover {
 				background: #EA7A78;
+				color: #FFFF;
 			}
 		}
 	}
