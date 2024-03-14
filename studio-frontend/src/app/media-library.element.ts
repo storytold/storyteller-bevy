@@ -6,10 +6,11 @@ import {
 } from "@storyteller/studio-ui/overlay-provider";
 import {
 	type MediaFile as IMediaFile,
+	MediaFileClass,
+	MediaFileSubtype,
+	MediaFileToken,
 	MediaFileType,
 	StorytellerApi,
-	MediaFileToken,
-	MediaFileSubtype,
 	Visibility,
 } from "@storyteller/studio-web";
 import { type Pred } from "@storyteller/utility";
@@ -101,29 +102,29 @@ const MEDIA_FILE_CATEGORIES: readonly MediaFileCategory[] = [
 	{
 		name: "Animation",
 		icon: "film",
-		predicate: it => true, // TODO
+		predicate: it => it.mediaClass === MediaFileClass.Animation,
 	},
 	{
 		name: "Audio",
 		icon: "volume",
 		disabled: true,
 		tooltip: "Coming soon!",
-		predicate: it => true, // TODO
+		predicate: it => it.mediaClass === MediaFileClass.Audio,
 	},
 	{
 		name: "Characters",
 		icon: "figure",
-		predicate: it => true, // TODO
+		predicate: it => it.mediaClass === MediaFileClass.Character,
 	},
 	{
 		name: "Props",
 		icon: "cube",
-		predicate: it => true, // TODO
+		predicate: it => it.mediaClass === MediaFileClass.Prop,
 	},
 	{
 		name: "Scenes",
 		icon: "scene",
-		predicate: it => true, // TODO
+		predicate: it => it.mediaClass === MediaFileClass.Scene,
 	},
 ]
 
@@ -333,6 +334,7 @@ class MediaFile {
 	token: MediaFileToken;
 	type: MediaFileType;
 	subtype?: MediaFileSubtype;
+	mediaClass: MediaFileClass;
 	bucketPath: string;
 	visibility: Visibility;
 	filename?: string;
@@ -347,6 +349,7 @@ class MediaFile {
 		this.token = info.token;
 		this.type = info.media_type;
 		this.subtype = info.maybe_media_subtype ?? undefined;
+		this.mediaClass = info.media_class;
 		this.bucketPath = info.public_bucket_path;
 		this.visibility = info.creator_set_visibility;
 		this.created = new Date(info.created_at);

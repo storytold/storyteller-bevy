@@ -35,6 +35,8 @@ export class StorytellerApi {
 
 		if (options.filterMediaType)
 			params.filter_media_type = options.filterMediaType.join(",");
+		if (options.filterMediaClasses)
+			params.filter_media_classes = options.filterMediaClasses.join(",");
 		if (options.sortAscending != null)
 			params.soer_ascending = options.sortAscending;
 		if (options.pageSize != null)
@@ -52,13 +54,17 @@ export class StorytellerApi {
 		return response.data;
 	}
 
-	async uploadMediaFile(file: File, subtype: MediaFileSubtype): Promise<MediaFileToken> {
+	async uploadMediaFile(
+		file: File,
+		{ subtype, mediaClass }: UploadMediaFileOptions,
+	): Promise<MediaFileToken> {
 		const response = await this.#api.postForm<MediaUploadResponse>(
 			"v1/media_files/upload/engine_asset",
 			{
 				uuid_idempotency_token: uuid(),
 				file,
 				media_file_subtype: subtype,
+				media_file_class: mediaClass,
 			},
 			{
 				headers: { Accept: file.type },
@@ -104,9 +110,15 @@ type OkResponse<T extends AxiosResponse> = T & { status: 200 }
 export interface ListMediaFilesOptions {
 	username?: string;
 	filterMediaType?: MediaFileType[];
+	filterMediaClasses?: MediaFileClass[];
 	pageSize?: number;
 	pageIndex?: number;
 	sortAscending?: boolean;
+}
+
+export interface UploadMediaFileOptions {
+	subtype: MediaFileSubtype;
+	mediaClass: MediaFileClass;
 }
 
 export interface ListMediaFilesResult {
@@ -142,6 +154,7 @@ export interface MediaFile {
 	token: MediaFileToken;
 	media_type: MediaFileType;
 	maybe_media_subtype?: MediaFileSubtype;
+	media_class: MediaFileClass;
 	maybe_batch_token?: unknown;
 	public_bucket_path: string;
 	maybe_model_weight_info?: unknown;
@@ -260,6 +273,30 @@ export enum MediaFileSubtype {
 	 * Typically stored in a `.scn.ron` file.
 	 */
 	StorytellerScene = "storyteller_scene",
+}
+
+/**
+ * Used in the `media_files` table in a `VARCHAR(16)` field.
+ *
+ * DO NOT CHANGE VALUES WITHOUT A MIGRATION STRATEGY.
+ */
+export enum MediaFileClass {
+	/** This will be present until we migrate all old files. */
+	Unknown = "unknown",
+	/** Audio files: wav, mp3, etc. */
+	Audio = "audio",
+	/** Image files: png, jpeg, etc. */
+	Image = "image",
+	/** Video files: mp4, etc. */
+	Video = "video",
+	/** Engine "animations" */
+	Animation = "animation",
+	/** Engine "characters" */
+	Character = "character",
+	/** Engine "prop" items */
+	Prop = "prop",
+	/** Engine scenes (internal and external scenes) */
+	Scene = "scene",
 }
 
 /** Fields useful for enriching media file listings */
