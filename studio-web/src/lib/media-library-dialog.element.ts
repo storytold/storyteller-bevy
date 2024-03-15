@@ -248,13 +248,14 @@ export class MediaLibraryDialogElement extends DialogBaseElement {
 						`),
 					})}
 				</div>
-				<sts-button
-					class="btn-primary content__add-to-scene"
-					icon="plus-large"
-					?disabled=${!this._selected.length}
-				>
-					Add to Scene
-				</sts-button>
+				${this._selected.length > 0 ? html`
+					<sts-button
+						class="btn-primary content__add-to-scene"
+						icon="plus-large"
+					>
+						Add to Scene
+					</sts-button>
+				` : nothing}
 			</section>
 		</section>
 	`;

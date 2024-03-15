@@ -129,6 +129,7 @@ header {
 	}
 
 	&__results {
+		flex: 1 0 0;
 		padding-block-end: 3rem;
 
 		&--centered {
@@ -140,7 +141,10 @@ header {
 
 		&--grid {
 			display: grid;
-			grid-template-columns: 1fr 1fr 1fr;
+			grid-template: {
+				columns: 1fr 1fr 1fr;
+				rows: min-content;
+			}
 			gap: 1rem;
 			overflow-y: auto;
 		}
