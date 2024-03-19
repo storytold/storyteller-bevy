@@ -1,78 +1,18 @@
 @use "sass:math";
 
-*, *::before, *::after {
-	font-family: "Fira Sans", sans-serif;
-	box-sizing: border-box;
-}
-
 :host {
-	display: flex;
-	flex-direction: column;
 	width: 1024px;
 	height: 640px;
 	max-width: 80%;
 	max-height: 80%;
-
-	background: #0006;
-	color: #FFFC;
-	backdrop-filter: blur(32px);
-	border-radius: 0.5rem;
-	overflow: hidden;
-}
-
-header {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	height: 3rem;
-	padding: 0 {
-		inline-start: 1rem;
-	}
-	background: #0006;
-}
-
-.title {
-	display: flex;
-	align-items: center;
-	gap: math.div(12, 16) * 1rem;
-
-	sts-icon {
-		color: #FFFC;
-		opacity: 0.75;
-	}
-
-	h3 {
-		color: #FFFC;
-		font: {
-			weight: 500;
-			size: math.div(15, 16) * 1rem;
-		}
-	}
-}
-
-.close {
-	width: 3rem;
-	height: 3rem;
-	font-size: 1rem;
-	color: #FFFC;
-	opacity: 0.75;
-
-	&:hover {
-		color: #FFFF;
-		opacity: 1;
-	}
 }
 
 .main {
-	display: flex;
-	flex: 1 0 0;
 	max-height: calc(80vh - 3rem);
 }
 
 .sidebar {
 	flex: 0 0 256px;
-	padding: 1rem;
-	background: #0004;
 
 	&__list {
 		list-style: none;
@@ -102,16 +42,7 @@ header {
 }
 
 .content {
-	display: flex;
-	flex-direction: column;
-	flex: 0 0 auto;
 	width: calc(100% - 256px);
-	gap: 1rem;
-	border: {
-		inline-end: 0.5rem solid #0004;
-		block-end: 0.5rem solid #0004;
-	}
-	padding: 1rem;
 	position: relative;
 
 	&__ui {

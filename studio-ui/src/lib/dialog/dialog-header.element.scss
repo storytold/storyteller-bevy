@@ -1,0 +1,44 @@
+@use "sass:math";
+
+:host {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	height: 3rem;
+	padding: 0 {
+		inline-start: 1rem;
+	}
+	background: #0006;
+}
+
+.title {
+	display: flex;
+	align-items: center;
+	gap: math.div(12, 16) * 1rem;
+
+	&__icon {
+		color: #FFFC;
+		opacity: 0.75;
+	}
+
+	&__heading {
+		color: #FFFC;
+		font: {
+			weight: 500;
+			size: math.div(15, 16) * 1rem;
+		}
+	}
+}
+
+.close {
+	width: 3rem;
+	height: 3rem;
+	font-size: 1rem;
+	color: #FFFC;
+	opacity: 0.75;
+
+	&:hover {
+		color: #FFFF;
+		opacity: 1;
+	}
+}

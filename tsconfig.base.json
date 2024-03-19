@@ -19,7 +19,7 @@
       "@storyteller/studio": ["dist/studio"],
       "@storyteller/studio-ui": ["studio-ui/src/index.ts"],
       "@storyteller/studio-ui/button": ["studio-ui/src/lib/button.element.ts"],
-      "@storyteller/studio-ui/dialog": ["studio-ui/src/lib/dialog.element.ts"],
+      "@storyteller/studio-ui/dialog": ["studio-ui/src/lib/dialog/index.ts"],
       "@storyteller/studio-ui/icon": ["studio-ui/src/lib/icon.element.ts"],
       "@storyteller/studio-ui/menu": ["studio-ui/src/lib/menu.element.ts"],
       "@storyteller/studio-ui/overlay-provider": ["studio-ui/src/lib/overlay-provider.element.ts"],

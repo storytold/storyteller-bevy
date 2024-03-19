@@ -89,6 +89,8 @@ export interface OverlayProvider {
 export interface AttachOptions {
 	/** Custom styles for the container that will wrap the overlay template. */
 	containerStyles?: Readonly<StyleInfo>;
+	/** Handler to call when the overlay's backdrop is clicked. */
+	onBackdropClick?: (event: PointerEvent) => any;
 }
 
 /** An opaque handle to an attached overlay template. */
@@ -167,8 +169,18 @@ export class OverlayProviderElement
 		this.#handles.push(handle);
 
 		// Create and append the new container ref and template
+		const containerRef = createRef<HTMLElement>();
 		const containerStyles = options.containerStyles ?? {};
-		this.#containerRefs.push(createRef());
+
+		const handleBackdropClick = options.onBackdropClick;
+		const onBackdropClick = handleBackdropClick
+			? (event: PointerEvent) => {
+				if (event.target != null && event.target === containerRef.value)
+					handleBackdropClick(event);
+			}
+			: () => {}
+
+		this.#containerRefs.push(containerRef);
 		this.#containerTemplates.push(html`
 			<div
 				${ref(this.#containerRefs[index])}
@@ -178,6 +190,7 @@ export class OverlayProviderElement
 					inset: 0,
 					...containerStyles,
 				})}
+				@click=${onBackdropClick}
 			></div>
 		`);
 

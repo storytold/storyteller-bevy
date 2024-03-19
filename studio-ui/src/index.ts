@@ -1,5 +1,5 @@
 export * from "./lib/button.element";
-export * from "./lib/dialog.element";
+export * from "./lib/dialog";
 export * from "./lib/icon.element";
 export * from "./lib/menu.element";
 export * from "./lib/overlay-provider.element";

@@ -1,4 +1,5 @@
 import { bind, inject } from "@storyteller/framework";
+import { ButtonElement } from "@storyteller/studio-ui/button";
 import { DialogBaseElement } from "@storyteller/studio-ui/dialog";
 import {
 	type MediaFile as IMediaFile,
@@ -16,8 +17,9 @@ import {
 	type PropertyValues,
 	TemplateResult,
 	unsafeCSS,
+	css,
 } from "lit";
-import { customElement, state } from "lit/decorators.js";
+import { customElement, queryAll, state } from "lit/decorators.js";
 import { classMap } from "lit/directives/class-map.js";
 import { ifDefined } from "lit/directives/if-defined.js";
 
@@ -29,7 +31,12 @@ import styles from "./media-library-dialog.element.scss?inline";
 
 @customElement("sts-media-library-dialog")
 export class MediaLibraryDialogElement extends DialogBaseElement {
-	static override styles = unsafeCSS(styles);
+	static override styles = css`
+		${DialogBaseElement.styles}
+		${unsafeCSS(styles)}
+	`;
+
+	override heading = "Media Library";
 
 	@state() _mediaFiles?: MediaFile[];
 	@state() _searchTerm = "";
@@ -40,6 +47,9 @@ export class MediaLibraryDialogElement extends DialogBaseElement {
 
 	@inject(StorytellerApi)
 	_api!: StorytellerApi;
+
+	@queryAll("[data-import-trigger]")
+	importTriggers!: ButtonElement[];
 
 	#dateFmt = new Intl.DateTimeFormat("en-us");
 
@@ -136,25 +146,23 @@ export class MediaLibraryDialogElement extends DialogBaseElement {
 		this._selected = [];
 	}
 
+	get importDialogTemplate() {
+		return html`
+			<sts-dialog-header icon="import">
+				Import Asset
+			</sts-dialog-header>
+
+			<p>Lorem ipsum dolor sit amet</p>
+		`;
+	}
+
 	protected override render = (): TemplateResult => html`
-		<header part="header">
-			<div class="title">
-				<sts-icon icon="photo-film-music"></sts-icon>
-				<h3>Media Library</h3>
-			</div>
-			${/*
-				Note: "Close" button is intentionally hidden from the a11y tree
-				because because the Esc key is the ARIA-standard interaction for
-				closing a dialog.
-			*/ nothing}
-			<sts-icon
-				class="close"
-				icon="xmark"
-				@click=${() => this.dispatchEvent(new CustomEvent("close"))}
-			></sts-icon>
-		</header>
+		<sts-dialog-header icon="photo-film-music">
+			${this.heading}
+		</sts-dialog-header>
+
 		<section class="main">
-			<nav class="sidebar">
+			<nav class="sidebar" part="sidebar">
 				<ul class="sidebar__list">
 					${MEDIA_FILE_CATEGORIES.map(cat => html`
 						<li class="sidebar__listitem">
@@ -181,6 +189,7 @@ export class MediaLibraryDialogElement extends DialogBaseElement {
 					<sts-button
 						class="btn-secondary"
 						icon="import"
+						data-import-trigger
 					>
 						Import...
 					</sts-button>
@@ -211,6 +220,7 @@ export class MediaLibraryDialogElement extends DialogBaseElement {
 								<sts-button
 									class="btn-secondary"
 									icon="import"
+									data-import-trigger
 								>
 									Import...
 								</sts-button>
@@ -258,6 +268,11 @@ export class MediaLibraryDialogElement extends DialogBaseElement {
 				` : nothing}
 			</section>
 		</section>
+
+		<sts-dialog
+			.trigger=${this.importTriggers}
+			.template=${[this, this.importDialogTemplate] as const}
+		></sts-dialog>
 	`;
 }
 
