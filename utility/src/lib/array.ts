@@ -1,6 +1,6 @@
 export type ArrayOrSingle<T> = T | T[];
 
-export function asArray<T>(value: ArrayOrSingle<T>): T[] {
+export function asArray<T>(value: ArrayOrSingle<T> | Iterable<T>): T[] {
 	if (Array.isArray(value))
 		return value;
 
