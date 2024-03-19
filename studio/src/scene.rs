@@ -11,12 +11,13 @@ use bevy::{
     prelude::*,
     render::{camera::RenderTarget, primitives::Aabb},
     scene::InstanceId,
+    utils::{EntityHashSet, HashSet},
 };
 #[cfg(feature = "wasm")]
 use serde_repr::{Deserialize_repr, Serialize_repr};
 use space_editor::{
     prelude::{EditorEvent, EditorPrefabPath, PrefabMarker},
-    space_prefab::component::SceneAutoChild,
+    space_prefab::component::{GltfPrefab, SceneAutoChild},
 };
 #[cfg(feature = "wasm")]
 use wasm_bindgen::prelude::wasm_bindgen;
@@ -27,6 +28,7 @@ use crate::{
     change_tracking::{ChangeTracker, ChangeTrackingPlugin},
     debug::DebugPoint,
     headless::{is_headless, is_not_headless, HeadlessSettings},
+    is_editor,
     math::{Combinable, Extrema},
     screenshot::ScreenCapture,
     MainCamera,
@@ -70,7 +72,13 @@ impl Plugin for ScenePlugin {
                     .in_set(SceneSpawnerSystem),
             );
 
-        app.add_systems(Update, tag_scene_elements);
+        app.add_systems(
+            Update,
+            (
+                tag_scene_elements,
+                autoplay_animations.run_if(not(is_editor)),
+            ),
+        );
 
         //Auto loading screen
         //Register handles on which we will look to show loading screen
@@ -349,7 +357,11 @@ fn init_object_loading(mut cmd: Commands, mut er: EventReader<LoadLibraryObjectE
     }
 }
 
-fn init_scene_import(mut cmd: Commands, mut er: EventReader<ImportSceneEvent>) {
+fn init_scene_import(
+    mut cmd: Commands,
+    r_assets: Res<AssetServer>,
+    mut er: EventReader<ImportSceneEvent>,
+) {
     if let Some(path) = er.read().last() {
         info!("Importing asset: {}", path.0);
         cmd.spawn((
@@ -359,6 +371,7 @@ fn init_scene_import(mut cmd: Commands, mut er: EventReader<ImportSceneEvent>) {
                 path: path.0.clone(),
                 scene: "Scene0".to_string(),
             },
+            r_assets.load::<Gltf>(&path.0),
             PrefabMarker,
             SceneRoot,
         ));
@@ -400,6 +413,64 @@ fn tag_scene_elements(
     for (e, children) in q_named_non_primitives.iter() {
         if children.iter().any(|child| mesh_entities.contains(*child)) {
             cmd.entity(e).insert(SceneElement::Mesh);
+        }
+    }
+}
+
+fn autoplay_animations(
+    mut cmd: Commands,
+    mut l_done: Local<HashSet<String>>,
+    mut l_animating: Local<EntityHashSet<Entity>>,
+    ra_gltfs: Res<Assets<Gltf>>,
+    ra_anims: Res<Assets<AnimationClip>>,
+    q_prefabs: Query<(&GltfPrefab, &Handle<Gltf>)>,
+    q_named_ents: Query<(Entity, &Name)>,
+    mut q_players: Query<&mut AnimationPlayer>,
+) {
+    for (prefab, handle) in q_prefabs.iter() {
+        if l_done.contains(&prefab.path) {
+            continue;
+        }
+
+        let Some(gltf) = ra_gltfs.get(handle) else {
+            continue;
+        };
+
+        let mut playing_anims = 0_usize;
+        for (anim_name, anim_handle) in gltf.named_animations.iter() {
+            let Some(anim) = ra_anims.get(anim_handle.clone()) else {
+                continue;
+            };
+
+            let Some((target, name)) = q_named_ents
+                .iter()
+                .find(|(_, name)| anim.compatible_with(name))
+            else {
+                continue;
+            };
+
+            if !l_animating.contains(&target) {
+                info!(
+                    "Playing animation '{}' on entity {:?} '{}'",
+                    anim_name, target, name,
+                );
+                if let Ok(mut player) = q_players.get_mut(target) {
+                    if !player.is_playing_clip(anim_handle) {
+                        player.play(anim_handle.clone()).repeat();
+                    }
+                } else {
+                    let mut player = AnimationPlayer::default();
+                    player.play(anim_handle.clone()).repeat();
+                    cmd.entity(target).insert(player);
+                }
+                l_animating.insert(target);
+            }
+
+            playing_anims += 1;
+        }
+
+        if playing_anims == gltf.animations.len() {
+            l_done.insert(prefab.path.clone());
         }
     }
 }
