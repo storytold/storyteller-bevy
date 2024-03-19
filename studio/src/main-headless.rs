@@ -218,7 +218,7 @@ pub(crate) fn update_camera_motion(
     // main_cam_transform.look_at(Vec3::ZERO, Vec3::Y);
 }
 
-fn zoom_camera(main_cam_transform: &mut Transform, time: &Time<()>, speed : f32) {
+fn zoom_camera(main_cam_transform: &mut Transform, time: &Time<()>, speed: f32) {
     let scaled_time = time.elapsed().as_secs_f32() * speed;
     let normalized_cos = (-scaled_time.cos() + 1.0) / 2.0;
     let start_pos = Vec3::new(0.366, 1.1, 2.5);
@@ -228,7 +228,7 @@ fn zoom_camera(main_cam_transform: &mut Transform, time: &Time<()>, speed : f32)
     main_cam_transform.rotation = Quat::from_euler(EulerRot::XYZ, 0.0, 0.0, 0.0);
 }
 
-fn pan_camera(main_cam_transform: &mut Transform, time: &Time<()>, speed : f32) {
+fn pan_camera(main_cam_transform: &mut Transform, time: &Time<()>, speed: f32) {
     let scaled_time = time.elapsed().as_secs_f32() * speed;
     let normalized_cos = (-scaled_time.cos() + 1.0) / 2.0;
     let start_pos = Vec3::new(0.676, 1.1, 0.119);
@@ -238,7 +238,7 @@ fn pan_camera(main_cam_transform: &mut Transform, time: &Time<()>, speed : f32) 
     main_cam_transform.rotation = Quat::from_euler(EulerRot::XYZ, 0.0, 0.0, 0.0);
 }
 
-fn orbit_camera(main_cam_transform: &mut Mut<'_, Transform>, time: &Res<'_, Time>, speed : f32) {
+fn orbit_camera(main_cam_transform: &mut Mut<'_, Transform>, time: &Res<'_, Time>, speed: f32) {
     let scaled_time = time.elapsed().as_secs_f32() * speed;
     let max_angle = std::f32::consts::PI / 2.0;
     let normalized_cos = (scaled_time.cos() + 1.0) / 2.0;
