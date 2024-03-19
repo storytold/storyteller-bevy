@@ -144,9 +144,11 @@ fn update_screen_capture_on_extract_step(
 fn extract_screen_capture_components(
     mut commands: Commands,
     screen_capure_comps: Extract<Query<(Entity, &ScreenCapture), With<Camera>>>,
-    scene_state : Extract<Res<State<SceneState>>>
+    scene_state: Extract<Res<State<SceneState>>>,
 ) {
-    if scene_state.get() != &SceneState::Active { return };
+    if scene_state.get() != &SceneState::Active {
+        return;
+    };
     for (entity, screen_capture) in screen_capure_comps.iter() {
         if screen_capture.should_capture() {
             info!(
@@ -252,25 +254,24 @@ impl ViewNode for ScreenCaptureNode {
 //==============================================================================
 
 fn save_buffer_to_file(
-    mut frames_to_skip : Local<Option<u32>>,
+    mut frames_to_skip: Local<Option<u32>>,
     buffers: Query<(&ScreenCapture, &ScreenCaptureBuffers)>,
     device: Res<RenderDevice>,
 ) {
     for (screen_capture, buffers) in buffers.iter() {
-        
         // ALERT!! ALERT!! Filthy Hack in effect
         // Engine does not load scene in time for the first 3 frames
         // So we skip them. Oops :(
         // TODO: Fix the Race Condition and properly take screenshots.
         let frames_skipped = frames_to_skip.unwrap_or(3);
-        
+
         if frames_skipped > 0 {
             println!("Skipping Frame");
             *frames_to_skip = Some(frames_skipped - 1);
             return;
         }
         // Filthy Hack Ends
-        
+
         if buffers.main_bytes_per_row != buffers.main_padded_bytes_per_row {
             println!("These don't match!");
         }
