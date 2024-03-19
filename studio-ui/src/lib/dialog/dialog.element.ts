@@ -9,7 +9,7 @@ import {
 	type OverlayHandle,
 	type OverlayProvider,
 } from "../overlay-provider.element";
-import { ArrayOrSingle, asArray, exists } from "@storyteller/utility";
+import { type ArrayOrSingle, asArray, exists } from "@storyteller/utility";
 
 /**
  * A simple, WIP [dialog widget](https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/)
