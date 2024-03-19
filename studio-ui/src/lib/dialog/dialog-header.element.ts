@@ -4,6 +4,43 @@ import { v4 as uuid } from "uuid";
 
 import styles from "./dialog-header.element.scss?inline";
 
+/**
+ * A configurable header for custom dialogs. This component should be preferred
+ * over inserting a wholly custom `[part="dialog-header"]`.
+ *
+ * @slot (default)
+ *
+ * Projected content without a named `slot` attribute will appear as the
+ * "heading", next to the icon. This should usually be simple text content
+ * without any markup elements.
+ *
+ * @slot `extras`
+ *
+ * Use this slot to insert arbitrary content in between the title and close
+ * button.
+ *
+ * @slot `close`
+ *
+ * Insert a custom close button, or an empty `[slot="close"]` to remove the
+ * default close button.
+ *
+ * @part `title`
+ *
+ * A CSS part for styling the wrapper around the icon and heading.
+ *
+ * @part `icon`
+ *
+ * A CSS part for styling the icon.
+ *
+ * @part `heading`
+ *
+ * A CSS part for styling the wrapper around the slotted heading (default slot).
+ *
+ * @part `close`
+ *
+ * A CSS part for styling the default "close" button. Has no effect if a custom
+ * `[part="close"]` is inserted.
+ */
 @customElement("sts-dialog-header")
 export class DialogHeaderElement extends LitElement {
 	static override styles = unsafeCSS(styles);
@@ -36,7 +73,10 @@ export class DialogHeaderElement extends LitElement {
 				></sts-icon>
 			` : nothing}
 
-			<span class="title__heading">
+			<span
+				class="title__heading"
+				part="heading"
+			>
 				<slot>Dialog</slot>
 			</span>
 		</div>
