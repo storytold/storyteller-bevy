@@ -469,7 +469,7 @@ fn autoplay_animations(
             playing_anims += 1;
         }
 
-        if playing_anims == gltf.animations.len() {
+        if playing_anims == gltf.named_animations.len() {
             l_done.insert(prefab.path.clone());
         }
     }
