@@ -1,8 +1,16 @@
 import { Ref } from "lit/directives/ref.js";
 
 export function deref<T>(refOrValue: Ref<T> | T | null | undefined): T | undefined {
-	if ((refOrValue as any)?.__proto__.constructor.name === "Ref")
-		return (refOrValue as Ref<T>).value;
+	if (isRef(refOrValue))
+		return refOrValue.value;
 
-	return (refOrValue ?? undefined) as T | undefined;
+	return (refOrValue ?? undefined);
+}
+
+function isRef<T>(refOrValue: Ref<T> | T): refOrValue is Ref<T> {
+	if (!refOrValue || typeof refOrValue !== "object")
+		return false;
+
+	const keys = Object.keys(refOrValue);
+	return keys.length === 1 && keys[0] === "value"
 }
