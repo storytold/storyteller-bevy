@@ -3,7 +3,7 @@ import { LitElement, TemplateResult, html, unsafeCSS } from "lit";
 import { customElement, property, queryAssignedElements } from "lit/decorators.js";
 import { v4 as uuid } from "uuid";
 
-import { DialogHeaderElement } from "./dialog-header.element";
+import { type DialogHeaderElement } from "./dialog-header.element";
 
 import styles from "./dialog-base.element.scss?inline";
 
@@ -63,7 +63,7 @@ export class DialogBaseElement extends LitElement {
 	override tabIndex = -1;
 
 	@queryAssignedElements({ slot: "dialog-header" })
-	dialogHeaders!: DialogHeaderElement[];
+	dialogHeaders!: Element[];
 
 	override connectedCallback(): void {
 		this.focus();
