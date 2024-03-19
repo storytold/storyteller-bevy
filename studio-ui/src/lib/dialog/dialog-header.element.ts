@@ -1,15 +1,11 @@
-import { provide } from "@storyteller/framework";
 import { LitElement, html, nothing, unsafeCSS } from "lit";
 import { customElement, property } from "lit/decorators.js";
 import { v4 as uuid } from "uuid";
 
-import { A11Y_NAME_PROVIDER, A11yNameProvider } from "../a11y";
-
 import styles from "./dialog-header.element.scss?inline";
 
 @customElement("sts-dialog-header")
-@provide(A11Y_NAME_PROVIDER)
-export class DialogHeaderElement extends LitElement implements A11yNameProvider {
+export class DialogHeaderElement extends LitElement {
 	static override styles = unsafeCSS(styles);
 
 	@property({ reflect: true })
