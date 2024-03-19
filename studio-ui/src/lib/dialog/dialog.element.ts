@@ -5,11 +5,13 @@ import { html, unsafeStatic } from "lit/static-html.js";
 import { customElement, property } from "lit/decorators.js";
 import { ifDefined } from "lit/directives/if-defined.js";
 import { Ref } from "lit/directives/ref.js";
+
 import {
 	OVERLAY_PROVIDER,
 	type OverlayHandle,
 	type OverlayProvider,
 } from "../overlay-provider.element";
+import { type DialogBaseElement } from "./dialog-base.element";
 
 /**
  * A simple, WIP [dialog widget](https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/)
@@ -25,15 +27,13 @@ import {
  * \@customElement("my-dialog")
  * class MyDialogElement extends DialogBaseElement {
  *   render = () => html`
- *     <header>
- *       <h4>My Dialog</h4>
- *       <sts-icon
- *         icon="xmark"
- *         \@click=${() => this.dispatchEvent(new CustomEvent("close"))}
- *       ></sts-icon>
- *     </header>
- *     <section>
- *       <p>Hello, world!</p>
+ *     <sts-dialog-header>
+ *       My Dialog
+ *     </sts-dialog-header>
+ *     <section class="main">
+ *       <section class="content">
+ *         <p>Hello, world!</p>
+ *       </section>
  *     </section>
  *   `
  * }
@@ -123,28 +123,94 @@ export class DialogElement extends LitElement {
 	 * ```
 	 *
 	 * @example
+	 *
+	 * ### More complex custom content
+	 * ```
+	 * \@customElement("my-app")
+	 * class MyApp extends LitElement {
+	 *   dialogTriggerRef = createRef<ButtonElement>();
+	 *
+	 *   get dialogTemplate() {
+	 *     return html`
+	 *       <sts-dialog-header icon="cube">
+	 *         My Dialog
+	 *       </sts-dialog-header>
+	 *
+	 *       <div slot="sidebar">
+	 *         <h4>Custom sidebar</h4>
+	 *         <ul>
+	 *           <li>Lorem ipsum</li>
+	 *           <li>Dolor</li>
+	 *           <li>Sit amet</li>
+	 *         </ul>
+	 *       </div>
+	 *
+	 *       <p>These paragraphs will appear in the main content area.</p>
+	 *       <p>Lorem ipsum dolor sit amet.</p>
+	 *       <p>Consectetur adipiscing elit.</p>
+	 *
+	 *       <footer
+	 *         slot="footer"
+	 *         style=${css`
+	 *           display: flex;
+	 *           justify-content: flex-end;
+	 *           padding: 1em;
+	 *           gap: 0.75em;
+	 *         `}
+	 *       >
+	 *         <sts-button icon="check">
+	 *           Confirm
+	 *         </sts-button>
+	 *         <sts-button icon="xmart">
+	 *           Cancel
+	 *         </sts-button>
+	 *       </footer>
+	 *     `
+	 *   }
+	 *
+	 *   render = () => html`
+	 *     <sts-overlay-provider>
+	 *       <sts-button ${ref(this.dialogTriggerRef)}>
+	 *         Open Dialog
+	 *       </sts-button>
+	 *
+	 *       <sts-dialog
+	 *         .trigger=${this.dialogTriggerRef}
+	 *         .template=${[this, this.dialogTemplate] as const}
+	 *       ></sts-dialog>
+	 *     </sts-overlay-provider>
+	 *   `
+	 * }
+	 * ```
+	 *
+	 * @example
 	 * ### Dynamic custom dialog class
 	 * ```
+	 * import styles from "./my-counter-dialog.element.scss?inline";
+	 *
 	 * \@customElement("my-counter-dialog")
 	 * class CounterDialogElement extends DialogBaseElement {
+	 *   static override styles = css`
+	 *     ${DialogBaseElement.styles}
+	 *     ${unsafeCSS(styles)}
+	 *   `;
+	 *
 	 *   \@property({ type: Number })
 	 *   count = 0;
 	 *
 	 *   render = () => html`
-	 *     <header>
-	 *       <h4>Counter Dialog</h4>
-	 *       <sts-icon
-	 *         icon="xmark"
-	 *         \@click=${() => this.dispatchEvent(new CustomEvent("close"))}
-	 *       ></sts-icon>
-	 *     </header>
+	 *     <sts-dialog-header>
+	 *       Counter Dialog
+	 *     </sts-dialog-header>
 	 *
-	 *     <section>
-	 *       <p>The count is ${this.count}.</p>
-	 *       <slot></slot>
+	 *     <section class="main">
+	 *       <secion class="content">
+	 *         <p>The count is ${this.count}.</p>
+	 *         <slot></slot>
+	 *       </secion>
 	 *     </section>
 	 *
-	 *     <footer>
+	 *     <footer class="footer">
 	 *       <sts-button
 	 *         \@click=${() => this.dispatchEvent(new CustomEvent("increment"))}
 	 *       >
@@ -176,8 +242,8 @@ export class DialogElement extends LitElement {
 	 *         \@increment=${this.onIncrement}
 	 *         \@close=${this.onClose}
 	 *       >
-	 *         ${this.count === 42 ? html`
-	 *           <p>The answer to life, the universe, and everything!</p>
+	 *         ${this.count === 69 ? html`
+	 *           <p>(Nice.)</p>
 	 *         ` : nothing}
 	 *       </my-counter-dialog>
 	 *     `
@@ -201,6 +267,7 @@ export class DialogElement extends LitElement {
 	 * ```
 	 *
 	 * @see {@linkcode skipWrapper}
+	 * @see {@linkcode DialogBaseElement}
 	 */
 	@property({ attribute: false })
 	template?: [LitElement, TemplateResult];
