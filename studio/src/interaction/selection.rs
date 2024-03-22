@@ -53,7 +53,8 @@ impl Plugin for SelectionPlugin {
     }
 }
 
-#[derive(Component, Clone, Copy)]
+#[derive(Component, Clone, Copy, Reflect, Default)]
+#[reflect(Component, Default)]
 pub struct Selectable;
 
 #[derive(Resource, Deref, DerefMut, Debug)]
@@ -101,17 +102,19 @@ fn propagate_space_editor_to_studio(
 
 fn tag_scene_elements(
     mut cmd: Commands,
-    q_scene_elements: Query<(Entity, &Children), (With<SceneElement>, Without<Selectable>)>,
+    q_scene_elements: Query<(Entity, Option<&Children>), (With<SceneElement>, Without<Selectable>)>,
     q_primitives: Query<&Handle<Mesh>>,
 ) {
     for (ent, children) in q_scene_elements.iter() {
-        cmd.entity(ent).insert(Selectable);
+        cmd.entity(ent).insert(Selectable).insert(PickableBundle::default());
 
-        for &ent_child in children
-            .iter()
-            .filter(|child| q_primitives.contains(**child))
-        {
-            cmd.entity(ent_child).insert(PickableBundle::default());
+        if let Some(children) = children {
+            for &ent_child in children
+                .iter()
+                .filter(|child| q_primitives.contains(**child))
+            {
+                cmd.entity(ent_child).insert(PickableBundle::default());
+            }
         }
     }
 }

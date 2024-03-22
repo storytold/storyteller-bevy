@@ -17,22 +17,14 @@ use bevy::{
 use serde_repr::{Deserialize_repr, Serialize_repr};
 use space_editor::{
     prelude::{EditorEvent, EditorPrefabPath, PrefabMarker},
-    space_prefab::component::{GltfPrefab, SceneAutoChild},
+    space_prefab::{component::{GltfPrefab, SceneAutoChild}, editor_registry::EditorRegistryExt},
 };
 #[cfg(feature = "wasm")]
 use wasm_bindgen::prelude::wasm_bindgen;
 use wgpu::{TextureDescriptor, TextureUsages};
 
 use crate::{
-    anim::timeline_animation::AnimationTarget,
-    camera_controller::{CameraController, CameraControllerBundle},
-    change_tracking::{ChangeTracker, ChangeTrackingPlugin},
-    debug::DebugPoint,
-    headless::{is_headless, is_not_headless, HeadlessSettings},
-    is_editor,
-    math::{Combinable, Extrema},
-    screenshot::ScreenCapture,
-    MainCamera,
+    anim::timeline_animation::AnimationTarget, camera_controller::{CameraController, CameraControllerBundle}, change_tracking::{ChangeTracker, ChangeTrackingPlugin}, debug::DebugPoint, headless::{is_headless, is_not_headless, HeadlessSettings}, interaction::Selectable, is_editor, math::{Combinable, Extrema}, screenshot::ScreenCapture, MainCamera
 };
 
 pub struct ScenePlugin;
@@ -109,6 +101,9 @@ impl Plugin for ScenePlugin {
                 wasm::notify_loading_queue_changes.map(bevy::utils::error),
             ),
         );
+
+        app.editor_registry::<SceneElement>();
+        // app.editor_registry::<Selectable>();
     }
 }
 
@@ -253,9 +248,11 @@ pub struct ImportSceneEvent(pub String);
     wasm_bindgen,
     derive(Serialize_repr, Deserialize_repr)
 )]
-#[derive(Component, Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Component, Clone, Copy, Debug, PartialEq, Eq, Reflect, Default)]
+#[reflect(Component, Default)]
 #[allow(dead_code)] // Some variants only used in `wasm`, some planned for later use
 pub enum SceneElement {
+    #[default]
     Generic,
     Mesh,
     Skeleton,

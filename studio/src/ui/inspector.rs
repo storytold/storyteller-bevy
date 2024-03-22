@@ -81,8 +81,6 @@ impl Plugin for InspectorPlugin {
                     serialize_standart_materal.in_set(InspectorSystem::PerComponentCollect),
                 );
 
-            
-
             app.add_systems(
                 OnEnter(SaveState::Save),
                 (create_short_materials, apply_deferred).chain().before(space_editor::space_prefab::sub_scene::prepare_auto_scene)

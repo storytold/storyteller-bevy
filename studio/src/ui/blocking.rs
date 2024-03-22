@@ -30,9 +30,7 @@ fn read_command_system(mut commands: Commands, mut change_event: EventWriter<New
     let mut new_entity = commands.spawn((
         SpatialBundle::default(),
         PrefabMarker,
-        Selectable,
         SceneElement::Mesh,
-        PickableBundle::default(),
     ));
 
     match cmd {
