@@ -1,11 +1,7 @@
 use std::{marker::PhantomData, sync::Arc};
 
 use bevy::{
-    ecs::world::unsafe_world_cell::UnsafeWorldCell,
-    prelude::*,
-    reflect::{serde::ReflectSerializer, GetTypeRegistration},
-    utils::HashMap,
-    window::PrimaryWindow,
+    ecs::world::unsafe_world_cell::UnsafeWorldCell, prelude::*, reflect::{serde::ReflectSerializer, GetTypeRegistration}, transform::commands, utils::HashMap, window::PrimaryWindow
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{self, json, Map as JsonMap, Value as JsonValue};
@@ -14,7 +10,7 @@ use space_editor::{
         editor_tab::{EditorTab, EditorTabName},
         EditorUiAppExt,
     },
-    space_prefab::component::MeshPrimitivePrefab,
+    space_prefab::{component::MeshPrimitivePrefab, editor_registry::EditorRegistryExt, save::SaveState},
 };
 use wasm_bindgen::prelude::*;
 
@@ -66,7 +62,8 @@ impl Plugin for InspectorPlugin {
 
         //register standart material
         {
-            app.register_type::<ShortMaterial>()
+
+            app.editor_registry::<ShortMaterial>()
                 .add_event::<UpdateInspect<Handle<StandardMaterial>>>()
                 .add_systems(
                     Update,
@@ -83,6 +80,14 @@ impl Plugin for InspectorPlugin {
                     Update,
                     serialize_standart_materal.in_set(InspectorSystem::PerComponentCollect),
                 );
+
+            
+
+            app.add_systems(
+                OnEnter(SaveState::Save),
+                (create_short_materials, apply_deferred).chain().before(space_editor::space_prefab::sub_scene::prepare_auto_scene)
+            );
+            app.add_systems(PostUpdate, apply_short_materials);
 
             app.world.resource_mut::<InspectGetters>().getters.insert(
                 StandardMaterial::get_type_registration()
@@ -117,6 +122,40 @@ impl Plugin for InspectorPlugin {
         }
     }
 }
+
+
+
+fn create_short_materials(
+    mut commands : Commands,
+    q_mats: Query<(Entity, &Handle<StandardMaterial>)>,
+    materials: Res<Assets<StandardMaterial>>,
+) {
+    for (entity, handle) in q_mats.iter() {
+        if let Some(material) = materials.get(handle) {
+            commands.entity(entity).insert(ShortMaterial::new(material));
+        }
+    }
+}
+
+fn apply_short_materials(
+    mut commands : Commands,
+    q_mats: Query<(Entity, &Handle<StandardMaterial>, &ShortMaterial)>,
+    mut materials: ResMut<Assets<StandardMaterial>>,) 
+{
+    for (entity, handle, short) in q_mats.iter() {
+        let Some(mut material) = materials.get_mut(handle) else {
+            continue;
+        };
+
+        material.base_color = short.base_color;
+        material.perceptual_roughness = short.perceptual_roughness;
+        material.metallic = short.metallic;
+        material.reflectance = short.reflectance;
+
+        commands.entity(entity).remove::<ShortMaterial>();
+    }
+}
+
 
 #[derive(Resource, Default)]
 struct InspectGetters {
@@ -538,8 +577,8 @@ fn auto_serialize_asset<T: Asset + Reflect + GetTypeRegistration>(
     ev_update_description.send(UpdateEntityDescription);
 }
 
-#[derive(Reflect, Default)]
-#[reflect(Default)]
+#[derive(Reflect, Default, Clone, Component)]
+#[reflect(Default, Component)]
 struct ShortMaterial {
     pub base_color: Color,
     pub perceptual_roughness: f32,
@@ -558,6 +597,7 @@ impl ShortMaterial {
     }
 }
 
+
 fn serialize_standart_materal(
     r_selection: Option<Res<Selection>>,
     q_m: Query<&Handle<StandardMaterial>>,
@@ -574,12 +614,12 @@ fn serialize_standart_materal(
 
     ev_inspect.clear();
 
-    if let Some(handle) = r_selection
+    if let Some((target, handle)) = r_selection
         .as_ref()
         .and_then(|selection| find_handle_in_self_or_children(***selection, &q_children, &q_m))
-        .and_then(|target| q_m.get(target).ok())
+        .and_then(|target| q_m.get(target).ok().map(|h| (target, h.clone())))
     {
-        if let Some(material) = assets.get(handle) {
+        if let Some(material) = assets.get(handle.clone()) {
             let registry = registry.read();
             let short_material = ShortMaterial::new(material);
             let json =
