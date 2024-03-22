@@ -6,6 +6,8 @@ import { v4 as uuid } from "uuid";
 
 import { StandardMaterial, type Rgba } from "./inspector.types";
 
+import "@storyteller/studio-ui/forms/scalar-field";
+
 import styles from "./material-inspector.element.scss?inline";
 
 @customElement("sts-material-inspector")
@@ -47,15 +49,12 @@ export class MaterialInspectorElement extends LitElement {
 	}
 
 	updateField(reflectPath: Exclude<keyof StandardMaterial, "base_color">) {
-		return ({ detail }: CustomEvent<string>) => {
-			const value = parseFloat(detail);
-			if (Number.isFinite(value) && !Number.isNaN(value)) {
-				studio.updateComponentField({
-					component: "bevy_pbr::pbr_material::StandardMaterial",
-					reflectPath,
-					value,
-				});
-			}
+		return ({ detail: value }: CustomEvent<number>) => {
+			studio.updateComponentField({
+				component: "bevy_pbr::pbr_material::StandardMaterial",
+				reflectPath,
+				value,
+			});
 		}
 	}
 
@@ -82,32 +81,32 @@ export class MaterialInspectorElement extends LitElement {
 				<label for=${this.#roughnessId}>
 					Roughness
 				</label>
-				<sts-text-field
+				<sts-scalar-field
 					id=${this.#roughnessId}
-					type="number"
-					.value=${this.roughness.toString(10)}
+					.min=${0} .max=${1}
+					.value=${this.roughness}
 					@value-change=${this.updateField("perceptual_roughness")}
-				></sts-text-field>
+				></sts-scalar-field>
 
 				<label for=${this.#metallicId}>
 					Metallic
 				</label>
-				<sts-text-field
+				<sts-scalar-field
 					id=${this.#metallicId}
-					type="number"
-					.value=${this.metallic.toString(10)}
+					.min=${0} .max=${1}
+					.value=${this.metallic}
 					@value-change=${this.updateField("metallic")}
-				></sts-text-field>
+				></sts-scalar-field>
 
 				<label for=${this.#reflectanceId}>
 					Reflectance
 				</label>
-				<sts-text-field
+				<sts-scalar-field
 					id=${this.#reflectanceId}
-					type="number"
-					.value=${this.reflectance.toString(10)}
+					.min=${0} .max=${1}
+					.value=${this.reflectance}
 					@value-change=${this.updateField("reflectance")}
-				></sts-text-field>
+				></sts-scalar-field>
 			</div>
 		`;
 	}

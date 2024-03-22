@@ -18,73 +18,25 @@ h4 {
 }
 
 .fieldset {
-	position: relative;
-	padding-block-start: math.div(14, 16) + 0.333rem !important;
-
-	legend {
-		position: absolute;
-		inset-block-start: 0;
-	}
-}
-
-fieldset, .fieldset {
 	display: flex;
+	position: relative;
 	width: 100%;
-	padding: 0;
+	padding: 0 {
+		block-start: math.div(14, 16) + 0.333rem !important;
+	}
 	margin: 0;
 	gap: 0.25rem;
 	border: none;
 
 	legend {
+		position: absolute;
+		inset-block-start: 0;
+		margin-block-end: 0.333rem;
 		color: #FFF9;
 		font-size: math.div(14, 16) * 1rem;
-		margin-block-end: 0.333rem;
 	}
 
-	input {
-		appearance: textfield;
-		border-radius: 0.25rem;
-
-		background: #0004;
-		border: 1px solid #FFF2;
-		color: #FFFC;
-		transition: {
-			property: background-color, border-color, color;
-			duration: 33.333ms;
-			timing-function: linear;
-		}
-
-		font: {
-			family: "Fira Sans", sans-serif;
-			size: math.div(15, 16) * 1rem;
-		}
-
-		&:focus {
-			outline: none;
-			border-color: #FFF4;
-			background: #0006;
-			color: #FFFF;
-		}
-
-		&::-webkit-outer-spin-button,
-		&::-webkit-inner-spin-button {
-			appearance: none;
-			margin: 0;
-		}
-	}
-
-	sts-text-field::part(input) {
-		flex: unset;
-		width: 100%;
-
-		&::-webkit-outer-spin-button,
-		&::-webkit-inner-spin-button {
-			appearance: none;
-			margin: 0;
-		}
-	}
-
-	input, sts-text-field {
+	.input {
 		padding: 0.5rem;
 		width: math.div(1, 3) * 100%;
 		border-left-width: 4px;
