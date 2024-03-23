@@ -807,28 +807,28 @@ fn update_local_rotation_by_ui(
         return;
     };
 
-    let Ok(target_global_xform) = q_global_xforms.get(selection) else {
+    let Ok(target_global_xform) = q_global_xforms.get(selection).map(|xform| xform.affine()) else {
         return;
     };
 
     let parent_global_xform = q_parents
         .get(selection)
         .and_then(|parent| q_global_xforms.get(**parent))
-        .unwrap_or(&GlobalTransform::IDENTITY);
+        .unwrap_or(&GlobalTransform::IDENTITY)
+        .affine();
 
     let axis_ws = match axis {
-        RotationAxis::X => target_global_xform.right(),
-        RotationAxis::Y => target_global_xform.up(),
-        RotationAxis::Z => target_global_xform.back(),
+        RotationAxis::X => target_global_xform.matrix3.x_axis,
+        RotationAxis::Y => target_global_xform.matrix3.y_axis,
+        RotationAxis::Z => target_global_xform.matrix3.z_axis,
     };
 
     let axis_parent_space = parent_global_xform
-        .affine()
         .inverse()
-        .transform_vector3(axis_ws)
+        .transform_vector3a(axis_ws)
         .normalize();
 
     if let Ok(mut xform) = q_xforms.get_mut(selection) {
-        xform.rotate_axis(axis_parent_space, theta);
+        xform.rotate_axis(axis_parent_space.into(), theta);
     }
 }
