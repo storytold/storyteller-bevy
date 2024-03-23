@@ -50,8 +50,10 @@ impl Plugin for InspectorPlugin {
 
         app.add_systems(
             Update,
-            update_field_by_ui
-                .map(bevy::utils::error)
+            (
+                update_field_by_ui.map(bevy::utils::error),
+                update_local_rotation_by_ui,
+            )
                 .in_set(InspectorSystem::WriteChanges),
         );
 
@@ -768,4 +770,65 @@ pub fn update_component_field(msg: JsValue) -> Result<(), JsValue> {
     info!("Received update: {msg:?}");
     CHANGE_FROM_UI.write_message(msg);
     Ok(())
+}
+
+/// Handle transform rotation updates from the UI as a special case.
+///
+/// It's impossible to reliably compute a new quaternion for a desired Euler-
+/// axes or axis-angle rotation from the frontend, because the calculation is
+/// dependent on the parent's orientation. To deal with this, we provide a
+/// separate `rotate_local_transform` method for this operation and handle it
+/// with a separate Bevy system.
+static ROTATE_LOCAL_XFORM: WasmMessageBuffer<(RotationAxis, f32)> = WasmMessageBuffer::new();
+
+#[wasm_bindgen]
+pub enum RotationAxis {
+    X,
+    Y,
+    Z,
+}
+
+#[wasm_bindgen(js_name = rotateLocalTransform)]
+pub fn rotate_local_transform(axis: RotationAxis, theta: f32) {
+    ROTATE_LOCAL_XFORM.write_message((axis, theta));
+}
+
+fn update_local_rotation_by_ui(
+    r_selection: Option<Res<Selection>>,
+    q_parents: Query<&Parent>,
+    q_global_xforms: Query<&GlobalTransform>,
+    mut q_xforms: Query<&mut Transform>,
+) {
+    let Some((axis, theta)) = ROTATE_LOCAL_XFORM.take_message() else {
+        return;
+    };
+
+    let Some(selection) = r_selection.map(|selection| **selection) else {
+        return;
+    };
+
+    let Ok(target_global_xform) = q_global_xforms.get(selection) else {
+        return;
+    };
+
+    let parent_global_xform = q_parents
+        .get(selection)
+        .and_then(|parent| q_global_xforms.get(**parent))
+        .unwrap_or(&GlobalTransform::IDENTITY);
+
+    let axis_ws = match axis {
+        RotationAxis::X => target_global_xform.right(),
+        RotationAxis::Y => target_global_xform.up(),
+        RotationAxis::Z => target_global_xform.back(),
+    };
+
+    let axis_parent_space = parent_global_xform
+        .affine()
+        .inverse()
+        .transform_vector3(axis_ws)
+        .normalize();
+
+    if let Ok(mut xform) = q_xforms.get_mut(selection) {
+        xform.rotate_axis(axis_parent_space, theta);
+    }
 }

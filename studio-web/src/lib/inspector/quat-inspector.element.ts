@@ -1,5 +1,6 @@
+import * as studio from "@storyteller/studio";
+import { RotationAxis } from "@storyteller/studio";
 import { match } from "@storyteller/utility";
-import { bind } from "@storyteller/framework";
 import { LitElement, PropertyValues, TemplateResult, html, unsafeCSS } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 
@@ -29,17 +30,18 @@ export class QuatInspectorElement extends LitElement {
 		super.willUpdate(changes);
 	}
 
-	#emitUpdate(): void {
-		const euler = new Vec3(
-			deg2rad(this._eulerX),
-			deg2rad(this._eulerY),
-			deg2rad(this._eulerZ),
-		);
-		const { w, x, y, z } = Quat.fromEuler(euler);
+	#emitUpdate(axis: RotationAxis) {
+		return ({ detail: newAngle }: CustomEvent<number>) => {
+			const prevAngle = match (axis, {
+				[RotationAxis.X]: () => this._eulerX,
+				[RotationAxis.Y]: () => this._eulerY,
+				[RotationAxis.Z]: () => this._eulerZ,
+			});
 
-		this.dispatchEvent(new CustomEvent<IQuat>("value-change", {
-			detail: { w, x, y, z },
-		}));
+			const deltaTheta = deg2rad(newAngle - prevAngle);
+
+			studio.rotateLocalTransform(axis, deltaTheta);
+		}
 	}
 
 	protected override render = (): TemplateResult => html`
@@ -47,22 +49,22 @@ export class QuatInspectorElement extends LitElement {
 			class="input"
 			aria-label="Pitch"
 			.sensitivity=${0.1}
-			.value=${bind(this, "_eulerX")}
-			@value-change=${this.#emitUpdate}
+			.value=${this._eulerX}
+			@value-change=${this.#emitUpdate(RotationAxis.X)}
 		></sts-scalar-field>
 		<sts-scalar-field
 			class="input"
 			aria-label="Yaw"
 			.sensitivity=${0.1}
-			.value=${bind(this, "_eulerY")}
-			@value-change=${this.#emitUpdate}
+			.value=${this._eulerY}
+			@value-change=${this.#emitUpdate(RotationAxis.Y)}
 		></sts-scalar-field>
 		<sts-scalar-field
 			class="input"
 			aria-label="Roll"
 			.sensitivity=${0.1}
-			.value=${bind(this, "_eulerZ")}
-			@value-change=${this.#emitUpdate}
+			.value=${this._eulerZ}
+			@value-change=${this.#emitUpdate(RotationAxis.Z)}
 		></sts-scalar-field>
 	`;
 }
