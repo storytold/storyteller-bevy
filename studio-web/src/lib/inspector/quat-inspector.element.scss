@@ -1,0 +1,31 @@
+@use "sass:math";
+
+:host {
+	display: flex;
+	gap: 0.25rem;
+}
+
+.input {
+	padding: 0.5rem;
+	width: math.div(1, 3) * 100%;
+	border-left-width: 4px;
+
+	&:nth-of-type(1) {
+		border-left-color: rgb(220, 53, 69);
+		&:focus {
+			border-left-color: rgb(255, 48, 68);
+		}
+	}
+	&:nth-of-type(2) {
+		border-left-color: rgb(25, 135, 84);
+		&:focus {
+			border-left-color: rgb(0, 187, 100);
+		}
+	}
+	&:nth-of-type(3) {
+		border-left-color: rgb(13, 110, 253);
+		&:focus {
+			border-left-color: rgb(47, 131, 255);
+		}
+	}
+}

@@ -400,8 +400,18 @@ fn update_field_by_ui(world: &mut World) -> Result<(), String> {
                     *val = msg_value;
                     Ok(())
                 } else if let Some(val) = reflect_field.downcast_mut::<Quat>() {
-                    let msg_value = serde_json::from_value(msg.value.clone()).map_err(fmt_err)?;
-                    *val = msg_value;
+                    #[derive(Deserialize)]
+                    struct JsonQuat {
+                        w: f32,
+                        x: f32,
+                        y: f32,
+                        z: f32,
+                    }
+
+                    let JsonQuat { w, x, y, z } =
+                        serde_json::from_value(msg.value.clone()).map_err(fmt_err)?;
+
+                    *val = Quat::from_xyzw(x, y, z, w);
                     Ok(())
                 } else if let Some(val) = reflect_field.downcast_mut::<Color>() {
                     let Rgba {

@@ -6,6 +6,7 @@ import { v4 as uuid } from "uuid";
 import { type Quat, type Vec3 } from "./inspector.types";
 
 import "@storyteller/studio-ui/forms/scalar-field";
+import "./quat-inspector.element";
 
 import styles from "./transform-inspector.element.scss?inline";
 
@@ -26,16 +27,14 @@ export class TransformInspectorElement extends LitElement {
 	#rotationLabelId = uuid();
 	#scaleLabelId = uuid();
 
-	updateField(reflectPath: `${"translation"|"rotation"|"scale"}.${"x"|"y"|"z"}`) {
-		return ({ detail }: CustomEvent<string>) => {
-			const value = parseFloat(detail);
-			if (Number.isFinite(value) && !Number.isNaN(value)) {
-				studio.updateComponentField({
-					component: "bevy_transform::components::transform::Transform",
-					reflectPath,
-					value,
-				});
-			}
+	updateField(reflectPath: `${"translation"|"scale"}.${"x"|"y"|"z"}` | "rotation") {
+		return ({ detail: value }: CustomEvent<number | Quat>) => {
+			console.log("value:", value);
+			studio.updateComponentField({
+				component: "bevy_transform::components::transform::Transform",
+				reflectPath,
+				value,
+			});
 		}
 	}
 
@@ -76,26 +75,10 @@ export class TransformInspectorElement extends LitElement {
 			<legend id=${this.#rotationLabelId}>
 				Rotation
 			</legend>
-			<!-- TODO: This is not how quaternions work lol -->
-			<sts-scalar-field
-				class="input"
-				aria-label="X"
-				.value=${this.rotation.x}
-				@value-change=${this.updateField("rotation.x")}
-			></sts-scalar-field>
-			<sts-scalar-field
-				class="input"
-				aria-label="Y"
-				.value=${this.rotation.y}
-				@value-change=${this.updateField("rotation.y")}
-			></sts-scalar-field>
-			<sts-scalar-field
-				class="input"
-				aria-label="Z"
-				.value=${this.rotation.z}
-				@value-change=${this.updateField("rotation.z")}
-			></sts-scalar-field>
-			<!-- <input type="number" value=${this.rotation.w.toFixed(3)} /> -->
+			<sts-quat-inspector
+				.value=${this.rotation}
+				@value-change=${this.updateField("rotation")}
+			></sts-quat-inspector>
 		</div>
 		<div
 			class="fieldset"
