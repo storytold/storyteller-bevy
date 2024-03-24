@@ -42,6 +42,76 @@ export class ScalarFieldElement extends FormFieldBaseElement {
 	@property({ type: Number })
 	sensitivity = 0.01;
 
+	/**
+	 * A format string, supporting similar syntax to Rust's numeric
+	 * {@linkcode https://doc.rust-lang.org/std/fmt/ std::fmt} specifiers:
+	 *
+	 * ```
+	 * format := [minIntegerDigits]['.' minFractionalDigits ['-' maxFractionalDigits]][' ' unit]
+	 * minIntegerDigits := integer
+	 * minFractionalDigits := integer
+	 * maxFractionalDigits := integer
+	 * unit := text
+	 * ```
+	 * where:
+	 *
+	 * - `minIntegerDigits` (default: `1`) :
+	 *
+	 *   The minimum number of integer digits to use. A value with a smaller
+	 *   number of integer digits than this number will be left-padded with zeros
+	 *   (to the specified length) when formatted. Possible values are from `1`
+	 *   to `21`.
+	 *
+	 * - `minFractioinalDigits` (default: `1`) :
+	 *
+	 *   The minimum number of fraction digits to use. Possible values are from
+	 *   `0` to `20`.
+	 *
+	 * - `maxFractionalDigits` (default: `3`) :
+	 *
+	 *   The maximum number of fraction digits to use. Possible values are from
+	 *   `0` to `20`. If not specified, will default to the larger of
+	 *   `minFractionalDigits` and `3`.
+	 *
+	 * - `unit` (default: `undefined`) :
+	 *
+	 *   Arbitrary text to display after the formatted value, representing the
+	 *   unit of measurement.
+	 *
+	 * @example
+	 * ```html
+	 * <!--
+	 * The value of this field will be displayed with:
+	 * - At least one digit before the decimal place
+	 * - At least one and at most three digits after the decimal place
+	 * - A degree symbol after the value, separated by a space
+	 * -->
+	 * <sts-scalar-field format="1.1-3 °"></sts-scalar-field>
+	 *
+	 * <!--
+	 * The value will be displayed with exactly three digits after the decimal
+	 * place. No digits will appear before the decimal if `-1 < value < 1`. No
+	 * units will appear after the decimal.
+	 * -->
+	 * <sts-scalar-field format=".3"></sts-scalar-field>
+	 * ```
+	 */
+	@property()
+	format = "1.1-3";
+
+	/**
+	 * Specify which DOM event ("input" or "change") should trigger this
+	 * component to emit a "value-change" event.
+	 *
+	 * - "input" events fire every time the user types into the text field
+	 * - "change" events fire only when the updated value is "committed" (by
+	 *   pressing "Enter" or moving focus out of the text field)
+	 *
+	 * @default "input"
+	 */
+	@property()
+	emitOn: "change" | "input" = "input";
+
 	@property({
 		type: Number,
 		attribute: "tabindex",
@@ -63,10 +133,55 @@ export class ScalarFieldElement extends FormFieldBaseElement {
 		minimumFractionDigits: 1,
 		maximumFractionDigits: 3,
 	});
+	#fmtUnitSuffix = "";
+
+	protected override willUpdate(changes: PropertyValues<this>): void {
+		if (changes.has("format")) {
+			// Optional fractional digits: https://regexr.com/7ttu5
+			const FORMAT_PATTERN_OPT_FRAC = /^([0-9]+)(?:\.([0-9]+)(?:-([0-9]+))?)?( .+)?$/;
+			// Optional integral digits: https://regexr.com/7ttu8
+			const FORMAT_PATTERN_OPT_INT = /^([0-9]+)?(?:\.([0-9]+)(?:-([0-9]+))?)( .+)?$/;
+
+			const [
+				minimumIntegerDigits,
+				minimumFractionDigits,
+				maximumFractionDigits,
+				unitSuffix,
+			] = (
+				this.format.match(FORMAT_PATTERN_OPT_FRAC)
+					?? this.format.match(FORMAT_PATTERN_OPT_INT)
+					?? ["", "1", "1", "3"]
+			).slice(1);
+
+			this.#fmtDecimal = new Intl.NumberFormat("en-US", {
+				minimumIntegerDigits: parseInt(minimumIntegerDigits),
+				minimumFractionDigits: parseInt(minimumFractionDigits),
+				maximumFractionDigits: parseInt(maximumFractionDigits),
+			});
+			this.#fmtUnitSuffix = unitSuffix ?? "";
+		}
+
+		super.willUpdate(changes);
+	}
 
 	protected override update(changes: PropertyValues<this>): void {
 		if (changes.has("_editing"))
 			this.classList.toggle("editing", this._editing);
+
+		if (changes.has("value")) {
+			this.ariaValueText = `${this.#fmtDecimal.format(this.value)}${this.#fmtUnitSuffix}`;
+
+			if (this._editing && this.emitOn === "change") {
+				// If we receive a new value from outside (i.e. not due to the
+				// user's own input), replace the input's content.
+				//
+				// Note: This is a bit of a hack to ensure a decent UX when tabbing
+				// between fields in the `<sts-quat-inspector>` -- please don't
+				// change this without validating that use case still functions in
+				// a nice way.
+				this.#activateDirectInput();
+			}
+		}
 
 		super.update(changes);
 	}
@@ -131,19 +246,39 @@ export class ScalarFieldElement extends FormFieldBaseElement {
 		const input = this.#inputRef.value;
 		if (!input) return;
 
-		input.textContent = this.#fmtDecimal.format(this.value);
+		// Arbitrary HTML elements with `contenteditable` don't actually emit
+		// a "change" event, so we'll emit one manually.
+		input.dispatchEvent(new Event("change", {
+			bubbles: true,
+			cancelable: true,
+			composed: false,
+		}));
 	}
 
-	onInputChange(event: InputEvent): void {
+	onInputChange(event: InputEvent | Event): void {
+		if (event.type === this.emitOn)
+			this.processTextInput(event);
+	}
+
+	processTextInput(event: InputEvent | Event): void {
 		try {
 			const input = this.#inputRef.value!;
 			const textContent = input.textContent?.trim() ?? "";
 
-			if (event.data && !VALID_INPUT_PATTERN.test(event.data)) {
-				input.textContent = this.value.toString(10);
+			if (
+				event instanceof InputEvent
+				&& event.data
+				&& !VALID_INPUT_PATTERN.test(event.data)
+			) {
+				input.textContent = this.#fmtDecimal.format(this.value);
 			} else {
 				const value = parseFloat(textContent);
-				this.#emitValue(value);
+
+				if (!Number.isNaN(value) && Number.isFinite(value)) {
+					this.#emitValue(value);
+				} else {
+					input.textContent = this.#fmtDecimal.format(this.value);
+				}
 			}
 		} catch {}
 	}
@@ -160,6 +295,14 @@ export class ScalarFieldElement extends FormFieldBaseElement {
 			throw new Error("Expected input to be available in editing mode");
 
 		input.addEventListener("blur", () => {
+			// Arbitrary HTML elements with `contenteditable` don't actually emit
+			// a "change" event, so we'll emit one manually.
+			input.dispatchEvent(new Event("change", {
+				bubbles: true,
+				cancelable: true,
+				composed: false,
+			}));
+
 			this._editing = false;
 			this.tabIndex = 0;
 		}, {
@@ -167,6 +310,7 @@ export class ScalarFieldElement extends FormFieldBaseElement {
 		});
 
 		input.focus();
+		// Note: Unit suffix intentionally omitted when text field is editable
 		input.textContent = this.#fmtDecimal.format(this.value);
 
 		const range = document.createRange();
@@ -191,7 +335,7 @@ export class ScalarFieldElement extends FormFieldBaseElement {
 
 	protected override render = () => html`
 		${!this._editing ? html`
-			${this.#fmtDecimal.format(this.value)}
+			${this.#fmtDecimal.format(this.value)}${this.#fmtUnitSuffix}
 		` : html`
 			<span ${ref(this.#inputRef)}
 				class="input"
@@ -199,6 +343,7 @@ export class ScalarFieldElement extends FormFieldBaseElement {
 				contenteditable
 				inputmode="numeric"
 				@input=${this.onInputChange}
+				@change=${this.onInputChange}
 				@keydown=${(event: KeyboardEvent) => {
 					if (event.key === "Enter")
 						this.onInputEnter(event);

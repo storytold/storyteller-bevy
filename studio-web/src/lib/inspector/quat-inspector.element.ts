@@ -47,21 +47,27 @@ export class QuatInspectorElement extends LitElement {
 	protected override render = (): TemplateResult => html`
 		<sts-scalar-field
 			class="input"
-			aria-label="Pitch"
+			aria-label="X"
+			format="1.1-2 °"
+			emitOn="change"
 			.sensitivity=${0.1}
 			.value=${this._eulerX}
 			@value-change=${this.#emitUpdate(RotationAxis.X)}
 		></sts-scalar-field>
 		<sts-scalar-field
 			class="input"
-			aria-label="Yaw"
+			aria-label="Y"
+			format="1.1-2 °"
+			emitOn="change"
 			.sensitivity=${0.1}
 			.value=${this._eulerY}
 			@value-change=${this.#emitUpdate(RotationAxis.Y)}
 		></sts-scalar-field>
 		<sts-scalar-field
 			class="input"
-			aria-label="Roll"
+			aria-label="Z"
+			format="1.1-2 °"
+			emitOn="change"
 			.sensitivity=${0.1}
 			.value=${this._eulerZ}
 			@value-change=${this.#emitUpdate(RotationAxis.Z)}
