@@ -94,7 +94,7 @@ export class ScalarFieldElement extends FormFieldBaseElement {
 	 * <!--
 	 * The value will be displayed with exactly three digits after the decimal
 	 * place. No digits will appear before the decimal if `-1 < value < 1`. No
-	 * units will appear after the decimal.
+	 * units will appear after the value.
 	 * -->
 	 * <sts-scalar-field format=".3"></sts-scalar-field>
 	 * ```
