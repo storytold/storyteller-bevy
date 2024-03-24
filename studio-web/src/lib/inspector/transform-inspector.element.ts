@@ -51,18 +51,24 @@ export class TransformInspectorElement extends LitElement {
 			<sts-scalar-field
 				class="input"
 				aria-label="X"
+				.step=${0.01}
+				.microStep=${0.001}
 				.value=${this.translation.x}
 				@value-change=${this.updateField("translation.x")}
 			></sts-scalar-field>
 			<sts-scalar-field
 				class="input"
 				aria-label="Y"
+				.step=${0.01}
+				.microStep=${0.001}
 				.value=${this.translation.y}
 				@value-change=${this.updateField("translation.y")}
 			></sts-scalar-field>
 			<sts-scalar-field
 				class="input"
 				aria-label="Z"
+				.step=${0.01}
+				.microStep=${0.001}
 				.value=${this.translation.z}
 				@value-change=${this.updateField("translation.z")}
 			></sts-scalar-field>
@@ -91,18 +97,24 @@ export class TransformInspectorElement extends LitElement {
 			<sts-scalar-field
 				class="input"
 				aria-label="X"
+				.step=${0.1}
+				.microStep=${0.01}
 				.value=${this.scale.x}
 				@value-change=${this.updateField("scale.x")}
 			></sts-scalar-field>
 			<sts-scalar-field
 				class="input"
 				aria-label="Y"
+				.step=${0.1}
+				.microStep=${0.01}
 				.value=${this.scale.y}
 				@value-change=${this.updateField("scale.y")}
 			></sts-scalar-field>
 			<sts-scalar-field
 				class="input"
 				aria-label="Z"
+				.step=${0.1}
+				.microStep=${0.01}
 				.value=${this.scale.z}
 				@value-change=${this.updateField("scale.z")}
 			></sts-scalar-field>

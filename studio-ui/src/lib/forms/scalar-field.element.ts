@@ -40,7 +40,10 @@ export class ScalarFieldElement extends FormFieldBaseElement {
 	min = -Infinity;
 
 	@property({ type: Number })
-	sensitivity = 0.01;
+	step = 0.01;
+
+	@property({ type: Number })
+	microStep = 0.001;
 
 	/**
 	 * A format string, supporting similar syntax to Rust's numeric
@@ -213,7 +216,9 @@ export class ScalarFieldElement extends FormFieldBaseElement {
 
 		this.addEventListener("pointermove", event => {
 			totalMovement += event.movementX;
-			this.#emitValue(this.value + event.movementX * this.sensitivity);
+
+			const step = event.ctrlKey ? this.microStep : this.step;
+			this.#emitValue(this.value + event.movementX * step);
 		}, {
 			signal: pointerMoveAbortSignal,
 		});

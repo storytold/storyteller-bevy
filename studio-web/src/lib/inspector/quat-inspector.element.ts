@@ -50,7 +50,8 @@ export class QuatInspectorElement extends LitElement {
 			aria-label="X"
 			format="1.1-2 °"
 			emitOn="change"
-			.sensitivity=${0.1}
+			.step=${1}
+			.microStep=${0.1}
 			.value=${this._eulerX}
 			@value-change=${this.#emitUpdate(RotationAxis.X)}
 		></sts-scalar-field>
@@ -59,7 +60,8 @@ export class QuatInspectorElement extends LitElement {
 			aria-label="Y"
 			format="1.1-2 °"
 			emitOn="change"
-			.sensitivity=${0.1}
+			.step=${1}
+			.microStep=${0.1}
 			.value=${this._eulerY}
 			@value-change=${this.#emitUpdate(RotationAxis.Y)}
 		></sts-scalar-field>
@@ -68,7 +70,8 @@ export class QuatInspectorElement extends LitElement {
 			aria-label="Z"
 			format="1.1-2 °"
 			emitOn="change"
-			.sensitivity=${0.1}
+			.step=${1}
+			.microStep=${0.1}
 			.value=${this._eulerZ}
 			@value-change=${this.#emitUpdate(RotationAxis.Z)}
 		></sts-scalar-field>
