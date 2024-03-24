@@ -80,6 +80,10 @@ export class QuatInspectorElement extends LitElement {
 }
 
 // Reference: https://gamemath.com/book/orient.html#quaternion_to_euler_angles
+// TODO: The fields here "work" on a basic level, but I'm not convinced they're
+//       actually displaying intelligible values. For example, if you tilt the
+//       X-axis by any amount and rotate the Y-axis, you'll typically see all
+//       three values spinning wildly. I hate Euler angles.
 function quatToEuler({ w, x, y, z }: Quat): Vec3 {
 	let sinPitch = -2 * (y*z - w*x);
 	// Clamp in the range of [-1,1] to avoid NaNs
