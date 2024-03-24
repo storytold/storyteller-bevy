@@ -40,7 +40,8 @@ export class QuatInspectorElement extends LitElement {
 
 			const deltaTheta = deg2rad(newAngle - prevAngle);
 
-			studio.rotateLocalTransform(axis, deltaTheta);
+			if (Number.isFinite(deltaTheta) && !Number.isNaN(deltaTheta))
+				studio.rotateLocalTransform(axis, deltaTheta);
 		}
 	}
 
@@ -80,10 +81,12 @@ export class QuatInspectorElement extends LitElement {
 
 // Reference: https://gamemath.com/book/orient.html#quaternion_to_euler_angles
 function quatToEuler({ w, x, y, z }: Quat): Vec3 {
-	const sinPitch = -2 * (y*z - w*x);
+	let sinPitch = -2 * (y*z - w*x);
+	// Clamp in the range of [-1,1] to avoid NaNs
+	sinPitch = Math.min(Math.max(sinPitch, -1), 1);
 
 	// Check for gimbal lock
-	if (nearlyEq(sinPitch, 1)) {
+	if (nearlyEq(sinPitch, 1, 1e-3)) {
 		const yaw = Math.atan2(-x*z + w*y, 0.5 - y*y - z*z);
 		const pitch = Math.PI * 0.5 * sinPitch;
 		const roll = 0;
