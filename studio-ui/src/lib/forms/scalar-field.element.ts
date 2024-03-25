@@ -50,11 +50,7 @@ export class ScalarFieldElement extends FormFieldBaseElement {
 	 * {@linkcode https://doc.rust-lang.org/std/fmt/ std::fmt} specifiers:
 	 *
 	 * ```
-	 * format := [minIntegerDigits]['.' minFractionalDigits ['-' maxFractionalDigits]][' ' unit]
-	 * minIntegerDigits := integer
-	 * minFractionalDigits := integer
-	 * maxFractionalDigits := integer
-	 * unit := text
+	 * [minIntegerDigits]['.' minFractionalDigits ['-' maxFractionalDigits]][' ' unit]
 	 * ```
 	 * where:
 	 *
@@ -76,7 +72,7 @@ export class ScalarFieldElement extends FormFieldBaseElement {
 	 *   `0` to `20`. If not specified, will default to the larger of
 	 *   `minFractionalDigits` and `3`.
 	 *
-	 * - `unit` (default: `undefined`) :
+	 * - `unit` (optional) :
 	 *
 	 *   Arbitrary text to display after the formatted value, representing the
 	 *   unit of measurement.
@@ -145,11 +141,14 @@ export class ScalarFieldElement extends FormFieldBaseElement {
 			// Optional integral digits: https://regexr.com/7ttu8
 			const FORMAT_PATTERN_OPT_INT = /^([0-9]+)?(?:\.([0-9]+)(?:-([0-9]+))?)( .+)?$/;
 
-			const [ minInt, minFrac, maxFrac, unitSuffix] = (
-				this.format.match(FORMAT_PATTERN_OPT_FRAC)
-					?? this.format.match(FORMAT_PATTERN_OPT_INT)
-					?? ["", "1", "1", "3"]
-			).slice(1);
+			const matches = this.format.match(FORMAT_PATTERN_OPT_FRAC)
+				?? this.format.match(FORMAT_PATTERN_OPT_INT)
+				// Note: If any _individual_ subexpression is null, we pass that
+				// intention through to the formatter. If the _entire format-string_
+				// is omitted (i.e. the property is not set), then we fall back to
+				// "1.1-3" as a sensible default.
+				?? ["", "1", "1", "3"];
+			const [ minInt, minFrac, maxFrac, unitSuffix] = matches.slice(1);
 
 			this.#fmtDecimal = new Intl.NumberFormat("en-US", {
 				minimumIntegerDigits: minInt != null ? parseInt(minInt) : undefined,
