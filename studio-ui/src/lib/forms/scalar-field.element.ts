@@ -145,21 +145,16 @@ export class ScalarFieldElement extends FormFieldBaseElement {
 			// Optional integral digits: https://regexr.com/7ttu8
 			const FORMAT_PATTERN_OPT_INT = /^([0-9]+)?(?:\.([0-9]+)(?:-([0-9]+))?)( .+)?$/;
 
-			const [
-				minimumIntegerDigits,
-				minimumFractionDigits,
-				maximumFractionDigits,
-				unitSuffix,
-			] = (
+			const [ minInt, minFrac, maxFrac, unitSuffix] = (
 				this.format.match(FORMAT_PATTERN_OPT_FRAC)
 					?? this.format.match(FORMAT_PATTERN_OPT_INT)
 					?? ["", "1", "1", "3"]
 			).slice(1);
 
 			this.#fmtDecimal = new Intl.NumberFormat("en-US", {
-				minimumIntegerDigits: parseInt(minimumIntegerDigits),
-				minimumFractionDigits: parseInt(minimumFractionDigits),
-				maximumFractionDigits: parseInt(maximumFractionDigits),
+				minimumIntegerDigits: minInt != null ? parseInt(minInt) : undefined,
+				minimumFractionDigits: minFrac != null ? parseInt(minFrac) : undefined,
+				maximumFractionDigits: maxFrac != null ? parseInt(maxFrac) : undefined,
 			});
 			this.#fmtUnitSuffix = unitSuffix ?? "";
 		}
