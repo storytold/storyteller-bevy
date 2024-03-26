@@ -136,12 +136,6 @@ export class CanvasProviderElement
 		for (let key of ["Alt", "Control", "Shift"] as const) {
 			const map = KEYCODE_MAPS[key];
 			for (let { code, keyCode } of map[platform]) {
-				console.log("Dispatching keyup event:", {
-					key,
-					code,
-					keyCode: `0x${keyCode.toString(16).padStart(2, "0").toUpperCase()}`,
-				});
-
 				canvas.dispatchEvent(new KeyboardEvent("keyup", {
 					key,
 					code,
@@ -152,7 +146,6 @@ export class CanvasProviderElement
 		}
 
 		for (let button of [0, 1, 2, 3, 4]) {
-			console.log("Dispatching pointerup event:", { button });
 			canvas.dispatchEvent(new PointerEvent("pointerup", {
 				button,
 				...eventConfig,
