@@ -1,6 +1,5 @@
 import { bind, inject } from "@storyteller/framework";
-import { ButtonElement } from "@storyteller/studio-ui/button";
-import { DialogBaseElement } from "@storyteller/studio-ui/dialog";
+import { DialogBaseElement, DialogElement } from "@storyteller/studio-ui/dialog";
 import {
 	type MediaFile as IMediaFile,
 	MediaFileClass,
@@ -19,13 +18,15 @@ import {
 	unsafeCSS,
 	css,
 } from "lit";
-import { customElement, queryAll, state } from "lit/decorators.js";
+import { customElement, state } from "lit/decorators.js";
 import { classMap } from "lit/directives/class-map.js";
 import { ifDefined } from "lit/directives/if-defined.js";
+import { createRef, ref } from "lit/directives/ref.js";
 
 import "@storyteller/studio-ui/button";
 import "@storyteller/studio-ui/icon";
 import "@storyteller/studio-ui/forms/text-field";
+import "./asset-import-dialog.element";
 
 import styles from "./media-library-dialog.element.scss?inline";
 
@@ -48,10 +49,11 @@ export class MediaLibraryDialogElement extends DialogBaseElement {
 	@inject(StorytellerApi)
 	_api!: StorytellerApi;
 
-	@queryAll("[data-import-trigger]")
-	importTriggers!: ButtonElement[];
-
 	#dateFmt = new Intl.DateTimeFormat("en-us");
+	#importDialogRef = createRef<DialogElement>();
+	#transientFileInput?: HTMLInputElement;
+
+	@state() _uploadedFile?: File;
 
 	get #mediaFiles() {
 		return this._mediaFiles?.filter(it =>
@@ -146,14 +148,41 @@ export class MediaLibraryDialogElement extends DialogBaseElement {
 		this._selected = [];
 	}
 
-	get importDialogTemplate() {
-		return html`
-			<sts-dialog-header icon="import">
-				Import Asset
-			</sts-dialog-header>
+	promptForFileUpload(): void {
+		this.#transientFileInput = document.createElement("input");
+		this.#transientFileInput.type = "file";
+		this.#transientFileInput.accept = match (this._activeCategory.mediaClass, {
+			[MediaFileClass.Animation]: () => ".bvh,.fbx,.gltf",
+			[MediaFileClass.Audio]: () => ".wav,.mp3",
+			[MediaFileClass.Character]: () => ".fbx,.gltf",
+			[MediaFileClass.Prop]: () => ".fbx,.gltf",
+			[MediaFileClass.Scene]: () => ".fbx,.gltf,.scn.ron",
+			_: () => "",
+		});
+		this.#transientFileInput.multiple = false;
 
-			<p>Lorem ipsum dolor sit amet</p>
-		`;
+		this.#transientFileInput.addEventListener("input", this.onFileUploaded.bind(this), {
+			once: true,
+		});
+
+		this.#transientFileInput.click();
+	}
+
+	onFileUploaded(): void {
+		console.log("files:", this.#transientFileInput?.files);
+		const file = this.#transientFileInput?.files?.[0];
+		if (file != null) {
+			this._uploadedFile = file;
+
+			setTimeout(() => {
+				this.#importDialogRef.value?.open();
+			});
+		}
+	}
+
+	onAssetImportSubmit(event: SubmitEvent): void {
+		event.preventDefault();
+		console.log({ ...event });
 	}
 
 	protected override render = (): TemplateResult => html`
@@ -164,7 +193,7 @@ export class MediaLibraryDialogElement extends DialogBaseElement {
 		<section class="main">
 			<nav class="sidebar" part="sidebar">
 				<ul class="sidebar__list">
-					${MEDIA_FILE_CATEGORIES.map(cat => html`
+					${MEDIA_FILE_CATEGORIES.map((cat, idx) => html`
 						<li class="sidebar__listitem">
 							<sts-button
 								class=${classMap({
@@ -172,6 +201,7 @@ export class MediaLibraryDialogElement extends DialogBaseElement {
 								})}
 								.icon=${cat.icon}
 								title=${ifDefined(cat.tooltip)}
+								?autofocus=${idx === 0}
 								?disabled=${cat.disabled}
 								@click=${() => {
 									if (!cat.disabled)
@@ -189,7 +219,7 @@ export class MediaLibraryDialogElement extends DialogBaseElement {
 					<sts-button
 						class="btn-secondary"
 						icon="import"
-						data-import-trigger
+						@click=${this.promptForFileUpload}
 					>
 						Import...
 					</sts-button>
@@ -220,7 +250,7 @@ export class MediaLibraryDialogElement extends DialogBaseElement {
 								<sts-button
 									class="btn-secondary"
 									icon="import"
-									data-import-trigger
+									@click=${this.promptForFileUpload}
 								>
 									Import...
 								</sts-button>
@@ -270,8 +300,15 @@ export class MediaLibraryDialogElement extends DialogBaseElement {
 		</section>
 
 		<sts-dialog
-			.trigger=${this.importTriggers}
-			.template=${[this, this.importDialogTemplate] as const}
+			${ref(this.#importDialogRef)}
+			skipWrapper
+			.template=${[this, html`
+				<sts-asset-import-dialog
+					.file=${this._uploadedFile}
+					@submit=${this.onAssetImportSubmit}
+					@close=${() => this.#importDialogRef.value?.close()}
+				></sts-asset-import-dialog>
+			`] as const}
 		></sts-dialog>
 	`;
 }
@@ -281,6 +318,7 @@ interface MediaFileCategory {
 	icon: string;
 	disabled?: boolean;
 	tooltip?: string;
+	mediaClass?: MediaFileClass;
 	predicate: Pred<MediaFile>;
 }
 
@@ -293,6 +331,7 @@ const MEDIA_FILE_CATEGORIES: readonly MediaFileCategory[] = [
 	{
 		name: "Animation",
 		icon: "film",
+		mediaClass: MediaFileClass.Animation,
 		predicate: it => it.mediaClass === MediaFileClass.Animation,
 	},
 	{
@@ -300,21 +339,25 @@ const MEDIA_FILE_CATEGORIES: readonly MediaFileCategory[] = [
 		icon: "volume",
 		disabled: true,
 		tooltip: "Coming soon!",
+		mediaClass: MediaFileClass.Audio,
 		predicate: it => it.mediaClass === MediaFileClass.Audio,
 	},
 	{
 		name: "Characters",
 		icon: "figure",
+		mediaClass: MediaFileClass.Character,
 		predicate: it => it.mediaClass === MediaFileClass.Character,
 	},
 	{
 		name: "Props",
 		icon: "cube",
+		mediaClass: MediaFileClass.Prop,
 		predicate: it => it.mediaClass === MediaFileClass.Prop,
 	},
 	{
 		name: "Scenes",
 		icon: "scene",
+		mediaClass: MediaFileClass.Scene,
 		predicate: it => it.mediaClass === MediaFileClass.Scene,
 	},
 ];

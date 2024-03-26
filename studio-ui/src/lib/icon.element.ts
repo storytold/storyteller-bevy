@@ -44,6 +44,7 @@ import farArrowRightToBracket from "@fortawesome/fontawesome-pro/svgs/regular/ar
 import farMagnifyingGlass from "@fortawesome/fontawesome-pro/svgs/regular/magnifying-glass.svg?raw";
 import fasHouse from "@fortawesome/fontawesome-pro/svgs/solid/house.svg?raw";
 import fasRecord from "@fortawesome/fontawesome-pro/svgs/solid/circle.svg?raw";
+import fasUpload from "@fortawesome/fontawesome-pro/svgs/solid/upload.svg?raw";
 
 import customCylinder from "../assets/icons/cylinder.svg?raw";
 import customSphere from "../assets/icons/sphere.svg?raw";
@@ -113,6 +114,7 @@ function renderSvg(iconId: string) {
 		"sphere": () => customSphere,
 		"torus": () => customTorus,
 		"up-down-left-right": () => farUpDownLeftRight,
+		"upload": () => fasUpload,
 		"video": () => farVideo,
 		"volume": () => farVolume,
 		"xmark": () => fasXmark,

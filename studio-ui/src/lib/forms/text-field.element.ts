@@ -1,5 +1,5 @@
 import { on } from "@storyteller/framework";
-import { html, nothing, unsafeCSS } from "lit";
+import { PropertyValues, html, nothing, unsafeCSS } from "lit";
 import { customElement, property } from "lit/decorators.js";
 import { ifDefined } from "lit/directives/if-defined.js";
 
@@ -26,6 +26,13 @@ export class TextFieldElement extends FormFieldBaseElement {
 
 	@property({ attribute: "icon-pre" }) iconPre?: string;
 	@property({ attribute: "icon-post" }) iconPost?: string;
+
+	protected override update(changes: PropertyValues<this>): void {
+		if (changes.has("value"))
+			this.internals.setFormValue(this.value);
+
+		super.update(changes);
+	}
 
 	@on("keydown")
 	@on("keyup")
