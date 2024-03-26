@@ -74,6 +74,9 @@ export class CanvasProviderElement
 	@on("keydown")
 	@on("keyup")
 	_pipeKeyboardEvents(event: KeyboardEvent): void {
+		if (event.repeat) return;
+
+		console.log(`Piping event to canvas: ${event.type}:${event.key}`);
 		// When the user interacts with one of the web UI elements, the Bevy
 		// canvas will lose focus, preventing it from receiving keyboard events.
 		// As a workaround, we can listen for any events that have bubbled up to
