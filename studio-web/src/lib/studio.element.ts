@@ -28,7 +28,6 @@ export class StudioElement extends LitElement {
 
 	#canvas?: HTMLCanvasElement;
 	#resizeObserver?: ResizeObserver;
-	#frameRequest?: number;
 
 	override connectedCallback(): void {
 		super.connectedCallback();
@@ -41,14 +40,9 @@ export class StudioElement extends LitElement {
 
 		if ((this.#canvas = this._canvasProvider.takeCanvas()))
 			this.appendChild(this.#canvas);
-
-		this.#tick();
 	}
 
 	override disconnectedCallback(): void {
-		if (this.#frameRequest != null)
-			cancelAnimationFrame(this.#frameRequest);
-
 		if (this.#canvas)
 			this._canvasProvider?.returnCanvas(this.removeChild(this.#canvas));
 
@@ -63,6 +57,8 @@ export class StudioElement extends LitElement {
 		} else {
 			// TODO
 		}
+
+		super.updated(changes);
 	}
 
 	#onResize(): void {
@@ -75,17 +71,6 @@ export class StudioElement extends LitElement {
 			bubbles: true,
 			composed: true,
 		}));
-	}
-
-	#tick(): void {
-		// If user focus lands on the `document.body`, neither the frontend app
-		// nor the Bevy app will properly handle keyboard events. Thie function
-		// runs every tick to ensure that user focus never becomes "stranded" in
-		// this way.
-		if (document.activeElement === document.body)
-			this.#canvas?.focus();
-
-		this.#frameRequest = requestAnimationFrame(() => this.#tick());
 	}
 
 	#start(): void {
