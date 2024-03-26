@@ -81,11 +81,6 @@ export class CanvasProviderElement
 			return;
 		}
 
-		console.log(`Piping event to canvas: ${event.type}:${event.key}`, {
-			key: event.key,
-			code: event.code,
-			keyCode: `0x${event.keyCode.toString(16).padStart(2, "0").toUpperCase()}`,
-		});
 		// When the user interacts with one of the web UI elements, the Bevy
 		// canvas will lose focus, preventing it from receiving keyboard events.
 		// As a workaround, we can listen for any events that have bubbled up to
@@ -114,8 +109,6 @@ export class CanvasProviderElement
 
 	@on("window:blur")
 	onWindowFocusLost(): void {
-		console.log("The window focus was lost!");
-
 		// If the browser window we're running in loses focus while certain keys
 		// or mouse buttons are held down, it can cause the input state to become
 		// "stuck," e.g. manipulating the camera, because Bevy is unable to detect
