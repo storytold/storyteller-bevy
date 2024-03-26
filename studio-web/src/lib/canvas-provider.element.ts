@@ -75,6 +75,11 @@ export class CanvasProviderElement
 	@on("keyup")
 	_pipeKeyboardEvents(event: KeyboardEvent): void {
 		if (event.repeat) return;
+		if (this.#canvas != null) {
+			// If we own the canvas, we're going to catch events emitting from the
+			// canvas and then repeat them, eventually causing a stack overflow
+			return;
+		}
 
 		console.log(`Piping event to canvas: ${event.type}:${event.key}`, {
 			key: event.key,
