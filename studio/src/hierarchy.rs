@@ -35,9 +35,7 @@ pub(crate) fn nearest_common_ancestor(
     }
 
     // Find the lowest depth of all the entities
-    let Some(lowest_depth) = depths.values().copied().reduce(usize::min) else {
-        return None;
-    };
+    let lowest_depth = depths.values().copied().reduce(usize::min)?;
 
     // Traverse up the tree from each entity until we find each one's ancestor
     // at the level of lowest_depth
