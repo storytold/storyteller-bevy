@@ -42,18 +42,19 @@ impl Plugin for StudioInputPlugin {
 
         app.add_systems(
             PostUpdate,
-            (apply_deferred, log_events).after(StudioInputSystem),
+            (apply_deferred, log_input_actions).after(StudioInputSystem),
         );
     }
 }
 
-// Mouse: [X--]  Keyboard: [AltLeft+F]  Action: [...]
-fn log_events(
+/// Logs all `InputAction`s emitted, along with the input state at the time they
+/// were fired, with `debug` verbosity.
+fn log_input_actions(
     ri_keyboard: Res<Input<KeyCode>>,
     ri_mouse_buttons: Res<Input<MouseButton>>,
-    mut er_inputs: EventReader<InputAction>,
+    mut er_input_actions: EventReader<InputAction>,
 ) {
-    if er_inputs.is_empty() {
+    if er_input_actions.is_empty() {
         return;
     }
 
@@ -81,7 +82,7 @@ fn log_events(
         .into_iter()
         .collect::<HashSet<_>>();
 
-    let keys_pressed = ri_keyboard.get_pressed().cloned().collect::<HashSet<_>>();
+    let keys_pressed = ri_keyboard.get_pressed().copied().collect::<HashSet<_>>();
     let keys_display = keys_pressed
         .intersection(&mod_keys)
         .map(|key| format!("{key:?}"))
@@ -93,8 +94,8 @@ fn log_events(
         .collect::<Vec<_>>()
         .join("+");
 
-    for action in er_inputs.read() {
-        info!(
+    for action in er_input_actions.read() {
+        debug!(
             "Mouse: [{lmb}{mmb}{rmb}]  \
             Keyboard: [{keys_display}]  \
             Action: [{action:.2?}]"
