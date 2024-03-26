@@ -76,7 +76,11 @@ export class CanvasProviderElement
 	_pipeKeyboardEvents(event: KeyboardEvent): void {
 		if (event.repeat) return;
 
-		console.log(`Piping event to canvas: ${event.type}:${event.key}`);
+		console.log(`Piping event to canvas: ${event.type}:${event.key}`, {
+			key: event.key,
+			code: event.code,
+			keyCode: `0x${event.keyCode.toString(16).padStart(2, "0").toUpperCase()}`,
+		});
 		// When the user interacts with one of the web UI elements, the Bevy
 		// canvas will lose focus, preventing it from receiving keyboard events.
 		// As a workaround, we can listen for any events that have bubbled up to
@@ -103,6 +107,178 @@ export class CanvasProviderElement
 			}));
 	}
 
+	@on("window:blur")
+	onWindowFocusLost(): void {
+		console.log("The window focus was lost!");
+
+		const canvas = document.getElementById(this.#canvasId);
+		if (!canvas) return;
+
+		const eventConfig = {
+			altKey: false,
+			ctrlKey: false,
+			metaKey: false,
+			shiftKey: false,
+			bubbles: true,
+			cancelable: true,
+			composed: true,
+		};
+
+		interface KeyCodes {
+			code: string;
+			keyCode: number;
+		}
+
+		const keycodeMaps = {
+			"Alt": {
+				[Platform.Windows]: [{
+					code: "AltLeft",
+					keyCode: 0x12,
+				}, {
+					code: "AltLeft",
+					keyCode: 0xA4,
+				}, {
+					code: "AltRight",
+					keyCode: 0xA5,
+				}],
+				[Platform.Apple]: [{
+					code: "AltLeft",
+					keyCode: 0x3A,
+				}, {
+					code: "AltRight",
+					keyCode: 0x3D,
+				}],
+				[Platform.Linux]: [{
+					code: "AltLeft",
+					keyCode: 0xFFE9,
+				}, {
+					code: "AltRight",
+					keyCode: 0xFFEA,
+				}, {
+					code: "AltLeft",
+					keyCode: 0x01000023,
+				}],
+				[Platform.Android]: [{
+					code: "AltLeft",
+					keyCode: 57,
+				}, {
+					code: "AltRight",
+					keyCode: 58,
+				}],
+			},
+			"Control": {
+				[Platform.Windows]: [{
+					code: "ControlLeft",
+					keyCode: 0x11,
+				}, {
+					code: "ControlLeft",
+					keyCode: 0xA2,
+				}, {
+					code: "ControlRight",
+					keyCode: 0xA3,
+				}],
+				[Platform.Apple]: [{
+					code: "ControlLeft",
+					keyCode: 0x3B,
+				}, {
+					code: "ControlRight",
+					keyCode: 0x3E,
+				}, {
+					code: "MetaLeft",
+					keyCode: 0x37,
+				}, {
+					code: "MetaRight",
+					keyCode: 0x36,
+				}],
+				[Platform.Linux]: [{
+					code: "ControlLeft",
+					keyCode: 0xFFE3,
+				}, {
+					code: "ControlRight",
+					keyCode: 0xFFE4,
+				}, {
+					code: "ControlLeft",
+					keyCode: 0x01000021,
+				}],
+				[Platform.Android]: [{
+					code: "ControlLeft",
+					keyCode: 113,
+				}, {
+					code: "ControlRight",
+					keyCode: 114,
+				}]
+			},
+			"Shift": {
+				[Platform.Windows]: [{
+					code: "ShiftLeft",
+					keyCode: 0x10,
+				}, {
+					code: "ShiftLeft",
+					keyCode: 0xA0,
+				}, {
+					code: "ShiftRight",
+					keyCode: 0xA1,
+				}],
+				[Platform.Apple]: [{
+					code: "ShiftLeft",
+					keyCode: 0x38,
+				}, {
+					code: "ShiftRight",
+					keyCode: 0x3C,
+				}],
+				[Platform.Linux]: [{
+					code: "ShiftLeft",
+					keyCode: 0xFFE1,
+				}, {
+					code: "ShiftRight",
+					keyCode: 0xFFE2,
+				}, {
+					code: "ShiftLeft",
+					keyCode: 0x01000020,
+				}],
+				[Platform.Android]: [{
+					code: "ShiftLeft",
+					keyCode: 59,
+				}, {
+					code: "ShiftRight",
+					keyCode: 60,
+				}],
+			},
+		} as {
+			[K in "Alt"|"Control"|"Shift"]: {
+				[P in Platform]: KeyCodes[];
+			};
+		};
+
+		const platform = sniffPlatform();
+
+		for (let key of ["Alt", "Control", "Shift"] as const) {
+			const map = keycodeMaps[key];
+			for (let { code, keyCode } of map[platform]) {
+				console.log("Dispatching keyup event:", {
+					key,
+					code,
+					keyCode: `0x${keyCode.toString(16).padStart(2, "0").toUpperCase()}`,
+				});
+
+				canvas.dispatchEvent(new KeyboardEvent("keyup", {
+					key,
+					code,
+					keyCode,
+					...eventConfig,
+				}));
+			}
+		}
+
+		for (let button of [0, 1, 2, 3, 4]) {
+			console.log("Dispatching pointerup event:", { button });
+			canvas.dispatchEvent(new PointerEvent("pointerup", {
+				button,
+				...eventConfig,
+			}));
+		}
+	}
+
 	protected override render = () => html`
 		<slot></slot>
 		<slot name="canvas"></slot>
@@ -118,6 +294,29 @@ export class CanvasProviderElement
 
 		return canvas;
 	}
+}
+
+enum Platform {
+	Windows,
+	Apple,
+	Linux,
+	Android,
+}
+
+function sniffPlatform(): Platform {
+	const userAgent = navigator.userAgent;
+	const platformString = userAgent.match(/\((.+?)\)/)?.[1] ?? "Windows";
+
+	if (platformString.includes("Windows"))
+		return Platform.Windows;
+	if (platformString.includes("Android"))
+		return Platform.Android;
+	if (platformString.includes("Mac OS"))
+		return Platform.Apple;
+	if (platformString.includes("Linux"))
+		return Platform.Linux;
+
+	return Platform.Windows;
 }
 
 declare global {
