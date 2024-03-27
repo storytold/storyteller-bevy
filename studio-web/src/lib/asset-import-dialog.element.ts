@@ -1,5 +1,5 @@
 import { bind } from "@storyteller/framework";
-import { LitElement, PropertyValues, TemplateResult, html, unsafeCSS } from "lit";
+import { LitElement, PropertyValues, TemplateResult, html, nothing, unsafeCSS } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { ifDefined } from "lit/directives/if-defined.js";
 import { createRef, ref } from "lit/directives/ref.js";
@@ -130,6 +130,12 @@ export class AssetImportDialogElement extends LitElement {
 						`)}
 					</select>
 				</div>
+				${this.assetType === MediaFileClass.Animation ? html`
+					<!--
+					TODO: Need another <select> field here for the animation source
+					      (Mixamo, MocapNET, etc.)
+					-->
+				` : nothing}
 			</form>
 
 			<sts-dialog-footer>
