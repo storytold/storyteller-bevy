@@ -106,6 +106,7 @@ function renderSvg(iconId: string) {
 		"pause": () => fasPause,
 		"plus-large": () => fasPlusLarge,
 		"question": () => fasQuestion,
+		"record": () => fasRecord,
 		"rotate": () => farRotate,
 		"scale": () => farScale,
 		"scene": () => farMountainSun,
@@ -118,7 +119,6 @@ function renderSvg(iconId: string) {
 		"video": () => farVideo,
 		"volume": () => farVolume,
 		"xmark": () => fasXmark,
-		"record": () => fasRecord,
 		_: () => null,
 	});
 
