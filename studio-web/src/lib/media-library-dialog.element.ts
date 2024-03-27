@@ -1,4 +1,5 @@
 import * as studio from "@storyteller/studio";
+import { SceneElement } from "@storyteller/studio";
 import { bind, inject } from "@storyteller/framework";
 import { DialogBaseElement, DialogElement } from "@storyteller/studio-ui/dialog";
 import {
@@ -9,6 +10,9 @@ import {
 	MediaFileType,
 	StorytellerApi,
 	Visibility,
+	UploadMediaFileOptions,
+	SCENE_DATA_PROVIDER,
+	type SceneDataProvider,
 } from "@storyteller/studio-web";
 import { exists, match, type Pred } from "@storyteller/utility";
 import {
@@ -52,6 +56,9 @@ export class MediaLibraryDialogElement extends DialogBaseElement {
 	@inject(StorytellerApi)
 	_api!: StorytellerApi;
 
+	@inject(SCENE_DATA_PROVIDER)
+	_sceneData!: SceneDataProvider;
+
 	#dateFmt = new Intl.DateTimeFormat("en-us");
 	#importDialogRef = createRef<DialogElement>();
 	#transientFileInput?: HTMLInputElement;
@@ -78,9 +85,39 @@ export class MediaLibraryDialogElement extends DialogBaseElement {
 		return ResultsStatus.NonEmpty;
 	}
 
+	get #canAddToScene() {
+		const noAnimations = this._selected.every(token => {
+			const mediaFile = this._mediaFiles?.get(token);
+			if (!mediaFile) return false;
+
+			return mediaFile.mediaClass !== MediaFileClass.Animation;
+		});
+
+		return noAnimations || this.#canAddAnimation;
+	}
+
+	get #canAddAnimation() {
+		const oneAnimationSelected = this._selected.length === 1
+			&& this._mediaFiles?.get(this._selected[0])?.mediaClass === MediaFileClass.Animation;
+		const skeletonSelected = this._sceneData.selectedObject?.type === SceneElement.Skeleton;
+
+		return oneAnimationSelected && skeletonSelected;
+	}
+
 	override connectedCallback(): void {
+		this._sceneData?.addEventListener("property-changes", this.onProviderChanges);
 		this.loadResults();
 		super.connectedCallback();
+	}
+
+	override disconnectedCallback(): void {
+		this._sceneData?.removeEventListener("property-changes", this.onProviderChanges);
+		super.disconnectedCallback();
+	}
+
+	onProviderChanges = ({ detail: changes }: CustomEvent<PropertyValues<SceneDataProvider>>) => {
+		if (changes.has("selectedObject"))
+			this.requestUpdate();
 	}
 
 	protected override willUpdate(changes: PropertyValues<this>): void {
@@ -189,8 +226,8 @@ export class MediaLibraryDialogElement extends DialogBaseElement {
 		}
 	}
 
-	async onImportAsset({ detail: { type, title }}: CustomEvent<AssetImport>): Promise<void> {
-		console.log("MediaLibrary.onImportAsset", { type, title });
+	async onImportAsset({ detail: data}: CustomEvent<AssetImport>): Promise<void> {
+		console.log("MediaLibrary.onImportAsset", data);
 		this._mediaFiles = undefined;
 		this.#importDialogRef.value?.close();
 
@@ -198,10 +235,15 @@ export class MediaLibraryDialogElement extends DialogBaseElement {
 			throw new Error("Expected `_uploadedFile` to be non-null!");
 
 		try {
-			const token = await this._api.uploadMediaFile(this._uploadedFile, {
-				mediaClass: type,
-			});
-			await this._api.renameMediaFile(token, title);
+			const options: UploadMediaFileOptions = {
+				mediaClass: data.type,
+			};
+
+			if (data.type === MediaFileClass.Animation)
+				options.subtype = data.animationSkeleton;
+
+			const token = await this._api.uploadMediaFile(this._uploadedFile, options);
+			await this._api.renameMediaFile(token, data.title);
 
 			this._selected.push(token);
 		}
@@ -217,6 +259,20 @@ export class MediaLibraryDialogElement extends DialogBaseElement {
 	}
 
 	onAddToScene(): void {
+		if (this.#canAddAnimation) {
+			this.#addAnimation();
+		} else {
+			this.#spawnSelectedScenes();
+		}
+	}
+
+	#addAnimation(): void {
+		// TODO: Make this actually work
+		console.warn("Adding animations not yet implemented!");
+		this.dispatchEvent(new CustomEvent("close"));
+	}
+
+	#spawnSelectedScenes(): void {
 		const paths = this._selected
 			.map(token => {
 				if (!this._mediaFiles) {
@@ -355,6 +411,7 @@ export class MediaLibraryDialogElement extends DialogBaseElement {
 					<sts-button
 						class="btn-primary content__add-to-scene"
 						icon="plus-large"
+						?disabled=${!this.#canAddToScene}
 						@click=${this.onAddToScene}
 					>
 						Add to Scene

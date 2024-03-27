@@ -4,7 +4,7 @@ import { customElement, property, state } from "lit/decorators.js";
 import { ifDefined } from "lit/directives/if-defined.js";
 import { createRef, ref } from "lit/directives/ref.js";
 
-import { MediaFileClass } from "./storyteller-api";
+import { MediaFileClass, MediaFileSubtype } from "./storyteller-api";
 
 import "@storyteller/studio-ui/dialog";
 
@@ -13,7 +13,14 @@ import styles from "./asset-import-dialog.element.scss?inline";
 export interface AssetImport {
 	type: MediaFileClass;
 	title: string;
+	animationSkeleton?: AnimationSkeleton;
 }
+
+export type AnimationSkeleton
+	= MediaFileSubtype.Mixamo
+	| MediaFileSubtype.MocapNet
+	| MediaFileSubtype.AnimationOnly
+	;
 
 @customElement("sts-asset-import-dialog")
 export class AssetImportDialogElement extends LitElement {
@@ -26,6 +33,7 @@ export class AssetImportDialogElement extends LitElement {
 	assetType?: MediaFileClass;
 
 	@state() _title = "";
+	@state() _animationSkeleton?: AnimationSkeleton;
 	@state() _formValid = false;
 
 	#formRef = createRef<HTMLFormElement>();
@@ -61,6 +69,16 @@ export class AssetImportDialogElement extends LitElement {
 			this.assetType = undefined;
 		} else {
 			this.assetType = input.value as MediaFileClass;
+		}
+	}
+
+	onAnimationSkeletonChange(event: Event): void {
+		const input = event.target as HTMLSelectElement;
+
+		if (!input.value) {
+			this._animationSkeleton = undefined;
+		} else {
+			this._animationSkeleton = input.value as AnimationSkeleton;
 		}
 	}
 
@@ -117,10 +135,37 @@ export class AssetImportDialogElement extends LitElement {
 					</select>
 				</div>
 				${this.assetType === MediaFileClass.Animation ? html`
-					<!--
-					TODO: Need another <select> field here for the animation source
-					      (Mixamo, MocapNET, etc.)
-					-->
+					<label class="label" for="import-animation-skeleton">
+						Skeleton Type
+					</label>
+					<select
+						class="input"
+						id="import-animation-skeleton"
+						name="animationSkeleton"
+						required
+						@change=${this.onAnimationSkeletonChange}
+					>
+						<option value="" selected></option>
+						<option
+							value=${MediaFileSubtype.Mixamo}
+							title="For animations downloaded from Adobe Mixamo"
+						>
+							Mixamo
+						</option>
+						<option
+							value=${MediaFileSubtype.MocapNet}
+							title="For motion capture data produced by MocapNET"
+						>
+							MocapNET
+						</option>
+						<option
+							value=${MediaFileSubtype.AnimationOnly}
+							title=${"For animations that are designed to play on a Rigify "
+								+ "skeleton (deformation bones only)"}
+						>
+							Rigify (Advanced)
+						</option>
+					</select>
 				` : nothing}
 			</form>
 
