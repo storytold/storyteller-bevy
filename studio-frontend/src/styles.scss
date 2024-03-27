@@ -7,4 +7,16 @@ html, body {
 	height: 100%;
 	margin: 0;
 	overflow: hidden;
+
+	--color-panel-background: #242433;
+	--color-toolbar-background: #39394d;
+	--color-toolbar-background-light: #676781;	
+	--color-panel-item-name-background: #39394d;
+	--color-panel-item-background: #55556b;
+	--color-accent: #fc6b68;
+	--color-text: #dbdbdf;
+	--color-text-bright: #ffffff;
+
+	--corner-radius: 0.5rem;
+	--padding: 0.5rem;
 }
