@@ -383,7 +383,7 @@ fn init_scene_import(
     r_assets: Res<AssetServer>,
     mut er: EventReader<ImportSceneEvent>,
 ) {
-    if let Some(path) = er.read().last() {
+    for path in er.read() {
         info!("Importing asset: {}", path.0);
         cmd.spawn((
             Name::new("Scene"), // TODO: Maybe use the "basename" part of the asset path?
