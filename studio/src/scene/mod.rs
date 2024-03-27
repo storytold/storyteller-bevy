@@ -108,7 +108,7 @@ impl Plugin for ScenePlugin {
         app.add_systems(
             Update,
             (
-                wasm::handle_spawn_scene_messages,
+                wasm::handle_spawn_asset_messages,
                 wasm::notify_state_changes
                     .map(bevy::utils::error)
                     .run_if(resource_changed::<State<SceneState>>()),
@@ -250,8 +250,11 @@ pub struct LoadSceneEvent(pub String);
 
 /// Request the application to import and process a glTF scene from an arbitrary
 /// asset source (e.g., an http path or a Storyteller.ai media token).
-#[derive(Event, Deref)]
-pub struct ImportSceneEvent(pub String);
+#[derive(Event)]
+pub struct ImportSceneEvent {
+    pub path: String,
+    pub name: Option<String>,
+}
 
 /// A tag that identifies its entity as a user-facing scene element like a prop,
 /// a light, or a camera.
@@ -383,16 +386,23 @@ fn init_scene_import(
     r_assets: Res<AssetServer>,
     mut er: EventReader<ImportSceneEvent>,
 ) {
-    for path in er.read() {
-        info!("Importing asset: {}", path.0);
+    for event in er.read() {
+        info!("Importing asset: {}", event.path);
+
+        let name = event
+            .name
+            .as_ref()
+            .map(|name| Name::new(name.clone()))
+            .unwrap_or_else(|| Name::new("Scene"));
+
         cmd.spawn((
-            Name::new("Scene"), // TODO: Maybe use the "basename" part of the asset path?
+            name,
             SpatialBundle::default(),
             space_editor::prelude::GltfPrefab {
-                path: path.0.clone(),
+                path: event.path.clone(),
                 scene: "Scene0".to_string(),
             },
-            r_assets.load::<Gltf>(&path.0),
+            r_assets.load::<Gltf>(&event.path),
             PrefabMarker,
             SceneRoot,
         ));

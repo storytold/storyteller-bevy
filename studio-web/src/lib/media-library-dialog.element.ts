@@ -273,7 +273,7 @@ export class MediaLibraryDialogElement extends DialogBaseElement {
 	}
 
 	#spawnSelectedScenes(): void {
-		const paths = this._selected
+		const assets = this._selected
 			.map(token => {
 				if (!this._mediaFiles) {
 					console.error("Expected `_mediaFiles` map to be present when spawning assets");
@@ -292,12 +292,15 @@ export class MediaLibraryDialogElement extends DialogBaseElement {
 					return null;
 				}
 
-				return `remote://${token}${ext}`;
+				return {
+					path: `remote://${token}${ext}`,
+					name: mediaFile.displayName,
+				};
 			})
 			.filter(exists);
 
 		setTimeout(() => {
-			studio.spawnScenes(paths);
+			studio.spawnAssets(assets);
 		});
 
 		this.dispatchEvent(new CustomEvent("close"));

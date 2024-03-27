@@ -1,25 +1,51 @@
 use bevy::{prelude::*, window::PrimaryWindow};
+use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 
 use super::{ImportSceneEvent, LoadingQueue, SceneState};
 use crate::wasm::{self, StaticBuffer, WasmMessageBuffer};
 
-static SPAWN_SCENES: WasmMessageBuffer<Vec<String>> = WasmMessageBuffer::new();
+static SPAWN_ASSETS: WasmMessageBuffer<Vec<AssetImport>> = WasmMessageBuffer::new();
 
-#[wasm_bindgen(js_name = spawnScene)]
-pub fn spawn_scene(path: String) {
-    SPAWN_SCENES.write_message(vec![path]);
+#[wasm_bindgen(typescript_custom_section)]
+const ASSET_IMPORT_TS: &str = r#"
+export interface AssetImport {
+    path: string;
+    name?: string;
+}
+"#;
+#[derive(Deserialize, Serialize)]
+struct AssetImport {
+    path: String,
+    name: Option<String>,
 }
 
-#[wasm_bindgen(js_name = spawnScenes)]
-pub fn spawn_scenes(paths: Vec<String>) {
-    SPAWN_SCENES.write_message(paths);
+#[wasm_bindgen(typescript_custom_section)]
+const SPAWN_ASSET_TS: &str = r#"
+export function spawnAsset(asset: AssetImport): void;
+"#;
+#[wasm_bindgen(js_name = spawnAsset, skip_typescript)]
+pub fn spawn_asset(asset: JsValue) -> Result<(), JsValue> {
+    let asset: AssetImport = serde_wasm_bindgen::from_value(asset)?;
+    SPAWN_ASSETS.write_message(vec![asset]);
+    Ok(())
 }
 
-pub(super) fn handle_spawn_scene_messages(mut ew_import_scene: EventWriter<ImportSceneEvent>) {
-    if let Some(paths) = SPAWN_SCENES.take_message() {
-        for path in paths {
-            ew_import_scene.send(ImportSceneEvent(path));
+#[wasm_bindgen(typescript_custom_section)]
+const SPAWN_ASSETS_TS: &str = r#"
+export function spawnAssets(assets: AssetImport[]): void;
+"#;
+#[wasm_bindgen(js_name = spawnAssets, skip_typescript)]
+pub fn spawn_assets(assets: JsValue) -> Result<(), JsValue> {
+    let assets: Vec<AssetImport> = serde_wasm_bindgen::from_value(assets)?;
+    SPAWN_ASSETS.write_message(assets);
+    Ok(())
+}
+
+pub(super) fn handle_spawn_asset_messages(mut ew_import_scene: EventWriter<ImportSceneEvent>) {
+    if let Some(assets) = SPAWN_ASSETS.take_message() {
+        for AssetImport { path, name } in assets {
+            ew_import_scene.send(ImportSceneEvent { path, name });
         }
     }
 }

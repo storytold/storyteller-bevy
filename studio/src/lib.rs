@@ -231,7 +231,10 @@ fn init_from_asset(app: &mut App, asset: InitAsset, skybox_id: String) {
         }
         InitAsset::ImportedScene(scene) => {
             app.add_systems(Startup, move |mut ew: EventWriter<ImportSceneEvent>| {
-                ew.send(ImportSceneEvent(scene.clone()));
+                ew.send(ImportSceneEvent {
+                    path: scene.clone(),
+                    name: None,
+                });
             });
         }
     }
