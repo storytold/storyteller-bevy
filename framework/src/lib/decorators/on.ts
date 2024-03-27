@@ -10,7 +10,7 @@ import { getMethodDescriptor, prependRoutine } from "./internal";
  * The event name can be prefixed with `window:` or `document:` to add the
  * listener to one of those targets instead of the custom element itself.
  */
-export function on(eventSelector: string) {
+export function on(eventSelector: string, options?: AddEventListenerOptions) {
 	const [targetName, eventName] = eventSelector.includes(":")
 		? eventSelector.split(":")
 		: [null, eventSelector];
@@ -34,9 +34,9 @@ export function on(eventSelector: string) {
 			this[$handler] ??= handler.bind(this);
 
 			if (target) {
-				target.addEventListener(eventName, this[$handler]);
+				target.addEventListener(eventName, this[$handler], options);
 			} else {
-				this.addEventListener(eventName, this[$handler]);
+				this.addEventListener(eventName, this[$handler], options);
 			}
 		});
 

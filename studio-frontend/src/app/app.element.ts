@@ -231,6 +231,7 @@ export class AppElement extends LitElement {
 				<sts-dialog
 					${ref(this.#mediaLibraryRef)}
 					tag="sts-media-library-dialog"
+					nonBlocking
 				></sts-dialog>
 
 				<sts-transform-toolbar class="v-start h-center"></sts-transform-toolbar>

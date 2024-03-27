@@ -12,6 +12,7 @@
 	backdrop-filter: blur(32px);
 	border-radius: 1rem;
 	overflow: hidden;
+	pointer-events: auto;
 }
 
 .main {
