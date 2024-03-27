@@ -74,6 +74,16 @@ export class StorytellerApi {
 		return response.data.media_file_token;
 	}
 
+	async renameMediaFile(token: MediaFileToken, name: string): Promise<void> {
+		const response = await this.#api.post(`v1/media_files/rename/${token}`, { name });
+		this.#validateResponse(response);
+	}
+
+	// TODO
+	async convertFbxToGltf(token: MediaFileToken): Promise<void> {
+
+	}
+
 	async mediaFile(token: MediaFileToken): Promise<MediaFile> {
 		const response = await this.#api.get<MediaFileResult>(`v1/media_files/file/${token}`);
 		this.#validateResponse(response);
@@ -116,7 +126,7 @@ export interface ListMediaFilesOptions {
 }
 
 export interface UploadMediaFileOptions {
-	subtype: MediaFileSubtype;
+	subtype?: MediaFileSubtype;
 	mediaClass: MediaFileClass;
 }
 

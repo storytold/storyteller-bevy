@@ -112,6 +112,7 @@ export class MediaLibraryDialogElement extends DialogBaseElement {
 			const results = await Promise.all(
 				response.results.map(({ token }) => this._api.mediaFile(token))
 			);
+			console.log("Results:", results);
 
 			this._mediaFiles = results.map(info => new MediaFile(info));
 		}
@@ -186,7 +187,27 @@ export class MediaLibraryDialogElement extends DialogBaseElement {
 		console.log("MediaLibrary.onImportAsset", { type, title });
 		this._mediaFiles = undefined;
 		this.#importDialogRef.value?.close();
-		// TODO: Do the API stuff
+
+		if (!this._uploadedFile)
+			throw new Error("Expected `_uploadedFile` to be non-null!");
+
+		try {
+			const token = await this._api.uploadMediaFile(this._uploadedFile, {
+				mediaClass: type,
+			});
+			await this._api.renameMediaFile(token, title);
+
+			this._selected.push(token);
+		}
+		catch (err) {
+			if (typeof err === "object" && err !== null && err instanceof Error) {
+				this._apiError = err;
+			} else {
+				this._apiError = new Error(String(err));
+			}
+		}
+
+		this.loadResults();
 	}
 
 	protected override render = (): TemplateResult => html`
