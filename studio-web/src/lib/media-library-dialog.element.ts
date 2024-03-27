@@ -163,14 +163,14 @@ export class MediaLibraryDialogElement extends DialogBaseElement {
 		});
 		this.#transientFileInput.multiple = false;
 
-		this.#transientFileInput.addEventListener("input", this.onFileUploaded.bind(this), {
+		this.#transientFileInput.addEventListener("input", this.onLocalFileLoaded.bind(this), {
 			once: true,
 		});
 
 		this.#transientFileInput.click();
 	}
 
-	onFileUploaded(): void {
+	onLocalFileLoaded(): void {
 		console.log("files:", this.#transientFileInput?.files);
 		const file = this.#transientFileInput?.files?.[0];
 		if (file != null) {
