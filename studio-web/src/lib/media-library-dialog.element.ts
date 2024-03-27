@@ -59,7 +59,10 @@ export class MediaLibraryDialogElement extends DialogBaseElement {
 	@state() _uploadedFile?: File;
 
 	get #mediaFiles() {
-		return Array.from(this._mediaFiles?.values() ?? []).filter(it =>
+		if (!this._mediaFiles)
+			return null;
+
+		return Array.from(this._mediaFiles.values()).filter(it =>
 			this._filters.every(pred => pred(it))
 		);
 	}
