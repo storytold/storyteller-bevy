@@ -13,7 +13,6 @@ import styles from "./asset-import-dialog.element.scss?inline";
 export interface AssetImport {
 	type: MediaFileClass;
 	title: string;
-	filename: string;
 }
 
 @customElement("sts-asset-import-dialog")
@@ -27,15 +26,13 @@ export class AssetImportDialogElement extends LitElement {
 	assetType?: MediaFileClass;
 
 	@state() _title = "";
-	@state() _filename = "";
 	@state() _formValid = false;
 
 	#formRef = createRef<HTMLFormElement>();
 
 	protected override willUpdate(changes: PropertyValues<this>): void {
-		if (changes.has("file")) {
+		if (changes.has("file") && !this._title) {
 			this._title = this.file?.name.match(/^(.+?)\./)?.[1] ?? "";
-			this._filename = this.file?.name ?? "";
 		}
 
 		super.willUpdate(changes);
@@ -89,17 +86,6 @@ export class AssetImportDialogElement extends LitElement {
 						autofocus
 						name="title"
 						.value=${bind(this, "_title")}
-					></sts-text-field>
-				</div>
-				<div class="form-field">
-					<label class="label" for="import-filename">
-						Filename
-					</label>
-					<sts-text-field
-						class="input"
-						id="import-filename"
-						name="filename"
-						.value=${bind(this, "_filename")}
 					></sts-text-field>
 				</div>
 				<div class="form-field">

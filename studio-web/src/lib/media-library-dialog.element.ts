@@ -182,10 +182,8 @@ export class MediaLibraryDialogElement extends DialogBaseElement {
 		}
 	}
 
-	async onImportAsset({ detail: {
-		type, title, filename,
-	}}: CustomEvent<AssetImport>): Promise<void> {
-		console.log("MediaLibrary.onImportAsset", { type, title, filename });
+	async onImportAsset({ detail: { type, title }}: CustomEvent<AssetImport>): Promise<void> {
+		console.log("MediaLibrary.onImportAsset", { type, title });
 		this._mediaFiles = undefined;
 		this.#importDialogRef.value?.close();
 		// TODO: Do the API stuff
