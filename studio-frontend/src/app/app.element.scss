@@ -17,7 +17,7 @@ $hierarchy-width: 290px;
 	right: 0;
 	display: grid;
 
-	grid-template-columns: [timeline-start screen-start] 2rem [left-toolbar-start help-start] max-content [left-toolbar-end help-end] auto [center-toolbar-start] max-content [center-toolbar-end] auto [right-toolbar-start] max-content [right-toolbar-end] 2rem [screen-end sidebar-start] var(--sidebar-width) [sidebar-end timeline-end];
+	grid-template-columns: [timeline-start screen-start] 2rem [left-toolbar-start help-start] max-content [left-toolbar-end] auto [center-toolbar-start  help-end] max-content [center-toolbar-end] auto [right-toolbar-start] max-content [right-toolbar-end] 2rem [screen-end sidebar-start] var(--sidebar-width) [sidebar-end timeline-end];
 	grid-template-rows: [top-toolbar-start sidebar-start screen-start] max-content [top-toolbar-end help-start] max-content [help-end] auto [bottom-toolbar-start] max-content [bottom-toolbar-end sidebar-end screen-end timeline-start] var(--timeline-height) [timeline-end];
 
 	.studio-scene {
@@ -27,23 +27,49 @@ $hierarchy-width: 290px;
 	.action-toolbar {
 		grid-column: left-toolbar;
 		grid-row: top-toolbar;
+
+		sts-button {
+			background-color: var(--color-toolbar-background);
+		}
+		z-index: 1;
 	}
 
 	.timeline {
 		grid-area: timeline;
+		z-index: 1;
+		background-color: var(--color-toolbar-background);
+		border-radius: 0;
 	}
 
 	.inspector {
 		grid-area: sidebar;
+		z-index: 1;
+		background-color: var(--color-toolbar-background);
+		border-radius: 0;
 	}
 
 	.help {
 		grid-area: help;
+		z-index: 1;
 	}
 
 	.transform-toolbar {
 		grid-column: center-toolbar;
 		grid-row: top-toolbar;
+		background-color: var(--color-toolbar-background);
+		z-index: 1;
+		border-top-right-radius: 0;
+		border-top-left-radius: 0;
+		border-bottom-right-radius: var(--corner-radius);
+		border-bottom-left-radius: var(--corner-radius);
+		padding: var(--padding);
+		display: flex;
+		flex-direction: row;
+		gap: 1rem;
+
+		.add-to-scene-dropdown {
+			background-color: var(--color-toolbar-background-light);
+		}
 	}
 }
 

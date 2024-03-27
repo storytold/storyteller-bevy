@@ -8,7 +8,7 @@
 	pointer-events: auto;
 
 	// TODO: Copypasta
-	background: #0006;
+	background: var(--color-toolbar-background);
 	color: #FFFC;
 	backdrop-filter: blur(16px);
 	transition: {
@@ -16,6 +16,7 @@
 		duration: 0.1s;
 		timing-function: linear;
 	}
+	border-radius: var(--corner-radius);
 
 	&:hover {
 		background: #0008;
@@ -28,7 +29,9 @@
 	}
 
 	&:has(:checked) {
-		background: #7A2C34E3;
+		border-color: var(--color-accent);
+		border-width: 2px;
+		border-style: solid;
 		color: #FFF;
 
 		&:hover {

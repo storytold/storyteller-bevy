@@ -204,16 +204,6 @@ export class AppElement extends LitElement {
 						>
 							Save
 						</sts-button>
-						<sts-button
-							${ref(this.#addToSceneButtonRef)}
-							icon="plus-large"
-						>
-							Add to Scene
-							<sts-icon
-								class="menu-button-icon"
-								icon="chevron-down"
-							></sts-icon>
-						</sts-button>
 					` : nothing}
 					<sts-button
 						class=${classMap({ active: this.showHelp })}
@@ -227,7 +217,19 @@ export class AppElement extends LitElement {
 
 			<!-- Studio-mode-only elements -->
 			${this.#params.mode === StudioMode.Editor ? html`
-				<sts-transform-toolbar class="transform-toolbar"></sts-transform-toolbar>
+				<div class="transform-toolbar">
+						<sts-button
+							${ref(this.#addToSceneButtonRef)}
+							icon="plus-large"
+							class="add-to-scene-dropdown"
+						>
+							<sts-icon
+								class="menu-button-icon"
+								icon="chevron-down"
+							></sts-icon>
+						</sts-button>
+					<sts-transform-toolbar></sts-transform-toolbar>
+				</div>
 
 					<section
 						${ref(this.#inspectorRef)}
