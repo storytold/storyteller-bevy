@@ -155,7 +155,7 @@ interface AssetType {
 	tooltip?: string;
 }
 
-const ASSET_TYPES: AssetType[] = [
+const ASSET_TYPES: readonly AssetType[] = [
 	{
 		type: MediaFileClass.Animation,
 		label: "Animation",
@@ -183,7 +183,7 @@ const ASSET_TYPES: AssetType[] = [
 		label: "Scene",
 		icon: "scene",
 	},
-] as const;
+];
 
 declare global {
 	interface FormData {
