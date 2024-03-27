@@ -108,7 +108,7 @@ impl Plugin for ScenePlugin {
         app.add_systems(
             Update,
             (
-                wasm::dispatch_object_load_request,
+                wasm::handle_spawn_scene_messages,
                 wasm::notify_state_changes
                     .map(bevy::utils::error)
                     .run_if(resource_changed::<State<SceneState>>()),

@@ -1,21 +1,26 @@
 use bevy::{prelude::*, window::PrimaryWindow};
 use wasm_bindgen::prelude::*;
 
-use super::{LoadLibraryObjectEvent, LoadingQueue, SceneState};
+use super::{ImportSceneEvent, LoadingQueue, SceneState};
 use crate::wasm::{self, StaticBuffer, WasmMessageBuffer};
 
-static OBJECT_LOAD_REQUEST: WasmMessageBuffer<String> = WasmMessageBuffer::new();
+static SPAWN_SCENES: WasmMessageBuffer<Vec<String>> = WasmMessageBuffer::new();
 
-#[wasm_bindgen(js_name = loadObject)]
-pub fn load_object(id: &str) {
-    OBJECT_LOAD_REQUEST.write_message(id.into());
+#[wasm_bindgen(js_name = spawnScene)]
+pub fn spawn_scene(path: String) {
+    SPAWN_SCENES.write_message(vec![path]);
 }
 
-// FIXME: Is it an object or a scene? Inconsistent terminology is
-//        unnecessarily confusing
-pub(super) fn dispatch_object_load_request(mut ew_load_scene: EventWriter<LoadLibraryObjectEvent>) {
-    if let Some(id) = OBJECT_LOAD_REQUEST.take_message() {
-        ew_load_scene.send(LoadLibraryObjectEvent(id));
+#[wasm_bindgen(js_name = spawnScenes)]
+pub fn spawn_scenes(paths: Vec<String>) {
+    SPAWN_SCENES.write_message(paths);
+}
+
+pub(super) fn handle_spawn_scene_messages(mut ew_import_scene: EventWriter<ImportSceneEvent>) {
+    if let Some(paths) = SPAWN_SCENES.take_message() {
+        for path in paths {
+            ew_import_scene.send(ImportSceneEvent(path));
+        }
     }
 }
 

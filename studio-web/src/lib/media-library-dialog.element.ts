@@ -1,3 +1,4 @@
+import * as studio from "@storyteller/studio";
 import { bind, inject } from "@storyteller/framework";
 import { DialogBaseElement, DialogElement } from "@storyteller/studio-ui/dialog";
 import {
@@ -9,7 +10,7 @@ import {
 	StorytellerApi,
 	Visibility,
 } from "@storyteller/studio-web";
-import { match, type Pred } from "@storyteller/utility";
+import { exists, match, type Pred } from "@storyteller/utility";
 import {
 	html,
 	nothing,
@@ -41,7 +42,7 @@ export class MediaLibraryDialogElement extends DialogBaseElement {
 
 	override heading = "Media Library";
 
-	@state() _mediaFiles?: MediaFile[];
+	@state() _mediaFiles?: Map<MediaFileToken, MediaFile>;
 	@state() _searchTerm = "";
 	@state() _selected: MediaFileToken[] = [];
 	@state() _activeCategory: MediaFileCategory = MEDIA_FILE_CATEGORIES[0];
@@ -58,7 +59,7 @@ export class MediaLibraryDialogElement extends DialogBaseElement {
 	@state() _uploadedFile?: File;
 
 	get #mediaFiles() {
-		return this._mediaFiles?.filter(it =>
+		return Array.from(this._mediaFiles?.values() ?? []).filter(it =>
 			this._filters.every(pred => pred(it))
 		);
 	}
@@ -114,7 +115,9 @@ export class MediaLibraryDialogElement extends DialogBaseElement {
 			);
 			console.log("Results:", results);
 
-			this._mediaFiles = results.map(info => new MediaFile(info));
+			this._mediaFiles = new Map(
+				results.map(info => [info.token, new MediaFile(info)])
+			);
 		}
 		catch (err) {
 			if (typeof err === "object" && err !== null && err instanceof Error) {
@@ -208,6 +211,37 @@ export class MediaLibraryDialogElement extends DialogBaseElement {
 		}
 
 		this.loadResults();
+	}
+
+	onAddToScene(): void {
+		const paths = this._selected
+			.map(token => {
+				if (!this._mediaFiles) {
+					console.error("Expected `_mediaFiles` map to be present when spawning assets");
+					return null;
+				}
+
+				const mediaFile = this._mediaFiles.get(token);
+				if (!mediaFile) {
+					console.error(`Attempted to spawn an invalid token: "${token}"`);
+					return null;
+				}
+
+				const ext = mediaFile.extension;
+				if (!ext) {
+					console.error("Expected media file to have a non-null `extension` field");
+					return null;
+				}
+
+				return `remote://${token}${ext}`;
+			})
+			.filter(exists);
+
+		setTimeout(() => {
+			studio.spawnScenes(paths);
+		});
+
+		this.dispatchEvent(new CustomEvent("close"));
 	}
 
 	protected override render = (): TemplateResult => html`
@@ -318,6 +352,7 @@ export class MediaLibraryDialogElement extends DialogBaseElement {
 					<sts-button
 						class="btn-primary content__add-to-scene"
 						icon="plus-large"
+						@click=${this.onAddToScene}
 					>
 						Add to Scene
 					</sts-button>
@@ -405,6 +440,7 @@ class MediaFile {
 
 	title?: string;
 	filename?: string;
+	extension?: string;
 
 	visibility: Visibility;
 	bucketPath: string;
@@ -424,6 +460,9 @@ class MediaFile {
 
 		this.title = info.maybe_title ?? undefined;
 		this.filename = info.maybe_original_filename ?? undefined;
+		this.extension = info.maybe_engine_extension
+			?? this.filename?.match(/\..+/)?.[0]
+			?? undefined;
 
 		this.visibility = info.creator_set_visibility;
 		this.bucketPath = info.public_bucket_path;

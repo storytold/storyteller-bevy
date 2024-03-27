@@ -162,6 +162,7 @@ export interface MediaFileResult {
 export interface MediaFile {
 	token: MediaFileToken;
 	media_type: MediaFileType;
+	maybe_engine_extension?: string;
 	maybe_media_subtype?: MediaFileSubtype;
 	media_class: MediaFileClass;
 	maybe_batch_token?: unknown;
