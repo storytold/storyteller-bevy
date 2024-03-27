@@ -630,16 +630,16 @@ mod wasm {
     #[wasm_bindgen(typescript_custom_section)]
     const SCENE_STATE_EVENT: &str = r#"
 export interface SceneStateEvent extends CustomEvent {
-    type: "scene-state";
-    detail: SceneState;
+	type: "scene-state";
+	detail: SceneState;
 }
 
 declare global {
-    export interface GlobalEventHandlersEventMap {
-        "scene-state": SceneStateEvent;
-    }
+	export interface GlobalEventHandlersEventMap {
+		 "scene-state": SceneStateEvent;
+	}
 }
-    "#;
+	"#;
 
     pub(super) fn notify_state_changes(
         r_state: Res<State<SceneState>>,
@@ -654,16 +654,16 @@ declare global {
     #[wasm_bindgen(typescript_custom_section)]
     const LOADING_QUEUE_EVENT: &str = r#"
 export interface LoadingQueueEvent extends CustomEvent {
-    type: "loading-queue";
-    detail: number;
+	type: "loading-queue";
+	detail: number;
 }
 
 declare global {
-    export interface GlobalEventHandlersEventMap {
-        "loading-queue": LoadingQueueEvent;
-    }
+	export interface GlobalEventHandlersEventMap {
+		 "loading-queue": LoadingQueueEvent;
+	}
 }
-    "#;
+	"#;
 
     pub(super) fn notify_loading_queue_changes(
         mut l_last_sent: Local<Option<usize>>,
