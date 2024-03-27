@@ -1,6 +1,7 @@
 import { on } from "@storyteller/framework";
 import { LitElement, TemplateResult, html, unsafeCSS } from "lit";
-import { customElement, property, queryAssignedElements } from "lit/decorators.js";
+import { customElement, property, queryAssignedElements, state } from "lit/decorators.js";
+import { classMap } from "lit/directives/class-map.js";
 import { v4 as uuid } from "uuid";
 
 import { type DialogHeaderElement } from "./dialog-header.element";
@@ -62,8 +63,13 @@ export class DialogBaseElement extends LitElement {
 	override ariaModal = "true";
 	override tabIndex = -1;
 
+	@state() _hasFooter = false;
+
 	@queryAssignedElements({ slot: "dialog-header" })
 	dialogHeaders!: Element[];
+
+	@queryAssignedElements({ slot: "footer" })
+	dialogFooters!: Element[];
 
 	override connectedCallback(): void {
 		this.focus();
@@ -90,6 +96,10 @@ export class DialogBaseElement extends LitElement {
 		}
 	}
 
+	onFooterChanged(): void {
+		this._hasFooter = this.dialogFooters.length > 0;
+	}
+
 	protected override render(): TemplateResult {
 		return html`
 			<slot
@@ -107,12 +117,21 @@ export class DialogBaseElement extends LitElement {
 			<section class="main" part="main">
 				<slot name="sidebar" part="sidebar"></slot>
 
-				<section class="content" part="content">
+				<section
+					class=${classMap({
+						"content": true,
+						"with-footer": this._hasFooter,
+					})}
+					part="content"
+				>
 					<slot></slot>
 				</section>
 			</section>
 
-			<slot name="footer"></slot>
+			<slot
+				name="footer"
+				@slotchange=${this.onFooterChanged}
+			></slot>
 		`;
 	}
 }

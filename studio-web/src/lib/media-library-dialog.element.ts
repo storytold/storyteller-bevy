@@ -23,6 +23,8 @@ import { classMap } from "lit/directives/class-map.js";
 import { ifDefined } from "lit/directives/if-defined.js";
 import { createRef, ref } from "lit/directives/ref.js";
 
+import { AssetImport } from "./asset-import-dialog.element";
+
 import "@storyteller/studio-ui/button";
 import "@storyteller/studio-ui/icon";
 import "@storyteller/studio-ui/forms/text-field";
@@ -180,9 +182,13 @@ export class MediaLibraryDialogElement extends DialogBaseElement {
 		}
 	}
 
-	onAssetImportSubmit(event: SubmitEvent): void {
-		event.preventDefault();
-		console.log({ ...event });
+	async onImportAsset({ detail: {
+		type, title, filename,
+	}}: CustomEvent<AssetImport>): Promise<void> {
+		console.log("MediaLibrary.onImportAsset", { type, title, filename });
+		this._mediaFiles = undefined;
+		this.#importDialogRef.value?.close();
+		// TODO: Do the API stuff
 	}
 
 	protected override render = (): TemplateResult => html`
@@ -241,6 +247,7 @@ export class MediaLibraryDialogElement extends DialogBaseElement {
 				>
 					${match (this.#resultsStatus, {
 						[ResultsStatus.Loading]: () => html`
+							<!-- TODO: Spinner or something -->
 							<span>Loading...</span>
 						`,
 						[ResultsStatus.Empty]: () => html`
@@ -305,7 +312,8 @@ export class MediaLibraryDialogElement extends DialogBaseElement {
 			.template=${[this, html`
 				<sts-asset-import-dialog
 					.file=${this._uploadedFile}
-					@submit=${this.onAssetImportSubmit}
+					.assetType=${this._activeCategory.mediaClass}
+					@import-asset=${this.onImportAsset}
 					@close=${() => this.#importDialogRef.value?.close()}
 				></sts-asset-import-dialog>
 			`] as const}

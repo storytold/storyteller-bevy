@@ -22,13 +22,17 @@
 .content {
 	display: flex;
 	flex-direction: column;
-	flex: 0 0 auto;
+	flex: 1 0 0;
 	gap: 1rem;
 	border: {
 		inline: 0.5rem solid #0004;
 		block-end: 0.5rem solid #0004;
 	}
 	padding: 1rem;
+
+	&.with-footer {
+		border-block-end: none;
+	}
 }
 
 [part="sidebar"]:not(:empty) {
