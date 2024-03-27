@@ -7,6 +7,8 @@
 	padding: 1rem;
 	overflow: auto;
 
+	--background-color: var(--color-panel-background);
+
 	color: #FFFC;
 
 	&::-webkit-scrollbar {
@@ -30,4 +32,14 @@
 
 *, *::before, *::after {
 	box-sizing: border-box;
+}
+
+.container {
+	background-color: var(--background-color);
+	border-radius: var(--corner-radius);
+	display: flex;
+	flex-direction: column;
+	justify-content: flex-end;
+	padding: var(--padding);
+	gap: var(--padding);
 }

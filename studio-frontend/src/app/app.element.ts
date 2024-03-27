@@ -14,7 +14,7 @@ import {
 	StudioURLParams,
 } from "@storyteller/studio-web";
 import { match } from "@storyteller/utility";
-import { LitElement, html, nothing } from "lit";
+import { LitElement, TemplateResult, html, nothing } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { classMap } from "lit/directives/class-map.js";
 import { createRef, ref } from "lit/directives/ref.js";
@@ -52,9 +52,11 @@ export class AppElement extends LitElement {
 
 	@state() resizingPanel = false;
 	@state() inspectorWidth = 320;
-	@state() hierarchyHeight?: number;
 
-	#enableAnimTimeline = true; // TODO
+	@state() sidebars: Array<{ title: string, name: string}> = [{title: 'Hierarchy', name: 'hierarchy'}];
+
+	@state() currentSidebar : string = 'hierarchy';
+
 	private api = new StorytellerApi();
 
 	#addToSceneButtonRef = createRef<ButtonElement>();
@@ -138,24 +140,19 @@ export class AppElement extends LitElement {
 		this.inspectorWidth = Math.max(Math.min(updated, 1024), 128);
 	}
 
-	resizeHierarchyHeight(event: PointerEvent): void {
-		let availableHeight = this.#inspectorRef.value?.clientHeight;
-		if (availableHeight == null) return;
-		// Account for:
-		// - `section.inspector` padding (2rem ~= 32px)
-		// - resize-handle (0.5rem ~= 8px)
-		// - minimal space for `sts-entity-inspector` (2rem ~= 32px)
-		availableHeight -= 72;
-
-		const height = this.hierarchyHeight ?? this.#hierarchyRef.value?.offsetHeight;
-		if (height == null) return;
-
-		const updated = height + event.movementY;
-		this.hierarchyHeight = Math.max(Math.min(updated, availableHeight), 8);
-	}
-
 	toggleHelp(): void {
 		this.showHelp = !this.showHelp;
+	}
+
+	renderSidebar(): TemplateResult<1> {
+		if (this.currentSidebar === 'hierarchy') {
+			return html`<sts-scene-hierarchy
+			${ref(this.#hierarchyRef)}
+			class="hierarchy sidebar-view"
+		></sts-scene-hierarchy>`;
+		}
+
+		return html`<></>`;
 	}
 
 	protected override render() {
@@ -176,15 +173,15 @@ export class AppElement extends LitElement {
 					${ref(this.#mediaLibraryRef)}
 					tag="sts-media-library-dialog"
 				></sts-dialog>
-				` : html`<></>` }
+				` : html`<></>`}
 
-		<div class="wrapper" style=${styleMap({"--sidebar-width": `${this.inspectorWidth}px`})}>
+		<div class="wrapper" style=${styleMap({ "--sidebar-width": `${this.inspectorWidth}px` })}>
 			<!-- Scene view -->
 			<sts-studio
 				class=${classMap({
-			"studio-scene": true,
-			"block-pointer-events": this.resizingPanel,
-		})}
+					"studio-scene": true,
+					"block-pointer-events": this.resizingPanel,
+				})}
 				.objectId=${this.#params.objectId}
 				.bvhPath=${this.#params.bvh}
 				.mixamoPath=${this.#params.mixamo}
@@ -199,15 +196,13 @@ export class AppElement extends LitElement {
 				<sts-toolbar-group>
 					${this.#params.mode === StudioMode.Editor ? html`
 						<sts-button
-							icon="floppy-disk"
 							@click=${() => studio.saveScene()}
 						>
-							Save
+							Save Scene
 						</sts-button>
 					` : nothing}
 					<sts-button
 						class=${classMap({ active: this.showHelp })}
-						icon="question"
 						@click=${this.toggleHelp}
 					>
 						Help
@@ -233,43 +228,22 @@ export class AppElement extends LitElement {
 
 					<section
 						${ref(this.#inspectorRef)}
-						class="inspector h-end v-start v-end"
+						class="sidebar"
 						style=${styleMap({
 					width: `${this.inspectorWidth}px`,
 				})}
-						aria-labelledby="inspector-heading"
+						aria-labelledby="sidebar-heading"
 					>
-						<header class="inspector-header">
-							<h3 class="inspector-header__label"
-								id="inspector-heading"
-							>
-								Inspector
-							</h3>
-						</header>
+						<div class="sidebar-header">
+							${this.sidebars.map(({title, name}) => {
+								return html`<sts-button class=${classMap({"current-tab": name === this.currentSidebar, "sidebar-tab": true})}>${title}</sts-button>`
+							})}	
+						</div>
 
-						<sts-scene-hierarchy
-							${ref(this.#hierarchyRef)}
-							class="inspector__hierarchy"
-							style=${styleMap({
-					flex: this.hierarchyHeight != null
-						? `0 0 ${this.hierarchyHeight}px`
-						: null,
-				})}
-						></sts-scene-hierarchy>
+						${this.renderSidebar()}
 
 						<div
-							class="resize-handle resize-handle--v-center"
-							${drag({
-					start: this.onPanelResizeStart,
-					end: this.onPanelResizeEnd,
-					move: this.resizeHierarchyHeight,
-				})}
-						></div>
-
-						<sts-entity-inspector class="inspector__entity"></sts-entity-inspector>
-
-						<div
-							class="resize-handle resize-handle--h-start"
+							class="resize-handle"
 							${drag({
 					start: this.onPanelResizeStart,
 					end: this.onPanelResizeEnd,
@@ -277,8 +251,10 @@ export class AppElement extends LitElement {
 				})}
 						></div>
 					</section>
-				
 
+					<div class="entity-inspector">
+						<sts-entity-inspector></sts-entity-inspector>
+					</div>
 				
 					<sts-anim-editor
 						class="timeline"
@@ -290,7 +266,9 @@ export class AppElement extends LitElement {
 			
 			<!-- Dialogs and modals -->
 			${this.showHelp ? html`
-				<sts-help class="help"></sts-help>
+			<div class="help">
+				<sts-help></sts-help>
+				</div>
 			` : nothing}
 	</div>
 

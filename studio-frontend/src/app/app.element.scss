@@ -17,39 +17,104 @@ $hierarchy-width: 290px;
 	right: 0;
 	display: grid;
 
-	grid-template-columns: [timeline-start screen-start] 2rem [left-toolbar-start help-start] max-content [left-toolbar-end] auto [center-toolbar-start  help-end] max-content [center-toolbar-end] auto [right-toolbar-start] max-content [right-toolbar-end] 2rem [screen-end sidebar-start] var(--sidebar-width) [sidebar-end timeline-end];
-	grid-template-rows: [top-toolbar-start sidebar-start screen-start] max-content [top-toolbar-end help-start] max-content [help-end] auto [bottom-toolbar-start] max-content [bottom-toolbar-end sidebar-end screen-end timeline-start] var(--timeline-height) [timeline-end];
+	grid-template-columns: [timeline-start screen-start] 2rem [left-toolbar-start help-start] max-content [left-toolbar-end] auto [center-toolbar-start] max-content [center-toolbar-end] auto [right-toolbar-start] max-content [right-toolbar-end] 2rem [screen-end help-end sidebar-start] var(--sidebar-width) [sidebar-end timeline-end];
+	grid-template-rows: [top-toolbar-start sidebar-start screen-start] min-content [top-toolbar-end help-start sidebar-view-start] max-content [help-end] auto [bottom-toolbar-start] max-content [bottom-toolbar-end sidebar-end sidebar-view-end screen-end timeline-start] var(--timeline-height) [timeline-end];
 
 	.studio-scene {
-		grid-area: screen;
+		position: fixed;
+		bottom: 0;
+		left: 0;
+		right: 0;
 	}
 
 	.action-toolbar {
 		grid-column: left-toolbar;
 		grid-row: top-toolbar;
+		padding: var(--padding);
+
+		sts-toolbar-group {
+			gap: var(--padding);
+		}
 
 		sts-button {
 			background-color: var(--color-toolbar-background);
 		}
+
 		z-index: 1;
 	}
 
 	.timeline {
-		grid-area: timeline;
+		grid-row-start: bottom-toolbar-start;
+		grid-row-end: timeline-end;
+		grid-column: timeline;
 		z-index: 1;
-		background-color: var(--color-toolbar-background);
 		border-radius: 0;
 	}
 
-	.inspector {
+	.sidebar {
+		display: grid;
 		grid-area: sidebar;
+		grid-template-rows: subgrid;
 		z-index: 1;
-		background-color: var(--color-toolbar-background);
+		background-color: var(--color-panel-background);
 		border-radius: 0;
+
+
+		position: relative;
+		padding: var(--padding);
+		padding-left: 0.5rem;
+
+		.resize-handle {
+			position: absolute;
+			left: 0;
+			top: 0;
+			bottom: 0;
+			width: 0.5rem;
+			background: #0004;
+			transition: 66.666ms background linear;
+
+			&:hover {
+				background: #FFF1;
+			}
+		}
+
+		.sidebar-header {
+			grid-row: top-toolbar;
+			display: flex;
+			flex-direction: row;
+			justify-content: stretch;
+			gap: 0;
+
+			.sidebar-tab {
+				border: none;
+				background: none;
+				border-bottom: 2px var(--color-toolbar-background) solid;
+				flex-grow: 1;
+				border-radius: 0;
+
+				&.current-tab {
+					color: var(--color-text-bright);
+					border-bottom-color: var(--color-accent);
+				}
+			}
+		}
+
+		.sidebar-view {
+			grid-row: sidebar-view;
+		}
 	}
 
 	.help {
 		grid-area: help;
+		z-index: 1;
+		display: flex;
+		flex-direction: row;
+		justify-content: start;
+	}
+
+	.entity-inspector {
+		grid-column: left-toolbar;
+		grid-row: bottom-toolbar;
 		z-index: 1;
 	}
 
@@ -73,111 +138,8 @@ $hierarchy-width: 290px;
 	}
 }
 
-// // Layout utilities
-// .v-start {
-// 	position: absolute;
-// 	top: 16px;
-// }
-// .v-end {
-// 	position: absolute;
-// 	bottom: 16px;
-// }
-// .v-after-toolbar {
-// 	position: absolute;
-// 	top: 60px;
-// }
-// .h-start { left: 16px }
-// .h-end  { right: 16px }
-// .h-center {
-// 	left: 50%;
-// 	transform: translateX(-50%);
-// }
-
 .studio-scene.block-pointer-events::part(canvas) {
 	pointer-events: none;
-}
-
-sts-button.active {
-	background: #7A2C34E3;
-	color: #FFF;
-}
-
-// TODO: Probably move this
-.inspector-open {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	width: 52px;
-	height: 52px;
-	border-radius: 24px;
-
-	appearance: none;
-	border: none;
-	background: #0006;
-	backdrop-filter: blur(16px);
-	color: #FFFC;
-	transition: {
-		property: background-color, color;
-		duration: 100ms;
-		timing-function: linear;
-	}
-	cursor: pointer;
-
-	font-size: 20px;
-
-	&:hover {
-		background: #0008;
-		color: #FFFF;
-	}
-}
-
-.inspector {
-	display: flex;
-	flex-direction: column;
-	border-radius: 0.5rem;
-	border: 0.5rem solid #0004 {
-		block-start: none;
-		inline-start: none;
-	}
-	padding: {
-		block-start: 2rem;
-		inline-start: 0.5rem;
-	}
-
-	background: #0006;
-	backdrop-filter: blur(16px);
-
-	&__hierarchy {
-		flex: 0 0 calc(50% - 0.25rem);
-	}
-
-	&__entity {
-		flex: 1 0 0;
-		height: 0;
-	}
-
-	.resize-handle {
-		background: #0004;
-		transition: 66.666ms background linear;
-
-		&:hover {
-			background: #FFF1;
-		}
-
-		&--h-start {
-			position: absolute;
-			top: 0;
-			left: 0;
-			bottom: 0;
-			width: 0.5rem;
-			cursor: ew-resize;
-		}
-
-		&--v-center {
-			height: 0.5rem;
-			cursor: ns-resize
-		}
-	}
 }
 
 .inspector-header {
@@ -185,6 +147,7 @@ sts-button.active {
 	align-items: center;
 	justify-content: space-between;
 	height: 2rem;
+
 	padding: 0 {
 		inline-start: 0.75rem;
 	}
@@ -199,6 +162,7 @@ sts-button.active {
 	&__label {
 		margin: 0;
 		color: #FFF9;
+
 		font: {
 			family: "Fira Sans", sans-serif;
 			size: math.div(15, 16) * 1rem;
@@ -217,6 +181,7 @@ sts-button.active {
 		background: transparent;
 		border: none;
 		color: #FFFC;
+
 		transition: {
 			property: color, background-color;
 			duration: 66.666ms;
