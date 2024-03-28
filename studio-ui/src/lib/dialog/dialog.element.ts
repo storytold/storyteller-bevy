@@ -4,6 +4,7 @@ import { LitElement, TemplateResult, type PropertyValues } from "lit";
 import { html, unsafeStatic } from "lit/static-html.js";
 import { customElement, property } from "lit/decorators.js";
 import { ifDefined } from "lit/directives/if-defined.js";
+import { StyleInfo } from "lit/directives/style-map.js";
 import { Ref } from "lit/directives/ref.js";
 
 import {
@@ -294,6 +295,14 @@ export class DialogElement extends LitElement {
 	ignoreBackdropClick = false;
 
 	/**
+	 * If this property is `true`, the dialog backdrop will be completely
+	 * transparent and allow the user to interact with background elements while
+	 * the dialog is still present.
+	 */
+	@property({ type: Boolean })
+	nonBlocking = false;
+
+	/**
 	 * ARIA role to pass to the custom element defined by `tag`.
 	 *
 	 * Has no effect if a custom {@linkcode template} is provided with
@@ -318,12 +327,18 @@ export class DialogElement extends LitElement {
 		if (!this.tag && !this.template)
 			return;
 
-		const containerStyles = {
+		const containerStyles: StyleInfo = {
 			display: "flex",
 			alignItems: "center",
 			justifyContent: "center",
-			background: "#1A1A2766",
 		};
+
+		if (this.nonBlocking) {
+			containerStyles["pointer-events"] = "none";
+		} else {
+			containerStyles["background"] = "#1A1A2766";
+		}
+
 		const onBackdropClick = this.onBackdropClick;
 
 		if (this.template) {
@@ -393,7 +408,7 @@ export class DialogElement extends LitElement {
 	}
 
 	onBackdropClick = (): void => {
-		if (!this.ignoreBackdropClick)
+		if (!this.ignoreBackdropClick && !this.nonBlocking)
 			this.close();
 	}
 }

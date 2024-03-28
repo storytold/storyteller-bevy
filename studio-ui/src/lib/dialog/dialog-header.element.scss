@@ -3,18 +3,18 @@
 :host {
 	display: flex;
 	align-items: center;
-	justify-content: space-between;
 	height: 3rem;
-	padding: 0 {
-		inline-start: 1rem;
-	}
 	background: #0006;
 }
 
 .title {
+	flex: 1 0 0;
 	display: flex;
+	height: 3rem;
 	align-items: center;
 	gap: math.div(12, 16) * 1rem;
+	padding-inline-start: 1rem;
+	user-select: none;
 
 	&__icon {
 		color: #FFFC;

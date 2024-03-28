@@ -1,6 +1,7 @@
+import * as studio from "@storyteller/studio";
+import { SceneElement } from "@storyteller/studio";
 import { bind, inject } from "@storyteller/framework";
-import { ButtonElement } from "@storyteller/studio-ui/button";
-import { DialogBaseElement } from "@storyteller/studio-ui/dialog";
+import { DialogBaseElement, DialogElement } from "@storyteller/studio-ui/dialog";
 import {
 	type MediaFile as IMediaFile,
 	MediaFileClass,
@@ -9,8 +10,11 @@ import {
 	MediaFileType,
 	StorytellerApi,
 	Visibility,
+	UploadMediaFileOptions,
+	SCENE_DATA_PROVIDER,
+	type SceneDataProvider,
 } from "@storyteller/studio-web";
-import { match, type Pred } from "@storyteller/utility";
+import { exists, match, type Pred } from "@storyteller/utility";
 import {
 	html,
 	nothing,
@@ -19,13 +23,17 @@ import {
 	unsafeCSS,
 	css,
 } from "lit";
-import { customElement, queryAll, state } from "lit/decorators.js";
+import { customElement, state } from "lit/decorators.js";
 import { classMap } from "lit/directives/class-map.js";
 import { ifDefined } from "lit/directives/if-defined.js";
+import { createRef, ref } from "lit/directives/ref.js";
+
+import { AssetImport } from "./asset-import-dialog.element";
 
 import "@storyteller/studio-ui/button";
 import "@storyteller/studio-ui/icon";
 import "@storyteller/studio-ui/forms/text-field";
+import "./asset-import-dialog.element";
 
 import styles from "./media-library-dialog.element.scss?inline";
 
@@ -38,7 +46,7 @@ export class MediaLibraryDialogElement extends DialogBaseElement {
 
 	override heading = "Media Library";
 
-	@state() _mediaFiles?: MediaFile[];
+	@state() _mediaFiles?: Map<MediaFileToken, MediaFile>;
 	@state() _searchTerm = "";
 	@state() _selected: MediaFileToken[] = [];
 	@state() _activeCategory: MediaFileCategory = MEDIA_FILE_CATEGORIES[0];
@@ -48,13 +56,20 @@ export class MediaLibraryDialogElement extends DialogBaseElement {
 	@inject(StorytellerApi)
 	_api!: StorytellerApi;
 
-	@queryAll("[data-import-trigger]")
-	importTriggers!: ButtonElement[];
+	@inject(SCENE_DATA_PROVIDER)
+	_sceneData!: SceneDataProvider;
 
 	#dateFmt = new Intl.DateTimeFormat("en-us");
+	#importDialogRef = createRef<DialogElement>();
+	#transientFileInput?: HTMLInputElement;
+
+	@state() _uploadedFile?: File;
 
 	get #mediaFiles() {
-		return this._mediaFiles?.filter(it =>
+		if (!this._mediaFiles)
+			return null;
+
+		return Array.from(this._mediaFiles.values()).filter(it =>
 			this._filters.every(pred => pred(it))
 		);
 	}
@@ -70,9 +85,39 @@ export class MediaLibraryDialogElement extends DialogBaseElement {
 		return ResultsStatus.NonEmpty;
 	}
 
+	get #canAddToScene() {
+		const noAnimations = this._selected.every(token => {
+			const mediaFile = this._mediaFiles?.get(token);
+			if (!mediaFile) return false;
+
+			return mediaFile.mediaClass !== MediaFileClass.Animation;
+		});
+
+		return noAnimations || this.#canAddAnimation;
+	}
+
+	get #canAddAnimation() {
+		const oneAnimationSelected = this._selected.length === 1
+			&& this._mediaFiles?.get(this._selected[0])?.mediaClass === MediaFileClass.Animation;
+		const skeletonSelected = this._sceneData.selectedObject?.type === SceneElement.Skeleton;
+
+		return oneAnimationSelected && skeletonSelected;
+	}
+
 	override connectedCallback(): void {
+		this._sceneData?.addEventListener("property-changes", this.onProviderChanges);
 		this.loadResults();
 		super.connectedCallback();
+	}
+
+	override disconnectedCallback(): void {
+		this._sceneData?.removeEventListener("property-changes", this.onProviderChanges);
+		super.disconnectedCallback();
+	}
+
+	onProviderChanges = ({ detail: changes }: CustomEvent<PropertyValues<SceneDataProvider>>) => {
+		if (changes.has("selectedObject"))
+			this.requestUpdate();
 	}
 
 	protected override willUpdate(changes: PropertyValues<this>): void {
@@ -108,8 +153,11 @@ export class MediaLibraryDialogElement extends DialogBaseElement {
 			const results = await Promise.all(
 				response.results.map(({ token }) => this._api.mediaFile(token))
 			);
+			console.log("Results:", results);
 
-			this._mediaFiles = results.map(info => new MediaFile(info));
+			this._mediaFiles = new Map(
+				results.map(info => [info.token, new MediaFile(info)])
+			);
 		}
 		catch (err) {
 			if (typeof err === "object" && err !== null && err instanceof Error) {
@@ -146,14 +194,116 @@ export class MediaLibraryDialogElement extends DialogBaseElement {
 		this._selected = [];
 	}
 
-	get importDialogTemplate() {
-		return html`
-			<sts-dialog-header icon="import">
-				Import Asset
-			</sts-dialog-header>
+	promptForFileUpload(): void {
+		this.#transientFileInput = document.createElement("input");
+		this.#transientFileInput.type = "file";
+		this.#transientFileInput.accept = match (this._activeCategory.mediaClass, {
+			[MediaFileClass.Animation]: () => ".bvh,.fbx,.gltf",
+			[MediaFileClass.Audio]: () => ".wav,.mp3",
+			[MediaFileClass.Character]: () => ".fbx,.gltf",
+			[MediaFileClass.Prop]: () => ".fbx,.gltf",
+			[MediaFileClass.Scene]: () => ".fbx,.gltf,.scn.ron",
+			_: () => "",
+		});
+		this.#transientFileInput.multiple = false;
 
-			<p>Lorem ipsum dolor sit amet</p>
-		`;
+		this.#transientFileInput.addEventListener("input", this.onLocalFileLoaded.bind(this), {
+			once: true,
+		});
+
+		this.#transientFileInput.click();
+	}
+
+	onLocalFileLoaded(): void {
+		console.log("files:", this.#transientFileInput?.files);
+		const file = this.#transientFileInput?.files?.[0];
+		if (file != null) {
+			this._uploadedFile = file;
+
+			setTimeout(() => {
+				this.#importDialogRef.value?.open();
+			});
+		}
+	}
+
+	async onImportAsset({ detail: data}: CustomEvent<AssetImport>): Promise<void> {
+		console.log("MediaLibrary.onImportAsset", data);
+		this._mediaFiles = undefined;
+		this.#importDialogRef.value?.close();
+
+		if (!this._uploadedFile)
+			throw new Error("Expected `_uploadedFile` to be non-null!");
+
+		try {
+			const options: UploadMediaFileOptions = {
+				mediaClass: data.type,
+			};
+
+			if (data.type === MediaFileClass.Animation)
+				options.subtype = data.animationSkeleton;
+
+			const token = await this._api.uploadMediaFile(this._uploadedFile, options);
+			await this._api.renameMediaFile(token, data.title);
+
+			this._selected.push(token);
+		}
+		catch (err) {
+			if (typeof err === "object" && err !== null && err instanceof Error) {
+				this._apiError = err;
+			} else {
+				this._apiError = new Error(String(err));
+			}
+		}
+
+		this.loadResults();
+	}
+
+	onAddToScene(): void {
+		if (this.#canAddAnimation) {
+			this.#addAnimation();
+		} else {
+			this.#spawnSelectedScenes();
+		}
+	}
+
+	#addAnimation(): void {
+		// TODO: Make this actually work
+		console.warn("Adding animations not yet implemented!");
+		this.dispatchEvent(new CustomEvent("close"));
+	}
+
+	#spawnSelectedScenes(): void {
+		const assets = this._selected
+			.map(token => {
+				if (!this._mediaFiles) {
+					console.error("Expected `_mediaFiles` map to be present when spawning assets");
+					return null;
+				}
+
+				const mediaFile = this._mediaFiles.get(token);
+				if (!mediaFile) {
+					console.error(`Attempted to spawn an invalid token: "${token}"`);
+					return null;
+				}
+
+				const ext = mediaFile.extension;
+				if (!ext) {
+					console.error("Expected media file to have a non-null `extension` field");
+					return null;
+				}
+
+				return {
+					path: `remote://${token}${ext}`,
+					name: mediaFile.displayName,
+				};
+			})
+			.filter(exists);
+
+		setTimeout(() => {
+			studio.spawnAssets(assets);
+		});
+
+		this.dispatchEvent(new CustomEvent("close"));
 	}
 
 	protected override render = (): TemplateResult => html`
@@ -164,7 +314,7 @@ export class MediaLibraryDialogElement extends DialogBaseElement {
 		<section class="main">
 			<nav class="sidebar" part="sidebar">
 				<ul class="sidebar__list">
-					${MEDIA_FILE_CATEGORIES.map(cat => html`
+					${MEDIA_FILE_CATEGORIES.map((cat, idx) => html`
 						<li class="sidebar__listitem">
 							<sts-button
 								class=${classMap({
@@ -172,6 +322,7 @@ export class MediaLibraryDialogElement extends DialogBaseElement {
 								})}
 								.icon=${cat.icon}
 								title=${ifDefined(cat.tooltip)}
+								?autofocus=${idx === 0}
 								?disabled=${cat.disabled}
 								@click=${() => {
 									if (!cat.disabled)
@@ -189,7 +340,7 @@ export class MediaLibraryDialogElement extends DialogBaseElement {
 					<sts-button
 						class="btn-secondary"
 						icon="import"
-						data-import-trigger
+						@click=${this.promptForFileUpload}
 					>
 						Import...
 					</sts-button>
@@ -211,6 +362,7 @@ export class MediaLibraryDialogElement extends DialogBaseElement {
 				>
 					${match (this.#resultsStatus, {
 						[ResultsStatus.Loading]: () => html`
+							<!-- TODO: Spinner or something -->
 							<span>Loading...</span>
 						`,
 						[ResultsStatus.Empty]: () => html`
@@ -220,7 +372,7 @@ export class MediaLibraryDialogElement extends DialogBaseElement {
 								<sts-button
 									class="btn-secondary"
 									icon="import"
-									data-import-trigger
+									@click=${this.promptForFileUpload}
 								>
 									Import...
 								</sts-button>
@@ -262,6 +414,8 @@ export class MediaLibraryDialogElement extends DialogBaseElement {
 					<sts-button
 						class="btn-primary content__add-to-scene"
 						icon="plus-large"
+						?disabled=${!this.#canAddToScene}
+						@click=${this.onAddToScene}
 					>
 						Add to Scene
 					</sts-button>
@@ -270,8 +424,16 @@ export class MediaLibraryDialogElement extends DialogBaseElement {
 		</section>
 
 		<sts-dialog
-			.trigger=${this.importTriggers}
-			.template=${[this, this.importDialogTemplate] as const}
+			${ref(this.#importDialogRef)}
+			skipWrapper
+			.template=${[this, html`
+				<sts-asset-import-dialog
+					.file=${this._uploadedFile}
+					.assetType=${this._activeCategory.mediaClass}
+					@import-asset=${this.onImportAsset}
+					@close=${() => this.#importDialogRef.value?.close()}
+				></sts-asset-import-dialog>
+			`] as const}
 		></sts-dialog>
 	`;
 }
@@ -281,6 +443,7 @@ interface MediaFileCategory {
 	icon: string;
 	disabled?: boolean;
 	tooltip?: string;
+	mediaClass?: MediaFileClass;
 	predicate: Pred<MediaFile>;
 }
 
@@ -293,6 +456,7 @@ const MEDIA_FILE_CATEGORIES: readonly MediaFileCategory[] = [
 	{
 		name: "Animation",
 		icon: "film",
+		mediaClass: MediaFileClass.Animation,
 		predicate: it => it.mediaClass === MediaFileClass.Animation,
 	},
 	{
@@ -300,21 +464,25 @@ const MEDIA_FILE_CATEGORIES: readonly MediaFileCategory[] = [
 		icon: "volume",
 		disabled: true,
 		tooltip: "Coming soon!",
+		mediaClass: MediaFileClass.Audio,
 		predicate: it => it.mediaClass === MediaFileClass.Audio,
 	},
 	{
 		name: "Characters",
 		icon: "figure",
+		mediaClass: MediaFileClass.Character,
 		predicate: it => it.mediaClass === MediaFileClass.Character,
 	},
 	{
 		name: "Props",
 		icon: "cube",
+		mediaClass: MediaFileClass.Prop,
 		predicate: it => it.mediaClass === MediaFileClass.Prop,
 	},
 	{
 		name: "Scenes",
 		icon: "scene",
+		mediaClass: MediaFileClass.Scene,
 		predicate: it => it.mediaClass === MediaFileClass.Scene,
 	},
 ];
@@ -335,6 +503,7 @@ class MediaFile {
 
 	title?: string;
 	filename?: string;
+	extension?: string;
 
 	visibility: Visibility;
 	bucketPath: string;
@@ -354,6 +523,9 @@ class MediaFile {
 
 		this.title = info.maybe_title ?? undefined;
 		this.filename = info.maybe_original_filename ?? undefined;
+		this.extension = info.maybe_engine_extension
+			?? this.filename?.match(/\..+/)?.[0]
+			?? undefined;
 
 		this.visibility = info.creator_set_visibility;
 		this.bucketPath = info.public_bucket_path;

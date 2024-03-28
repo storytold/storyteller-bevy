@@ -10,8 +10,9 @@
 	background: #0006;
 	color: #FFFC;
 	backdrop-filter: blur(32px);
-	border-radius: 0.5rem;
+	border-radius: 1rem;
 	overflow: hidden;
+	pointer-events: auto;
 }
 
 .main {
@@ -22,13 +23,23 @@
 .content {
 	display: flex;
 	flex-direction: column;
-	flex: 0 0 auto;
+	flex: 1 0 0;
 	gap: 1rem;
 	border: {
 		inline: 0.5rem solid #0004;
 		block-end: 0.5rem solid #0004;
+		bottom-right-radius: 1rem;
+		bottom-left-radius: 1rem;
 	}
 	padding: 1rem;
+
+	&.with-footer {
+		border: {
+			block-end: none;
+			bottom-right-radius: 0;
+			bottom-left-radius: 0;
+		}
+	}
 }
 
 [part="sidebar"]:not(:empty) {
@@ -36,6 +47,9 @@
 	background: #0004;
 
 	+ .content {
-		border-inline-start: none;
+		border: {
+			inline-start: none;
+			bottom-left-radius: 0;
+		}
 	}
 }

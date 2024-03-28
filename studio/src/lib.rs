@@ -21,6 +21,7 @@ mod hierarchy;
 mod input;
 mod inspector;
 mod interaction;
+pub mod material;
 pub mod math;
 mod mixamo;
 mod path;
@@ -33,6 +34,7 @@ mod ui;
 pub mod viewport;
 mod world_grid;
 
+use crate::material::MaterialPlugin;
 pub use crate::{
     anim::AnimPlugin,
     bvh::BvhPlugin,
@@ -86,6 +88,7 @@ impl PluginGroup for CommonPlugins {
             .add(InspectorPlugin)
             .add(InterpolationPlugin)
             .add(ScenePlugin)
+            .add(MaterialPlugin)
             .add(SkyboxPlugin)
             .add(StudioInputPlugin)
             .add(UiLayerPlugin)
@@ -228,7 +231,10 @@ fn init_from_asset(app: &mut App, asset: InitAsset, skybox_id: String) {
         }
         InitAsset::ImportedScene(scene) => {
             app.add_systems(Startup, move |mut ew: EventWriter<ImportSceneEvent>| {
-                ew.send(ImportSceneEvent(scene.clone()));
+                ew.send(ImportSceneEvent {
+                    path: scene.clone(),
+                    name: None,
+                });
             });
         }
     }

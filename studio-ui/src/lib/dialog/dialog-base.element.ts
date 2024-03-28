@@ -1,6 +1,7 @@
 import { on } from "@storyteller/framework";
-import { LitElement, TemplateResult, html, unsafeCSS } from "lit";
-import { customElement, property, queryAssignedElements } from "lit/decorators.js";
+import { LitElement, PropertyValues, TemplateResult, html, unsafeCSS } from "lit";
+import { customElement, property, queryAssignedElements, state } from "lit/decorators.js";
+import { classMap } from "lit/directives/class-map.js";
 import { v4 as uuid } from "uuid";
 
 import { type DialogHeaderElement } from "./dialog-header.element";
@@ -62,12 +63,35 @@ export class DialogBaseElement extends LitElement {
 	override ariaModal = "true";
 	override tabIndex = -1;
 
+	@state() _hasFooter = false;
+
 	@queryAssignedElements({ slot: "dialog-header" })
 	dialogHeaders!: Element[];
+
+	@queryAssignedElements({ slot: "footer" })
+	dialogFooters!: Element[];
+
+	@state() _translateX?: number;
+	@state() _translateY?: number;
 
 	override connectedCallback(): void {
 		this.focus();
 		super.connectedCallback();
+	}
+
+	protected override update(changes: PropertyValues<this>): void {
+		if (
+			changes.has("_translateX") || changes.has("_translateY")
+			&& (this._translateX != null || this._translateY != null)
+		) {
+			this.style.setProperty(
+				"transform",
+				`translateX(${this._translateX ?? 0}px) ` +
+				`translateY(${this._translateY ?? 0}px)`
+			);
+		}
+
+		super.update(changes);
 	}
 
 	@on("keydown")
@@ -79,6 +103,12 @@ export class DialogBaseElement extends LitElement {
 			this.dispatchEvent(new CustomEvent("close"));
 	}
 
+	@on("translate", { capture: true })
+	onTranslate({ detail: { x, y }}: CustomEvent<{ x: number; y: number }>): void {
+		this._translateX = x;
+		this._translateY = y;
+	}
+
 	onDialogHeaderChanged(): void {
 		if (this.dialogHeaders.length && !this.ariaLabel) {
 			const header = this.dialogHeaders[0];
@@ -88,6 +118,10 @@ export class DialogBaseElement extends LitElement {
 		else if (!this.dialogHeaders.length && this.hasAttribute("aria-labelledby")) {
 			this.removeAttribute("aria-labelledby");
 		}
+	}
+
+	onFooterChanged(): void {
+		this._hasFooter = this.dialogFooters.length > 0;
 	}
 
 	protected override render(): TemplateResult {
@@ -107,12 +141,21 @@ export class DialogBaseElement extends LitElement {
 			<section class="main" part="main">
 				<slot name="sidebar" part="sidebar"></slot>
 
-				<section class="content" part="content">
+				<section
+					class=${classMap({
+						"content": true,
+						"with-footer": this._hasFooter,
+					})}
+					part="content"
+				>
 					<slot></slot>
 				</section>
 			</section>
 
-			<slot name="footer"></slot>
+			<slot
+				name="footer"
+				@slotchange=${this.onFooterChanged}
+			></slot>
 		`;
 	}
 }

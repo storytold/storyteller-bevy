@@ -1,0 +1,60 @@
+@use "sass:math";
+
+*, *::before, *::after {
+	box-sizing: border-box;
+}
+
+:host {
+	display: contents;
+}
+
+.dialog {
+	min-width: 480px;
+}
+
+.form {
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+}
+
+.form-field {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+
+.label {
+	color: #FFF9;
+	font-size: math.div(15, 16) * 1rem;
+}
+
+// TODO: Make a component for this
+select.input {
+	padding: 0.5rem 0.75rem;
+	border-radius: 0.25rem;
+	background: #0004;
+	border: 1px solid #FFF2;
+	color: #FFFC;
+	transition: {
+		property: background-color, border-color, color;
+		duration: 33.333ms;
+		timing-function: linear;
+	}
+
+	&:focus {
+		outline: none;
+		border-color: #FFF4;
+		background: #0006;
+		color: #FFFF;
+	}
+}
+option {
+	color-scheme: dark !important;
+	background-color: #000000;
+	color: #FFFC;
+
+	&:disabled {
+		color: #FFF6;
+	}
+}

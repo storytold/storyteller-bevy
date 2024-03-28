@@ -38,6 +38,9 @@ use crate::{
     MainCamera,
 };
 
+#[cfg(feature = "wasm")]
+mod wasm;
+
 pub struct ScenePlugin;
 
 #[derive(SystemSet, Clone, Copy, PartialEq, Eq, Hash, Debug)]
@@ -105,7 +108,7 @@ impl Plugin for ScenePlugin {
         app.add_systems(
             Update,
             (
-                wasm::dispatch_object_load_request,
+                wasm::handle_spawn_asset_messages,
                 wasm::notify_state_changes
                     .map(bevy::utils::error)
                     .run_if(resource_changed::<State<SceneState>>()),
@@ -247,8 +250,11 @@ pub struct LoadSceneEvent(pub String);
 
 /// Request the application to import and process a glTF scene from an arbitrary
 /// asset source (e.g., an http path or a Storyteller.ai media token).
-#[derive(Event, Deref)]
-pub struct ImportSceneEvent(pub String);
+#[derive(Event)]
+pub struct ImportSceneEvent {
+    pub path: String,
+    pub name: Option<String>,
+}
 
 /// A tag that identifies its entity as a user-facing scene element like a prop,
 /// a light, or a camera.
@@ -380,16 +386,23 @@ fn init_scene_import(
     r_assets: Res<AssetServer>,
     mut er: EventReader<ImportSceneEvent>,
 ) {
-    if let Some(path) = er.read().last() {
-        info!("Importing asset: {}", path.0);
+    for event in er.read() {
+        info!("Importing asset: {}", event.path);
+
+        let name = event
+            .name
+            .as_ref()
+            .map(|name| Name::new(name.clone()))
+            .unwrap_or_else(|| Name::new("Scene"));
+
         cmd.spawn((
-            Name::new("Scene"), // TODO: Maybe use the "basename" part of the asset path?
+            name,
             SpatialBundle::default(),
             space_editor::prelude::GltfPrefab {
-                path: path.0.clone(),
+                path: event.path.clone(),
                 scene: "Scene0".to_string(),
             },
-            r_assets.load::<Gltf>(&path.0),
+            r_assets.load::<Gltf>(&event.path),
             PrefabMarker,
             SceneRoot,
         ));
@@ -599,91 +612,5 @@ fn frame_scene_in_view(
 fn start_capture(mut captures: Query<&mut ScreenCapture, Added<ScreenCapture>>) {
     for mut capture in captures.iter_mut() {
         capture.start_capturing();
-    }
-}
-
-#[cfg(feature = "wasm")]
-mod wasm {
-    use bevy::{prelude::*, window::PrimaryWindow};
-    use wasm_bindgen::prelude::*;
-
-    use super::{LoadLibraryObjectEvent, LoadingQueue, SceneState};
-    use crate::wasm::{self, StaticBuffer, WasmMessageBuffer};
-
-    static OBJECT_LOAD_REQUEST: WasmMessageBuffer<String> = WasmMessageBuffer::new();
-
-    #[wasm_bindgen(js_name = loadObject)]
-    pub fn load_object(id: &str) {
-        OBJECT_LOAD_REQUEST.write_message(id.into());
-    }
-
-    // FIXME: Is it an object or a scene? Inconsistent terminology is
-    //        unnecessarily confusing
-    pub(super) fn dispatch_object_load_request(
-        mut ew_load_scene: EventWriter<LoadLibraryObjectEvent>,
-    ) {
-        if let Some(id) = OBJECT_LOAD_REQUEST.take_message() {
-            ew_load_scene.send(LoadLibraryObjectEvent(id));
-        }
-    }
-
-    #[wasm_bindgen(typescript_custom_section)]
-    const SCENE_STATE_EVENT: &str = r#"
-export interface SceneStateEvent extends CustomEvent {
-    type: "scene-state";
-    detail: SceneState;
-}
-
-declare global {
-    export interface GlobalEventHandlersEventMap {
-        "scene-state": SceneStateEvent;
-    }
-}
-    "#;
-
-    pub(super) fn notify_state_changes(
-        r_state: Res<State<SceneState>>,
-        q_window: Query<&Window, With<PrimaryWindow>>,
-    ) -> Result<(), String> {
-        if let Ok(window) = q_window.get_single() {
-            wasm::dispatch_to_js(window, "scene-state", &(**r_state as u32))?;
-        }
-        Ok(())
-    }
-
-    #[wasm_bindgen(typescript_custom_section)]
-    const LOADING_QUEUE_EVENT: &str = r#"
-export interface LoadingQueueEvent extends CustomEvent {
-    type: "loading-queue";
-    detail: number;
-}
-
-declare global {
-    export interface GlobalEventHandlersEventMap {
-        "loading-queue": LoadingQueueEvent;
-    }
-}
-    "#;
-
-    pub(super) fn notify_loading_queue_changes(
-        mut l_last_sent: Local<Option<usize>>,
-        r_loading: Res<LoadingQueue>,
-        q_window: Query<&Window, With<PrimaryWindow>>,
-    ) -> Result<(), String> {
-        let queue_len = r_loading.queue.len();
-        if let Some(last_sent) = *l_last_sent {
-            if last_sent == queue_len {
-                return Ok(());
-            }
-        }
-
-        let Ok(window) = q_window.get_single() else {
-            return Ok(());
-        };
-
-        wasm::dispatch_to_js(window, "loading-queue", &queue_len)?;
-        *l_last_sent = Some(queue_len);
-
-        Ok(())
     }
 }

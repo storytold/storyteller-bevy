@@ -1,3 +1,4 @@
+import { drag } from "@storyteller/framework";
 import { LitElement, html, nothing, unsafeCSS } from "lit";
 import { customElement, property } from "lit/decorators.js";
 import { v4 as uuid } from "uuid";
@@ -53,8 +54,28 @@ export class DialogHeaderElement extends LitElement {
 
 	@property() icon?: string;
 
+	#translateX?: number;
+	#translateY?: number;
+
 	onClose(): void {
 		this.dispatchEvent(new CustomEvent("close", {
+			bubbles: true,
+			composed: true,
+		}));
+	}
+
+	onDrag(event: PointerEvent): void {
+		this.#translateX ??= 0;
+		this.#translateY ??= 0;
+
+		this.#translateX += event.movementX;
+		this.#translateY += event.movementY;
+
+		this.dispatchEvent(new CustomEvent("translate", {
+			detail: {
+				x: this.#translateX,
+				y: this.#translateY,
+			},
 			bubbles: true,
 			composed: true,
 		}));
@@ -64,6 +85,9 @@ export class DialogHeaderElement extends LitElement {
 		<div
 			class="title"
 			part="title"
+			${drag({
+				move: this.onDrag,
+			})}
 		>
 			${this.icon ? html`
 				<sts-icon

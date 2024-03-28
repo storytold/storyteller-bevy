@@ -1,0 +1,13 @@
+:host {
+	box-sizing: border-box;
+	display: flex;
+	justify-content: flex-end;
+	gap: 0.75rem;
+	padding: 0 1rem 1rem;
+	border: {
+		inline: 0.5rem solid #0004;
+		block-end: 0.5rem solid #0004;
+		bottom-right-radius: 1rem;
+		bottom-left-radius: 1rem;
+	}
+}
