@@ -16,6 +16,7 @@ $hierarchy-width: 290px;
 	left: 0;
 	right: 0;
 	display: grid;
+	pointer-events: none;
 
 	grid-template-columns: [timeline-start screen-start] 2rem [left-toolbar-start help-start] max-content [left-toolbar-end] auto [center-toolbar-start] max-content [center-toolbar-end] auto [right-toolbar-start] max-content [right-toolbar-end] 2rem [screen-end help-end sidebar-start] var(--sidebar-width) [sidebar-end timeline-end];
 	grid-template-rows: [top-toolbar-start sidebar-start screen-start] min-content [top-toolbar-end help-start sidebar-view-start] max-content [help-end] auto [bottom-toolbar-start] max-content [bottom-toolbar-end sidebar-end sidebar-view-end screen-end timeline-start] var(--timeline-height) [timeline-end];
@@ -25,6 +26,7 @@ $hierarchy-width: 290px;
 		bottom: 0;
 		left: 0;
 		right: 0;
+		pointer-events: all;
 	}
 
 	.action-toolbar {
@@ -117,6 +119,9 @@ $hierarchy-width: 290px;
 		grid-row: bottom-toolbar;
 		z-index: 1;
 		padding-bottom: var(--padding);
+		& > * {
+			pointer-events: all;
+		}
 	}
 
 	.transform-toolbar {

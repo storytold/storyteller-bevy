@@ -4,6 +4,7 @@
 	display: grid;
 	grid-template-rows: subgrid;
 	grid-row: 1 / span var(--row-count);
+	pointer-events: all;
 }
 
 *:focus-visible {
