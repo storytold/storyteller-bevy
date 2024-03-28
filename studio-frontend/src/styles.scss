@@ -7,4 +7,17 @@ html, body {
 	height: 100%;
 	margin: 0;
 	overflow: hidden;
+
+	--color-panel-background: #1e1e2c;
+	--color-toolbar-background: #2c2c3b;
+	--color-toolbar-background-light: #595970;	
+	--color-panel-item-name-background: #39394d;
+	--color-panel-item-background: #55556b;
+	--color-accent: #fc6b68;
+	--color-text: #dbdbdf;
+	--color-text-bright: #ffffff;
+	--color-text-disabled: #7c7c85;
+
+	--corner-radius: 0.75rem;
+	--padding: 0.4rem;
 }

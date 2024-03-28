@@ -323,14 +323,9 @@ export class AnimEditorElement extends LitElement
 		const none_selected = !selected;
 
 		return html`
-		<div class="sidebar"
-			style=${styleMap({
-			width: `${this.sidebarWidth}px`,
-			...timeline_css_variables
-		})}
-		>
+		<div class="timeline-controls">
 			<sts-toolbar>
-				<sts-toolbar-group>
+		<sts-toolbar-group>
 					${this.keyingMode === "automatic" ? html`
 						<sts-button class="btn-autokey active"
 							icon="record"
@@ -387,6 +382,14 @@ export class AnimEditorElement extends LitElement
 					></sts-button>
 				</sts-toolbar-group>
 			</sts-toolbar>
+		</div>
+		<div class="timeline-wrapper">
+		<div class="sidebar"
+			style=${styleMap({
+			width: `${this.sidebarWidth}px`,
+			...timeline_css_variables
+		})}
+		>
 			<div class="tracklist" role="list">
 			${tracklist}
 			</div>
@@ -409,6 +412,7 @@ export class AnimEditorElement extends LitElement
 			.track_ordered=${track_order_hashed}
 			.track_animation_target_ordered=${track_animation_target_order_hashed}
 		></sts-anim-timeline>
+		</div>
 	`
 	};
 };

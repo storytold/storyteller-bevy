@@ -14,7 +14,7 @@ import {
 	StudioURLParams,
 } from "@storyteller/studio-web";
 import { match } from "@storyteller/utility";
-import { LitElement, html, nothing } from "lit";
+import { LitElement, TemplateResult, html, nothing } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { classMap } from "lit/directives/class-map.js";
 import { createRef, ref } from "lit/directives/ref.js";
@@ -48,14 +48,15 @@ import { mock_save_load } from "./util";
 })
 export class AppElement extends LitElement {
 	@state() showHelp = false;
-	@state() showInspector = false;
 	@state() loading = true;
 
 	@state() resizingPanel = false;
 	@state() inspectorWidth = 320;
-	@state() hierarchyHeight?: number;
 
-	#enableAnimTimeline = true; // TODO
+	@state() sidebars: Array<{ title: string, name: string}> = [{title: 'Hierarchy', name: 'hierarchy'}];
+
+	@state() currentSidebar : string = 'hierarchy';
+
 	private api = new StorytellerApi();
 
 	#addToSceneButtonRef = createRef<ButtonElement>();
@@ -120,7 +121,7 @@ export class AppElement extends LitElement {
 	onSceneStateChange({ detail: state }: SceneStateEvent): void {
 		console.log("scene state change:", SceneState[state]);
 
-		this.loading = match (state, {
+		this.loading = match(state, {
 			[SceneState.Active]: () => false,
 			_: () => true,
 		});
@@ -139,32 +140,19 @@ export class AppElement extends LitElement {
 		this.inspectorWidth = Math.max(Math.min(updated, 1024), 128);
 	}
 
-	resizeHierarchyHeight(event: PointerEvent): void {
-		let availableHeight = this.#inspectorRef.value?.clientHeight;
-		if (availableHeight == null) return;
-		// Account for:
-		// - `section.inspector` padding (2rem ~= 32px)
-		// - resize-handle (0.5rem ~= 8px)
-		// - minimal space for `sts-entity-inspector` (2rem ~= 32px)
-		availableHeight -= 72;
-
-		const height = this.hierarchyHeight ?? this.#hierarchyRef.value?.offsetHeight;
-		if (height == null) return;
-
-		const updated = height + event.movementY;
-		this.hierarchyHeight = Math.max(Math.min(updated, availableHeight), 8);
-	}
-
-	minimizeInspector(): void {
-		this.showInspector = false;
-	}
-
-	openInspector(): void {
-		this.showInspector = true;
-	}
-
 	toggleHelp(): void {
 		this.showHelp = !this.showHelp;
+	}
+
+	renderSidebar(): TemplateResult<1> {
+		if (this.currentSidebar === 'hierarchy') {
+			return html`<sts-scene-hierarchy
+			${ref(this.#hierarchyRef)}
+			class="hierarchy sidebar-view"
+		></sts-scene-hierarchy>`;
+		}
+
+		return html`<></>`;
 	}
 
 	protected override render() {
@@ -173,7 +161,22 @@ export class AppElement extends LitElement {
 		<sts-scene-data-provider>
 		<sts-overlay-provider>
 			<sts-iframe-messaging-bridge></sts-iframe-messaging-bridge>
+			
+			${this.#params.mode === StudioMode.Editor ? html`
+				<sts-add-to-scene-menu
+					.trigger=${this.#addToSceneButtonRef}
+					@open-media-library=${() => {
+					this.#mediaLibraryRef.value?.open();
+				}}
+				></sts-add-to-scene-menu>
+				<sts-dialog
+					${ref(this.#mediaLibraryRef)}
+					tag="sts-media-library-dialog"
+					nonBlocking
+				></sts-dialog>
+				` : html`<></>`}
 
+		<div class="wrapper" style=${styleMap({ "--sidebar-width": `${this.inspectorWidth}px` })}>
 			<!-- Scene view -->
 			<sts-studio
 				class=${classMap({
@@ -190,29 +193,17 @@ export class AppElement extends LitElement {
 			></sts-studio>
 
 			<!-- Actions toolbar -->
-			<sts-toolbar class="v-start h-start">
+			<sts-toolbar class="action-toolbar">
 				<sts-toolbar-group>
 					${this.#params.mode === StudioMode.Editor ? html`
 						<sts-button
-							icon="floppy-disk"
 							@click=${() => studio.saveScene()}
 						>
-							Save
-						</sts-button>
-						<sts-button
-							${ref(this.#addToSceneButtonRef)}
-							icon="plus-large"
-						>
-							Add to Scene
-							<sts-icon
-								class="menu-button-icon"
-								icon="chevron-down"
-							></sts-icon>
+							Save Scene
 						</sts-button>
 					` : nothing}
 					<sts-button
 						class=${classMap({ active: this.showHelp })}
-						icon="question"
 						@click=${this.toggleHelp}
 					>
 						Help
@@ -222,99 +213,62 @@ export class AppElement extends LitElement {
 
 			<!-- Studio-mode-only elements -->
 			${this.#params.mode === StudioMode.Editor ? html`
-				<sts-add-to-scene-menu
-					.trigger=${this.#addToSceneButtonRef}
-					@open-media-library=${() => {
-						this.#mediaLibraryRef.value?.open();
-					}}
-				></sts-add-to-scene-menu>
-				<sts-dialog
-					${ref(this.#mediaLibraryRef)}
-					tag="sts-media-library-dialog"
-					nonBlocking
-				></sts-dialog>
+				<div class="transform-toolbar">
+						<sts-button
+							${ref(this.#addToSceneButtonRef)}
+							icon="plus-large"
+							class="add-to-scene-dropdown"
+						>
+						</sts-button>
+					<sts-transform-toolbar></sts-transform-toolbar>
+				</div>
 
-				<sts-transform-toolbar class="v-start h-center"></sts-transform-toolbar>
-
-				${this.showInspector ? html`
 					<section
 						${ref(this.#inspectorRef)}
-						class="inspector h-end v-start v-end"
+						class="sidebar"
 						style=${styleMap({
-							width: `${this.inspectorWidth}px`,
-						})}
-						aria-labelledby="inspector-heading"
+					width: `${this.inspectorWidth}px`,
+				})}
+						aria-labelledby="sidebar-heading"
 					>
-						<header class="inspector-header">
-							<h3 class="inspector-header__label"
-								id="inspector-heading"
-							>
-								Inspector
-							</h3>
-							<button class="inspector-header__minimize"
-								aria-label="Minimize inspector"
-								title="Minimize inspector"
-								@click=${this.minimizeInspector}
-							>
-								<sts-icon icon="minus"></sts-icon>
-							</button>
-						</header>
+						<div class="sidebar-header">
+							${this.sidebars.map(({title, name}) => {
+								return html`<sts-button class=${classMap({"current-tab": name === this.currentSidebar, "sidebar-tab": true})}>${title}</sts-button>`
+							})}	
+						</div>
 
-						<sts-scene-hierarchy
-							${ref(this.#hierarchyRef)}
-							class="inspector__hierarchy"
-							style=${styleMap({
-								flex: this.hierarchyHeight != null
-									? `0 0 ${this.hierarchyHeight}px`
-									: null,
-							})}
-						></sts-scene-hierarchy>
+						${this.renderSidebar()}
 
 						<div
-							class="resize-handle resize-handle--v-center"
+							class="resize-handle"
 							${drag({
-								start: this.onPanelResizeStart,
-								end: this.onPanelResizeEnd,
-								move: this.resizeHierarchyHeight,
-							})}
-						></div>
-
-						<sts-entity-inspector class="inspector__entity"></sts-entity-inspector>
-
-						<div
-							class="resize-handle resize-handle--h-start"
-							${drag({
-								start: this.onPanelResizeStart,
-								end: this.onPanelResizeEnd,
-								move: this.resizeInspectorWidth,
-							})}
+					start: this.onPanelResizeStart,
+					end: this.onPanelResizeEnd,
+					move: this.resizeInspectorWidth,
+				})}
 						></div>
 					</section>
-				` : html`
-					<button
-						class="inspector-open h-end v-start"
-						aria-label="Open scene inspector"
-						title="Open scene inspector"
-						@click=${this.openInspector}
-					>
-						<sts-icon icon="bars"></sts-icon>
-					</button>
-				`}
 
-				${this.#enableAnimTimeline ? html`
+					<div class="entity-inspector">
+						<sts-entity-inspector></sts-entity-inspector>
+					</div>
+				
 					<sts-anim-editor
-						class="timeline v-end h-start"
+						class="timeline"
 						style=${styleMap({
-							right: `${this.inspectorWidth + 32}px`
-						})}
+					right: `${this.inspectorWidth + 32}px`
+				})}
 					></sts-anim-editor>
-				` : nothing}
 			` : nothing}
-
+			
 			<!-- Dialogs and modals -->
 			${this.showHelp ? html`
-				<sts-help class="help v-after-toolbar h-start"></sts-help>
+			<div class="help">
+				<sts-help></sts-help>
+				</div>
 			` : nothing}
+	</div>
+
 
 			${this.loading ? html`
 				<sts-loading></sts-loading>

@@ -1,8 +1,30 @@
 :host {
 	display: grid;
+	grid-template-rows: subgrid;
+	grid-template-columns: subgrid;
+}
+
+.timeline-controls {
+	align-self: end;
+	justify-self: center;
+	display: flex;
+	justify-content: center;
+	grid-column: center-toolbar;
+	grid-row: bottom-toolbar;
+	background-color: var(--color-toolbar-background);
+	padding: var(--padding);
+	border-bottom-right-radius: 0;
+	border-bottom-left-radius: 0;
+	border-top-right-radius: var(--corner-radius);
+	border-top-left-radius: var(--corner-radius);
+
+}
+
+.timeline-wrapper {
+	grid-area: timeline;
+	display: grid;
 	border-radius: 8px;
-	background: #0006;
-	backdrop-filter: blur(16px);
+	background: var(--color-panel-background);
 	grid-template-columns:
 		[sidebar-start] min-content [sidebar-end
 		divider-start] 8px [divider-end

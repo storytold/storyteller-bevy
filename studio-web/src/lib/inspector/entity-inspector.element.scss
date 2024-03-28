@@ -3,9 +3,10 @@
 
 	display: flex;
 	flex-direction: column;
-	gap: 1.5rem;
-	padding: 1rem;
+	gap: var(--padding);
 	overflow: auto;
+
+	--background-color: var(--color-panel-background);
 
 	color: #FFFC;
 
@@ -30,4 +31,14 @@
 
 *, *::before, *::after {
 	box-sizing: border-box;
+}
+
+.container {
+	background-color: var(--background-color);
+	border-radius: var(--corner-radius);
+	display: flex;
+	flex-direction: column;
+	justify-content: flex-end;
+	padding: var(--padding);
+	gap: var(--padding);
 }
