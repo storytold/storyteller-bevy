@@ -218,10 +218,6 @@ export class AppElement extends LitElement {
 							icon="plus-large"
 							class="add-to-scene-dropdown"
 						>
-							<sts-icon
-								class="menu-button-icon"
-								icon="chevron-down"
-							></sts-icon>
 						</sts-button>
 					<sts-transform-toolbar></sts-transform-toolbar>
 				</div>
