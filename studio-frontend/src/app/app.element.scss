@@ -30,7 +30,7 @@ $hierarchy-width: 290px;
 	.action-toolbar {
 		grid-column: left-toolbar;
 		grid-row: top-toolbar;
-		padding: var(--padding);
+		padding-top: var(--padding);
 
 		sts-toolbar-group {
 			gap: var(--padding);
@@ -116,6 +116,7 @@ $hierarchy-width: 290px;
 		grid-column: left-toolbar;
 		grid-row: bottom-toolbar;
 		z-index: 1;
+		padding-bottom: var(--padding);
 	}
 
 	.transform-toolbar {
