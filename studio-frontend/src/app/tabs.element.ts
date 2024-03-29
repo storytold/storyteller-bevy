@@ -7,7 +7,7 @@ import styles from "./tabs.element.scss?inline";
 export class Tabs extends LitElement {
 	static override styles = unsafeCSS(styles);
 	@property() name = "";
-	@property() onChange = () => {};
+	@property() onChange = (e: any) => {};
 	@property() tabs = [];
 	@property() value = "";
 
@@ -16,7 +16,7 @@ export class Tabs extends LitElement {
 			${ this.tabs.map(({ label, value: itemValue },i) =>
 				html`<li
 					class=${ itemValue === this.value ? "selected-tab" : "" }
-					@click=${ ({ target }) => {
+					@click=${ ({ target }: any) => {
 						this.onChange({ target: { name: this.name, value: itemValue } });
 					} }
 				>${ label }</li>`

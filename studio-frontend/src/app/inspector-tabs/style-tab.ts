@@ -36,15 +36,15 @@ export class StyleTab extends LitElement {
 		},
 	];
 
-	inputChange = ({ target }) => {
-		console.log("💁🏼‍♀️", this[target.name]);
-		this[target.name] = target.value;
+	inputChange = ({ target }: { target: { name: string, value: any }  }) => {
+		// console.log("💁🏼‍♀️", this[target.name]);
+		// this[target.name] = target.value; // fix later
 	}
 
 	@on("scene-state")
 		oAThing(): void { console.log("🍕")};
 
-	compositorEnqueue = (sceneToken) => () => {
+	compositorEnqueue = (sceneToken: string) => () => {
 		console.log("🏎️",this.sceneToken,sceneToken);
 		EnqueueEngineCompositing("",{
 			uuid_idempotency_token: uuid(),
@@ -65,7 +65,7 @@ export class StyleTab extends LitElement {
     });
 	}
 
-	thingy = ({ target }) => {
+	thingy = ({ target }: any ) => {
 		console.log("🏎️", this.sceneToken);
 	}
 
@@ -73,7 +73,7 @@ export class StyleTab extends LitElement {
 		${ this.vstStyle }
 		<button @click=${ this.thingy }>State</button>
 		<sts-bubble-select
-			.onChange=${ ({ target }) => { this.vstStyle = target.value; } }
+			.onChange=${ ({ target }: any) => { this.vstStyle = target.value; } }
 			.options=${this.styleOptions}
 			.value=${this.vstStyle}
 		></sts-bubble-select>

@@ -9,7 +9,7 @@ import styles from "./bubble-select.element.scss?inline";
 export class BubbleSelect extends LitElement {
 	static override styles = unsafeCSS(styles);
 	@property() name = "";
-	@property() onChange = () => {};
+	@property() onChange = (e: any) => {};
 	@property() options = [];
 	@property() value = "";
 
@@ -18,7 +18,7 @@ export class BubbleSelect extends LitElement {
 			${ this.options.map(({ label, value: itemValue },i) =>
 				html`<li
 					class=${ itemValue === this.value ? "selected-bubble" : "" }
-					@click=${ ({ target }) => {
+					@click=${ ({ target }: any) => {
 						this.onChange({ target: { name: this.name, value: itemValue } });
 					} }
 				>${ label }</li>`

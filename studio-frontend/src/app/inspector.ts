@@ -29,7 +29,7 @@ export class Inspector extends LitElement {
 		value: InspectorMode.Style
 	}];
 
-	thingy = ({ target }) => {
+	thingy = ({ target }: any) => {
 		console.log("🏎️", this.styleMediaToken);
 	}
 
@@ -46,7 +46,7 @@ export class Inspector extends LitElement {
 		<div class="studio-inspector">
 			<button @click=${ this.thingy }>State</button>
 			<sts-tabs
-				.onChange=${ ({ target }) => {
+				.onChange=${ ({ target }: any) => {
 					this.selectedTab = target.value;
 				} }
 				.tabs=${this.tabs}
