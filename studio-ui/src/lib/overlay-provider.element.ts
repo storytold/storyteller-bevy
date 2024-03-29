@@ -83,7 +83,7 @@ export interface OverlayProvider {
 	detach(handle: WeakRef<OverlayHandle>): void;
 
 	/** Re-render a currently-attached overlay. */
-	reRender(handle: WeakRef<OverlayHandle>): void;
+	reRender(handle: WeakRef<OverlayHandle>, template: [LitElement, TemplateResult]): void;
 }
 
 export interface AttachOptions {
@@ -226,19 +226,14 @@ export class OverlayProviderElement
 
 	// TODO: I'm not actually sure whether this serves a necessary function.
 	//       Needs further testing.
-	reRender(handle: WeakRef<OverlayHandle>): void {
+	reRender(handle: WeakRef<OverlayHandle>, template: [LitElement, TemplateResult]): void {
 		const index = handle.deref()?.id;
 		if (index == null || index === -1)
 			return;
 
-		const container = this.#containerRefs[index]?.value;
-		if (!container) return;
+		this.#templates[index] = template;
 
-		const tuple = this.#templates[index];
-		if (!tuple) return;
-
-		const [host, template] = tuple;
-		render(template, container, { host });
+		this.#updateLightDom();
 	}
 
 	#updateLightDom(): void {

@@ -392,6 +392,11 @@ export class DialogElement extends LitElement {
 				trigger.addEventListener("click", this.onTriggerClick);
 		}
 
+		if (changes.has("template")) {
+			if (this.#overlayHandle && this.template)
+				this._overlay.reRender(this.#overlayHandle, this.template);
+		}
+
 		super.updated(changes);
 	}
 

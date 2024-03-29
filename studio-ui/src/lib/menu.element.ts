@@ -1,5 +1,5 @@
 import { inject, on } from "@storyteller/framework";
-import { LitElement, PropertyValues, css, html, unsafeCSS } from "lit";
+import { LitElement, PropertyValues, TemplateResult, css, html, unsafeCSS } from "lit";
 import { customElement, property } from "lit/decorators.js";
 import { ifDefined } from "lit/directives/if-defined.js";
 import { createRef, ref, type Ref } from "lit/directives/ref.js";
@@ -82,6 +82,8 @@ export class MenuElement extends LitElement {
 	#panelRef = createRef<MenuPanelElement>();
 	#handle?: WeakRef<OverlayHandle>;
 
+	#template?: TemplateResult;
+
 	show(): void {
 		const trigger = this.trigger.value;
 		if (!trigger) return;
@@ -90,8 +92,7 @@ export class MenuElement extends LitElement {
 		trigger.ariaExpanded = "true";
 
 		const rect = trigger.getBoundingClientRect();
-
-		this.#handle = this._overlay.attach(this, html`
+		this.#template = html`
 			<sts-menu-panel
 				${ref(this.#panelRef)}
 				id=${this.#menuId}
@@ -108,7 +109,9 @@ export class MenuElement extends LitElement {
 				// <sts-menu-panel>'s slot
 				this.#slotRef.value?.assignedNodes()
 			}</sts-menu-panel>
-		`);
+		`;
+
+		this.#handle = this._overlay.attach(this, this.#template);
 	}
 
 	hide(): void {
@@ -134,8 +137,9 @@ export class MenuElement extends LitElement {
 	protected override update(changes: PropertyValues<this>): void {
 		super.update(changes);
 
-		if (this.#handle)
-			this._overlay.reRender(this.#handle);
+
+		if (this.#handle && this.#template)
+			this._overlay.reRender(this.#handle, [this, this.#template]);
 	}
 
 	protected override updated(changes: PropertyValues<this>): void {
