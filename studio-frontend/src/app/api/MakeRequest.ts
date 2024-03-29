@@ -19,7 +19,7 @@ const METHOD_OMITS_BODY: { [key: string]: boolean } = {
   PUT: false,
 };
 
-const MakeRequest = <UrlRouteArgs, Request, Response, UrlParams>(routeSetup: RouteSetup<UrlRouteArgs>) :  (urlRouteArgs: UrlRouteArgs, request: Request, queries?: UrlParams) => Promise<Response> => {
+const MakeRequest = <UrlRouteArgs, Request, Response, UrlParams>(routeSetup: RouteSetup<UrlRouteArgs>) :  (urlRouteArgs: UrlRouteArgs, request: Request, queries?: UrlParams, overrideHost?: string) => Promise<Response> => {
     return async function(urlRouteArgs: UrlRouteArgs, request: Request, queries?: any) : Promise<Response> {
         const newQueries = queries ? Object.keys(queries).map((key, i) => {
             return `${ i ? "&" : "" }${ key }=${ Array.isArray(queries[key]) ? queries[key].join(`&${ key }=`) : queries[key] }`
@@ -31,11 +31,13 @@ const MakeRequest = <UrlRouteArgs, Request, Response, UrlParams>(routeSetup: Rou
 
         console.log("🛼",request)
 
-        return fetch(`https://api.fakeyou.com${ endpoint }`, {
-            method,
-            headers: {
-                "Accept": "application/json",
-                ...methodOmitsBody? {} : { "Content-Type": "application/json" }
+        return fetch(
+            `${ overrideHost ? overrideHost : "https://api.fakeyou.com" }${ endpoint }`,
+            {
+                method,
+                headers: {
+                    "Accept": "application/json",
+                    ...methodOmitsBody? {} : { "Content-Type": "application/json" }
             },
             credentials: 'include',
             ...methodOmitsBody ? {} : { body: JSON.stringify(request) },
