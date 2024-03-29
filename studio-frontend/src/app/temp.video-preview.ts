@@ -2,6 +2,7 @@ import * as studio from "@storyteller/studio";
 import { LitElement, html, nothing, unsafeCSS } from "lit";
 import { createRef, ref } from "lit/directives/ref.js";
 import { customElement, property, state } from "lit/decorators.js";
+import { ifDefined } from "lit/directives/if-defined.js";
 import { VideoStylePreview } from "./api/VideoStylePreview";
 import { requestScreenshot, type ScreenshotReadyEvent } from "@storyteller/studio";
 import { DialogBaseElement, DialogElement } from "@storyteller/studio-ui/dialog";
@@ -23,7 +24,7 @@ export class TempVideoPreview extends LitElement {
 	#temporaryVideoPreviewRef = createRef<DialogElement>();
 	@property() trigger = null;
 	@state() response = {};
-	@state() myImg = null;
+	@state() myImg?: string;
 	// #videoStylePreviewRef = createRef<DialogElement>();
 
 	requestScreen = ({ target }: any) => {
@@ -52,7 +53,6 @@ export class TempVideoPreview extends LitElement {
 			console.log("🟡",res);
 			this.response =  res;
 			this.myImg = URL.createObjectURL(res);
-			this.#temporaryVideoPreviewRef.value?.requestUpdate();
 		});
 	}
 
@@ -61,24 +61,26 @@ export class TempVideoPreview extends LitElement {
 		// <div class="studio-inspector">
 		// 	<img src=${ this.myImg }/>
 		// 	<section class="inspector-input-set">
-		// 		Video Style transfer 
+		// 		Video Style transfer
 		// 		<button @click=${ this.requestScreen }>Make request</button>
 		// 	</section>
 		// </div>
 	// `
 
-		protected override render = () => html`<sts-dialog
-			${ref(this.#temporaryVideoPreviewRef)}
-			.trigger=${ this.trigger }
-			skipWrapper
-			.template=${[this, html`
-				<div class="studio-inspector">
-				<img src=${ this.myImg }/>
-				<section class="inspector-input-set">
-					Video Style transfer 
-				<button @click=${ this.requestScreen }>Make request</button>
-			</section>
-		</div>
-			`] as const}
-		></sts-dialog>`
+		protected override render = () => html`
+			<sts-dialog
+				${ref(this.#temporaryVideoPreviewRef)}
+				skipWrapper
+				.trigger=${ this.trigger ?? [] }
+				.template=${[this, html`
+					<div class="studio-inspector">
+						<img src=${ifDefined(this.myImg)} />
+						<section class="inspector-input-set">
+							Video Style transfer
+							<button @click=${ this.requestScreen }>Make request</button>
+						</section>
+					</div>
+				`] as const}
+			></sts-dialog>
+		`
 }
