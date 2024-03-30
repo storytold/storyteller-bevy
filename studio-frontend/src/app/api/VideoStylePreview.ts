@@ -1,8 +1,8 @@
 import MakeMultipartRequest from "./MakeMultipartRequest";
 
 export interface VideoStylePreviewRequest {
-  file: File,
-  msg: string
+  video: File,
+  request: string
 }
 
 export const VideoStylePreview = (request: VideoStylePreviewRequest) => {

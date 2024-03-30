@@ -1,0 +1,109 @@
+@use "sass:math";
+
+.video-style-preview {
+	width: calc(100vw - 3rem);
+	height: calc(100vh - 3rem);
+
+	&::part(content) {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 2rem;
+	}
+
+	&__side-by-side {
+		display: flex;
+		width: 100%;
+	}
+
+	&__panel {
+		flex: 0 0 50%;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 1rem;
+	}
+
+	&__heading {
+		margin: 0;
+		font: {
+			family: "Fira Sans";
+			size: 1rem;
+			weight: 500;
+		}
+	}
+
+	&__image {
+		position: relative;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 100%;
+		height: 0;
+		padding-top: calc((536 / 960) * 100%);
+		background: {
+			size: cover;
+			position: center center;
+		}
+
+		* {
+			position: absolute;
+			top: 50%;
+			left: 50%;
+			transform: translateX(-50%) translateY(-50%);
+		}
+	}
+
+	&__prompts {
+		display: flex;
+		gap: 1rem;
+	}
+
+	&__form-field {
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+
+		&--base-style {
+			align-items: center;
+		}
+	}
+
+	&__label {
+		font: {
+			family: "Fira Sans";
+			size: math.div(15, 16) * 1rem;
+			weight: 500;
+		}
+	}
+
+	&__input {
+		box-sizing: border-box;
+		display: flex;
+		align-items: center;
+		width: 100%;
+		padding: 0.5rem 0.75rem;
+		border-radius: 0.5rem;
+		gap: 0.75rem;
+
+		background: #0004;
+		border: 2px solid #FFF2;
+		color: #FFFC;
+		transition: {
+			property: background-color, border-color, color;
+			duration: 33.333ms;
+			timing-function: linear;
+		}
+
+		font: {
+			family: "Fira Sans", sans-serif;
+			size: math.div(15, 16) * 1rem;
+		}
+
+		&:focus {
+			outline: none;
+			border-color: var(--color-accent);
+		}
+	}
+}

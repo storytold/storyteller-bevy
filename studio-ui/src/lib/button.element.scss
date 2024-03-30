@@ -16,7 +16,7 @@
 	cursor: pointer;
 	user-select: none;
 
-	background: #0006;
+	background: var(--background-color, #0006);
 	color: #FFFC;
 	backdrop-filter: blur(16px);
 	transition: {

@@ -45,6 +45,7 @@ import farMagnifyingGlass from "@fortawesome/fontawesome-pro/svgs/regular/magnif
 import fasHouse from "@fortawesome/fontawesome-pro/svgs/solid/house.svg?raw";
 import fasRecord from "@fortawesome/fontawesome-pro/svgs/solid/circle.svg?raw";
 import fasUpload from "@fortawesome/fontawesome-pro/svgs/solid/upload.svg?raw";
+import fasFilms from "@fortawesome/fontawesome-pro/svgs/solid/films.svg?raw";
 
 import customCylinder from "../assets/icons/cylinder.svg?raw";
 import customSphere from "../assets/icons/sphere.svg?raw";
@@ -91,6 +92,7 @@ function renderSvg(iconId: string) {
 		"figure": () => fasPersonRunning,
 		"file-import": () => farFileImport,
 		"film": () => farFilm,
+		"films": () => fasFilms,
 		"floppy-disk": () => fasFloppyDisk,
 		"fwd-fast": () => fasFwdFast,
 		"fwd-step": () => fasFwdStep,

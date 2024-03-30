@@ -1,36 +1,57 @@
-.studio-bubble-select {
+@use "sass:math";
+
+:host {
 	// background: red;
 	display: flex;
-	list-style: none;
-	margin-block-start: 0px;
-	margin-block-end: 0px;
-	padding-inline-start: 0px;
+	gap: 0.6rem;
+	box-sizing: border-box;
+}
 
-	li {
-		flex: 0 0 auto;
-		border: 2px solid darken(purple, 3%);
-		padding: 8px 16px;
-		border-radius: 0.5rem;
-		background-color: darken(purple, 3%);
-		cursor: pointer;
-		outline: none;
-		transition: all 0.2s ease;
-		font-size: 15px;
-		font-weight: 500;
-		color: rgba(#fff, 0.75);
-		white-space: nowrap;
+*, *::before, *::after {
+	box-sizing: border-box;
+}
 
-		  &.selected-bubble {
-			color: #fff;
-			border-color: red;
-			background-color: lighten(purple, 6%);
-
-			&.fill {
-				background-color: red;
-			}
-		}
+.bubble {
+	position: relative;
+	flex: 0 0 auto;
+	display: flex;
+	align-items: flex-end;
+	width: 80px;
+	height: 80px;
+	padding: 0.5rem;
+	border-radius: 0.5rem;
+	background: {
+		size: cover;
+		position: center center;
 	}
 
+	outline: #FFF2 solid 2px;
+	color: rgba(#fff, 0.75);
+	transition: {
+		property: background-color, outline-color;
+		duration: 200ms;
+		timing-function: ease;
+	}
+	white-space: nowrap;
 
+	cursor: pointer;
 
+	&.selected {
+		outline-color: var(--color-accent);
+	}
+
+	.gradient {
+		position: absolute;
+		inset: 0;
+		background: linear-gradient(to top, #000B, #0000);
+		border-radius: 0.5rem;
+	}
+
+	.label {
+		position: relative;
+		font: {
+			size: math.div(12, 16) * 1rem;
+			weight: 500;
+		}
+	}
 }

@@ -16,16 +16,27 @@ export class ButtonElement extends LitElement {
 	@property() icon?: string;
 	@property({ type: Boolean }) disabled = false;
 
+	@property({ type: Boolean })
+	primary?: boolean;
+
 	override tabIndex = 0;
 
-	protected override willUpdate(changes: PropertyValues<this>): void {
+	protected override update(changes: PropertyValues<this>): void {
 		if (changes.has("disabled")) {
 			this.ariaDisabled = this.disabled ? "true" : null;
 			this.tabIndex = this.disabled ? -1 : 0;
 			this.classList.toggle("disabled", this.disabled);
 		}
 
-		super.willUpdate(changes);
+		if (changes.has("primary")) {
+			if (this.primary) {
+				this.style.setProperty("--background-color", "var(--color-accent)");
+			} else {
+				this.style.removeProperty("--background-color");
+			}
+		}
+
+		super.update(changes);
 	}
 
 	@on("keydown")
