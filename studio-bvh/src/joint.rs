@@ -494,9 +494,7 @@ impl<'a> Iterator for Joints<'a> {
                 })
             }
             JointIterType::Sequence(ref mut joints) => {
-                let Some(next) = joints.pop_front() else {
-                    return None;
-                };
+                let next = joints.pop_front()?;
 
                 if next >= self.joints.len() {
                     return None;
