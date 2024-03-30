@@ -1,5 +1,5 @@
 import { bind, on } from "@storyteller/framework";
-import { LitElement, html, unsafeCSS } from "lit";
+import { LitElement, TemplateResult, html, unsafeCSS } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { v4 as uuid } from "uuid";
 
@@ -84,34 +84,36 @@ export class StyleTab extends LitElement {
 		console.log("🏎️", this.sceneToken);
 	}
 
-	protected override render = () => html`<section class="inspector-input-set">
-		${ this.vstStyle }
-		<button @click=${ this.thingy }>State</button>
-		<sts-bubble-select
-			.options=${STYLE_OPTIONS}
-			.value=${bind(this, "vstStyle")}
-		></sts-bubble-select>
+	protected override render = (): TemplateResult => html`
+		<section class="inspector-input-set">
+			${ this.vstStyle }
+			<button @click=${ this.thingy }>State</button>
+			<sts-bubble-select
+				.options=${STYLE_OPTIONS}
+				.value=${bind(this, "vstStyle")}
+			></sts-bubble-select>
 
-		<label htmlFor="inspector-posPrompt">Positive Prompt</label>
-		<textarea
-			id="inspector-posPrompt"
-			name="posPrompt"
-			@input=${ this.inputChange }
-			.value=${ this.posPrompt }
-		></textarea>
+			<label htmlFor="inspector-posPrompt">Positive Prompt</label>
+			<textarea
+				id="inspector-posPrompt"
+				name="posPrompt"
+				@input=${ this.inputChange }
+				.value=${ this.posPrompt }
+			></textarea>
 
-		<label htmlFor="inspector-posPrompt">Negative Prompt</label>
-		<textarea
-			id="inspector-negPrompt"
-			name="negPrompt"
-			@input=${ this.inputChange }
-			.value=${ this.negPrompt }
-		></textarea>
+			<label htmlFor="inspector-posPrompt">Negative Prompt</label>
+			<textarea
+				id="inspector-negPrompt"
+				name="negPrompt"
+				@input=${ this.inputChange }
+				.value=${ this.negPrompt }
+			></textarea>
 
-		<sts-button
-			@click=${this.compositorEnqueue(this.sceneToken)}
-		>
-			Generate your movie
-		</sts-button>
-	</section>`;
+			<sts-button
+				@click=${this.compositorEnqueue(this.sceneToken)}
+			>
+				Generate your movie
+			</sts-button>
+		</section>
+	`;
 }

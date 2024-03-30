@@ -8,8 +8,8 @@ interface RouteSetup<UrlRouteArgs> {
     method: string;
     multipart?: boolean;
     routingFunction: UrlRoutingFunction<UrlRouteArgs>;
-} 
-  
+}
+
 const METHOD_OMITS_BODY: { [key: string]: boolean } = {
   DELETE: false,
   GET: true,
@@ -19,13 +19,36 @@ const METHOD_OMITS_BODY: { [key: string]: boolean } = {
   PUT: false,
 };
 
-const MakeRequest = <UrlRouteArgs, Request, Response, UrlParams>(routeSetup: RouteSetup<UrlRouteArgs>) :  (urlRouteArgs: UrlRouteArgs, request: Request, queries?: UrlParams, overrideHost?: string) => Promise<Response> => {
-    return async function(urlRouteArgs: UrlRouteArgs, request: Request, queries?: any) : Promise<Response> {
-        const newQueries = queries ? Object.keys(queries).map((key, i) => {
-            return `${ i ? "&" : "" }${ key }=${ Array.isArray(queries[key]) ? queries[key].join(`&${ key }=`) : queries[key] }`
-        }).join("") : null;
+export default <
+    UrlRouteArgs,
+    Request,
+    Response,
+    UrlParams extends Record<string, unknown>,
+>(routeSetup: RouteSetup<UrlRouteArgs>) => {
+    return async function (
+        urlRouteArgs: UrlRouteArgs,
+        request: Request,
+        queries?: UrlParams,
+        overrideHost?: string
+    ): Promise<Response> {
+        const newQueries = queries
+            ? Object
+                .keys(queries)
+                .map((key, i) =>
+                    `${ i ? "&" : "" }${ key }=${
+                        Array.isArray(queries[key])
+                            ? (queries[key] as unknown[]).join(`&${ key }=`)
+                            : queries[key]
+                    }`
+                )
+                .join("")
+            : null;
 
-        const endpoint = `${ routeSetup.routingFunction(urlRouteArgs) }${ newQueries ? "?" + newQueries : "" }`;
+        const endpoint = `${
+            routeSetup.routingFunction(urlRouteArgs)
+        }${
+            newQueries ? "?" + newQueries : ""
+        }`;
         const method = routeSetup.method;
         const methodOmitsBody = METHOD_OMITS_BODY[method] || false;
 
@@ -39,7 +62,7 @@ const MakeRequest = <UrlRouteArgs, Request, Response, UrlParams>(routeSetup: Rou
                     "Accept": "application/json",
                     ...methodOmitsBody? {} : { "Content-Type": "application/json" }
             },
-            credentials: 'include',
+            credentials: "include",
             ...methodOmitsBody ? {} : { body: JSON.stringify(request) },
         })
         .then(res => res.json())
@@ -54,5 +77,3 @@ const MakeRequest = <UrlRouteArgs, Request, Response, UrlParams>(routeSetup: Rou
         .catch(e => ({ success : false }));
     }
 };
-
-export default MakeRequest;
