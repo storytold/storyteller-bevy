@@ -52,6 +52,7 @@ impl Plugin for TimelinePlugin {
                 process_auto_key.run_if(in_state(KeyingMode::Auto)),
                 process_keyframe_events,
                 timeline_bound_component_animator_system::<Transform>,
+                update_timed_animation_clip_duration
             ),
         );
 
@@ -91,11 +92,23 @@ pub enum TimelineInteractionEvent {
 }
 
 #[allow(dead_code)]
-#[derive(Event, Clone, Copy, Debug)]
+#[derive(Event, Clone, Debug)]
 pub enum KeyframeInteractionEvent {
-    RecordKeyframe { target: Entity },
-    MoveKeyframeTime { target: Entity, time: f32 },
-    AddEntityTrack { target: Entity },
+    RecordKeyframe {
+        target: Entity,
+    },
+    MoveKeyframeTime {
+        target: Entity,
+        time: f32,
+    },
+    AddEntityTrack {
+        target: Entity,
+    },
+    InsertAnimationClip {
+        target: Entity,
+        clip_path: String,
+        display_name: String
+    },
 }
 
 #[derive(Resource, Clone, Copy, Debug, Default, Reflect, Serialize, Deserialize)]
@@ -170,16 +183,14 @@ impl Default for Keyframe {
 #[reflect(Component)]
 pub struct TimedAnimationClipAsset {
     clip: Handle<AnimationClip>,
-    duration: f32,
     speed: f32,
 }
 
+#[derive(Component, Clone, Debug, PartialEq)]
+pub struct TimedAnimationClipDuration(f32);
+
 impl PartialOrd for TimedAnimationClipAsset {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        match self.duration.partial_cmp(&other.duration) {
-            Some(core::cmp::Ordering::Equal) => {}
-            ord => return ord,
-        }
         match self.speed.partial_cmp(&other.speed) {
             Some(core::cmp::Ordering::Equal) => {}
             ord => return ord,
@@ -192,7 +203,6 @@ impl Default for TimedAnimationClipAsset {
     fn default() -> Self {
         Self {
             clip: Default::default(),
-            duration: Default::default(),
             speed: 1.0,
         }
     }
@@ -303,6 +313,7 @@ fn process_keyframe_events(
     q_animation_targets: Query<(Entity, &Transform, &AnimationTarget)>,
     q_potential_targets: Query<Entity, (With<Transform>, Without<AnimationTarget>)>,
     mut q_keyframes: Query<(Entity, &mut Keyframe)>,
+    asset_server: Res<AssetServer>
 ) {
     for event in e_timeline_event.read() {
         info!("Processing Keyframe Event {event:?}");
@@ -357,6 +368,32 @@ fn process_keyframe_events(
                     commands.entity(target).insert(AnimationTarget::new());
                 } else {
                     warn!("Can't add animation target to entity");
+                }
+            }
+            KeyframeInteractionEvent::InsertAnimationClip {
+                target,
+                clip_path,
+                display_name
+            } => {
+                if let Ok((_target, transform, animation_target)) = q_animation_targets.get(*target)
+                {
+                    commands.spawn((
+                        Name::new(display_name.to_owned()),
+                        PrefabMarker,
+                        SpatialBundle {
+                            transform: *transform,
+                            ..Default::default()
+                        },
+                        Selectable,
+                        Keyframe {
+                            time: r_global_seek_time.time,
+                            target: *animation_target,
+                        },
+                        TimedAnimationClipAsset {
+                            clip: asset_server.load(format!("{clip_path}#Animation0")),
+                            speed: 1.0,
+                        },
+                    ));
                 }
             }
         }
@@ -600,6 +637,15 @@ pub fn timeline_bound_component_animator_system<T: Component>(
     }
 }
 
+pub fn update_timed_animation_clip_duration(mut commands: Commands, query: Query<(Entity, &TimedAnimationClipAsset), Without<TimedAnimationClipDuration>>, clips: Res<Assets<AnimationClip>>) {
+    for (entity, clip_asset) in &query {
+        if let Some(clip) = clips.get(&clip_asset.clip) {
+            let duration = clip.duration();
+            commands.entity(entity).insert(TimedAnimationClipDuration(duration));
+        }
+    }
+}
+
 #[cfg(feature = "wasm")]
 mod wasm {
     use bevy::{prelude::*, utils::hashbrown::HashMap, window::PrimaryWindow};
@@ -613,8 +659,7 @@ mod wasm {
     };
 
     use super::{
-        AnimationTarget, EaseType, GlobalSeekTime, Keyframe, KeyframeInteractionEvent, KeyingMode,
-        TimedAnimationClipAsset, TimelineInteractionEvent, TransformKeyframe,
+        AnimationTarget, EaseType, GlobalSeekTime, Keyframe, KeyframeInteractionEvent, KeyingMode, TimedAnimationClipAsset, TimedAnimationClipDuration, TimelineInteractionEvent, TransformKeyframe
     };
 
     static SEEK_TIME: WasmMessageBuffer<TimelineInteractionEvent> = WasmMessageBuffer::new();
@@ -649,6 +694,16 @@ mod wasm {
                 .filter_map(|entity| Entity::from_str(entity).ok())
                 .map(|target| KeyframeInteractionEvent::RecordKeyframe { target })
                 .collect(),
+        );
+    }
+
+    #[wasm_bindgen(js_name = insertClip)]
+    pub fn insert_clip(entity: String, clip_path: String, display_name: String) {
+        let Ok(target) = Entity::from_str(&entity) else {
+            return;
+        };
+        KEYFRAME_EVENT.write_message(
+            vec![KeyframeInteractionEvent::InsertAnimationClip { target, clip_path,  display_name }]
         );
     }
 
@@ -780,8 +835,8 @@ mod wasm {
         target: AnimationTarget,
         time: f32,
         clip: String,
-        duration: f32,
         speed: f32,
+        duration: f32
     }
 
     #[derive(Serialize, Deserialize)]
@@ -887,8 +942,8 @@ mod wasm {
             Or<(Changed<Keyframe>, Changed<TransformKeyframe>)>,
         >,
         q_clips: Query<
-            (Entity, &Keyframe, &TimedAnimationClipAsset),
-            Or<(Changed<Keyframe>, Changed<TimedAnimationClipAsset>)>,
+            (Entity, &Keyframe, &TimedAnimationClipAsset, &Name, Option<&TimedAnimationClipDuration>),
+            Or<(Changed<Keyframe>, Changed<TimedAnimationClipAsset>, Changed<TimedAnimationClipDuration>)>,
         >,
         removed: Query<Entity, With<MarkedForDeletion>>,
     ) -> Result<(), String> {
@@ -914,14 +969,14 @@ mod wasm {
                     Err(e) => Err(e),
                 }
             })
-            .chain(q_clips.iter().map(|(entity, keyframe, clip)| {
+            .chain(q_clips.iter().map(|(entity, keyframe, clip, name, duration)| {
                 match serde_json::to_value(TimedAnimationClipInfo {
                     entity: format!("{entity:?}"),
                     target: keyframe.target,
                     time: keyframe.time,
-                    clip: clip.clip.id().to_string(),
-                    duration: clip.duration,
+                    clip: name.to_string(),
                     speed: clip.speed,
+                    duration: duration.map(|v| v.0).unwrap_or_default()
                 })
                 .map_err(|e| format!("{e}"))
                 {

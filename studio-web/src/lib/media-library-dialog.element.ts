@@ -147,6 +147,7 @@ export class MediaLibraryDialogElement extends DialogBaseElement {
 					MediaFileType.Glb,
 					MediaFileType.Gltf,
 					MediaFileType.ScnRon,
+					MediaFileType.Mocap
 				],
 			});
 
@@ -267,8 +268,41 @@ export class MediaLibraryDialogElement extends DialogBaseElement {
 	}
 
 	#addAnimation(): void {
-		// TODO: Make this actually work
-		console.warn("Adding animations not yet implemented!");
+		const token = this._selected[0];
+		if (!this._mediaFiles) {
+			console.error("Expected `_mediaFiles` map to be present when spawning assets");
+			this.dispatchEvent(new CustomEvent("close"));
+			return;
+		}
+
+		const mediaFile = this._mediaFiles.get(token);
+		if (!mediaFile) {
+			console.error(`Attempted to spawn an invalid token: "${token}"`);
+			this.dispatchEvent(new CustomEvent("close"));
+			return;
+		}
+
+		const ext = mediaFile.extension;
+		if (!ext) {
+			console.error("Expected media file to have a non-null `extension` field");
+			this.dispatchEvent(new CustomEvent("close"));
+			return;
+		}
+
+		const asset = {
+			path: `remote://${token}${ext}`,
+			name: mediaFile.displayName,
+		};
+			
+		const skeletonSelected = this._sceneData.selectedObject?.["id"];
+		if (!skeletonSelected) {
+			console.error(`Attempted to an animation without a selected skeleton`);
+			this.dispatchEvent(new CustomEvent("close"));
+			return;
+		}
+
+		console.log(`Inserting Animation ${asset.name} for skeleton ${skeletonSelected}`)
+		studio.insertClip(skeletonSelected, asset.path, asset.name);
 		this.dispatchEvent(new CustomEvent("close"));
 	}
 
