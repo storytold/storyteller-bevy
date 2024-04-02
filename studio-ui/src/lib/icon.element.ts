@@ -52,6 +52,7 @@ import customCube from "../assets/icons/cube-solid.svg?raw";
 import customCylinder from "../assets/icons/cylinder-solid.svg?raw";
 import customSphere from "../assets/icons/sphere-solid.svg?raw";
 import customTorus from "../assets/icons/torus-solid.svg?raw";
+import customXformLocal from "../assets/icons/xform-local.svg?raw";
 
 import styles from "./icon.element.scss?inline";
 
@@ -124,6 +125,7 @@ function renderSvg(iconId: string) {
 		"upload": () => fasUpload,
 		"video": () => fasVideo,
 		"volume": () => fasVolume,
+		"xform-local": () => customXformLocal,
 		"xmark": () => fasXmark,
 		_: () => null,
 	});

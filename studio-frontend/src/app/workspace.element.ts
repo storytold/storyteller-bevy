@@ -69,10 +69,11 @@ export class WorkspaceElement extends LitElement {
 				<hr />
 				<sts-toolbar-group>
 					<sts-select class="transform-space"
+						title="Transform space"
 						.value=${bind(this, "_transformSpace")}
 					>
 						<sts-option .value=${TransformSpace.Local}>
-							<sts-icon icon="cube"></sts-icon> <!-- TODO -->
+							<sts-icon icon="xform-local"></sts-icon> <!-- TODO -->
 							Local
 						</sts-option>
 						<sts-option .value=${TransformSpace.World}>
