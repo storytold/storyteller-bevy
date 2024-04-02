@@ -149,7 +149,8 @@ export class AnimEditorElement extends LitElement
 		let min = Infinity
 		let max = -Infinity;
 		for (const keyframe of Object.keys(this.keyframes)) {
-			let time = this.keyframes[keyframe].time;
+			const current =  this.keyframes[keyframe];
+			let time = current.time;
 			if (typeof time != "number") {
 				continue;
 			}
@@ -158,6 +159,12 @@ export class AnimEditorElement extends LitElement
 			}
 			if (time < min) {
 				min = time;
+			}
+			if ("duration" in current) {
+				const end_time = time + current.duration;
+				if (end_time > max) {
+					max = end_time
+				}
 			}
 		}
 		this.clipStart = Math.max(min, 0.);
@@ -210,12 +217,19 @@ export class AnimEditorElement extends LitElement
 		let closest_keyframe = -1 * Infinity;
 
 		for (const keyframe of Object.keys(this.keyframes)) {
-			const time = this.keyframes[keyframe]?.time;
+			const current = this.keyframes[keyframe];
+			const time = current?.time;
 			if (!time || typeof time != "number") {
 				continue;
 			}
 			if (time < pos && time > closest_keyframe) {
 				closest_keyframe = time;
+			}
+			if ("duration" in current) {
+				const end_time = time + current.duration;
+				if (end_time < pos && end_time > closest_keyframe) {
+					closest_keyframe = end_time;
+				}
 			}
 		}
 
@@ -233,12 +247,19 @@ export class AnimEditorElement extends LitElement
 		let closest_keyframe = Infinity;
 
 		for (const keyframe of Object.keys(this.keyframes)) {
-			const time = this.keyframes[keyframe]?.time;
+			const current = this.keyframes[keyframe];
+			const time = current?.time;
 			if (!time || typeof time != "number") {
 				continue;
 			}
 			if (time > pos && time < closest_keyframe) {
 				closest_keyframe = time;
+			}
+			if ("duration" in current) {
+				const end_time = time + current.duration;
+				if (end_time > pos && end_time < closest_keyframe) {
+					closest_keyframe = end_time;
+				}
 			}
 		}
 
