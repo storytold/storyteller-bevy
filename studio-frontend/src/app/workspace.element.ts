@@ -1,13 +1,15 @@
-import { inject } from "@storyteller/framework";
+import { bind, inject } from "@storyteller/framework";
+import { TransformSpace } from "@storyteller/studio";
 import { STUDIO_PARAMS, type StudioParams } from "@storyteller/studio-web";
 import { ButtonElement } from "@storyteller/studio-ui/button";
-import { LitElement, html } from "lit";
+import { LitElement, TemplateResult, html } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { classMap } from "lit/directives/class-map.js";
 import { createRef, ref } from "lit/directives/ref.js";
 
 import "@storyteller/studio-web/studio";
 import "@storyteller/studio-ui/button";
+import "@storyteller/studio-ui/forms/select";
 import "@storyteller/studio-ui/toolbar";
 
 import "./workspace.element.scss";
@@ -18,12 +20,13 @@ export class WorkspaceElement extends LitElement {
 	_params!: StudioParams;
 
 	@state() private _resizingPanel = false;
+	@state() _transformSpace = TransformSpace.Local;
 
 	#fileTriggerRef = createRef<ButtonElement>();
 
 	protected override createRenderRoot = () => this;
 
-	protected override render = () => html`
+	protected override render = (): TemplateResult => html`
 		<sts-studio
 			class=${classMap({
 				"studio-viewport": true,
@@ -61,9 +64,22 @@ export class WorkspaceElement extends LitElement {
 					<sts-button class="primitive" icon="cube"></sts-button>
 					<sts-button class="primitive" icon="cylinder"></sts-button>
 					<sts-button class="primitive" icon="sphere"></sts-button>
+					<sts-button class="primitive" icon="torus"></sts-button>
 				</sts-toolbar-group>
 				<hr />
 				<sts-toolbar-group>
+					<sts-select class="transform-space"
+						.value=${bind(this, "_transformSpace")}
+					>
+						<sts-option .value=${TransformSpace.Local}>
+							<sts-icon icon="cube"></sts-icon> <!-- TODO -->
+							Local
+						</sts-option>
+						<sts-option .value=${TransformSpace.World}>
+							<sts-icon icon="globe"></sts-icon>
+							Global
+						</sts-option>
+					</sts-select>
 					<sts-button icon="up-down-left-right"></sts-button>
 					<sts-button icon="rotate"></sts-button>
 					<sts-button icon="scale"></sts-button>

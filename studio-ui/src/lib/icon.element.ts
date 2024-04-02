@@ -51,6 +51,7 @@ import fasTrash from "@fortawesome/fontawesome-pro/svgs/solid/trash.svg?raw";
 import customCube from "../assets/icons/cube-solid.svg?raw";
 import customCylinder from "../assets/icons/cylinder-solid.svg?raw";
 import customSphere from "../assets/icons/sphere-solid.svg?raw";
+import customTorus from "../assets/icons/torus-solid.svg?raw";
 
 import styles from "./icon.element.scss?inline";
 
@@ -118,6 +119,7 @@ function renderSvg(iconId: string) {
 		"skeleton": () => fasSkeleton,
 		"sphere": () => customSphere,
 		"trash": () => fasTrash,
+		"torus": () => customTorus,
 		"up-down-left-right": () => fasUpDownLeftRight,
 		"upload": () => fasUpload,
 		"video": () => fasVideo,
