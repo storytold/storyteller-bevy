@@ -1,0 +1,98 @@
+sts-workspace {
+	display: grid;
+	width: 100vw;
+	height: 100vh;
+	grid: {
+		template-areas:
+			"studio-viewport sidebar"
+			"timeline timeline";
+		template-rows: 1fr 256px;
+		template-columns: 1fr 256px;
+	}
+	background: var(--neutral-100);
+
+	.studio-viewport {
+		grid-area: studio-viewport;
+		position: relative;
+	}
+
+	.sidebar {
+		grid-area: sidebar;
+	}
+
+	.timeline {
+		grid-area: timeline;
+	}
+
+	sts-toolbar{
+		&.v-start {
+			border: {
+				top-left-radius: 0;
+				top-right-radius: 0;
+			}
+		}
+
+		&.v-end {
+			border: {
+				bottom-left-radius: 0;
+				bottom-right-radius: 0;
+			}
+		}
+	}
+
+	.abs {
+		position: absolute;
+	}
+
+	.h-start {
+		left: 0;
+		&.offset {
+			left: 1rem;
+		}
+	}
+
+	.h-end {
+		right: 0;
+		&.offset {
+			right: 1rem;
+		}
+	}
+
+	.v-start {
+		top: 0;
+		&.offset {
+			top: 1rem;
+		}
+	}
+
+	.v-end {
+		bottom: 0;
+		&.offset {
+			bottom: 1rem;
+		}
+	}
+
+	.h-center {
+		left: 50%;
+		transform: translateX(-50%);
+	}
+
+	.primitive::part(icon) {
+		font-size: 1.125rem;
+	}
+
+	.timecode {
+		display: block;
+		align-self: center;
+		margin-inline: 0.5rem;
+		color: rgba(#FFF, 0.5);
+		font: {
+			size: 0.875rem;
+			weight: 500;
+		}
+
+		strong {
+			color: #FFF;
+		}
+	}
+}

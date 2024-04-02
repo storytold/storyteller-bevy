@@ -9,6 +9,7 @@ import {
 import { ButtonElement } from "@storyteller/studio-ui/button";
 import { DialogElement } from "@storyteller/studio-ui/dialog";
 import {
+	STUDIO_PARAMS,
 	SceneHierarchyElement,
 	StorytellerApi,
 	StorytellerLocalApi,
@@ -22,6 +23,8 @@ import { customElement, property, state } from "lit/decorators.js";
 import { classMap } from "lit/directives/class-map.js";
 import { createRef, ref } from "lit/directives/ref.js";
 import { styleMap } from "lit/directives/style-map.js";
+
+import { mock_save_load } from "./util";
 
 import "@storyteller/studio-ui/button";
 import "@storyteller/studio-ui/dialog";
@@ -42,12 +45,18 @@ import "./anim-editor.element";
 import "./help.element";
 import "./temp-video-preview.element";
 
+import "./workspace.element";
+
 import "./app.element.scss";
 
 @customElement("app-root")
 @provide({
 	token: StorytellerApi,
 	provide() { return this.api; }
+})
+@provide({
+	token: STUDIO_PARAMS,
+	provide() { return this.params; }
 })
 export class AppElement extends LitElement {
 	@state() showHelp = false;
@@ -70,8 +79,6 @@ export class AppElement extends LitElement {
 	#inspectorRef = createRef<HTMLDivElement>();
 	#hierarchyRef = createRef<SceneHierarchyElement>();
 
-	#params = new StudioURLParams();
-
 	protected override createRenderRoot(): Element | ShadowRoot {
 		return this;
 	}
@@ -80,7 +87,7 @@ export class AppElement extends LitElement {
 	async onSceneSaved({ detail: scene }: SceneSavedEvent): Promise<void> {
 		try {
 			const file = new File([scene], "scene.scn.ron", { type: "text/ron" });
-			
+
 			const token = await this.api.createScene(file);
 
 			this.dispatchEvent(new CustomEvent("scene-uploaded", {
@@ -88,7 +95,7 @@ export class AppElement extends LitElement {
 				bubbles: true,
 				composed: true,
 			}));
-			
+
 		}
 		catch (err) {
 			console.error(err);
@@ -145,58 +152,60 @@ export class AppElement extends LitElement {
 		<sts-overlay-provider>
 			<sts-iframe-messaging-bridge></sts-iframe-messaging-bridge>
 
-			${this.#params.mode === StudioMode.Editor ? html`
+			<sts-workspace></sts-workspace>
+			${/*
+			${this.params.mode === StudioMode.Editor ? html`
 				<sts-add-to-scene-menu
 					.trigger=${this.#addToSceneButtonRef}
 					@open-media-library=${() => {
-					this.#mediaLibraryRef.value?.open();
-				}}
+						this.#mediaLibraryRef.value?.open();
+					}}
 				></sts-add-to-scene-menu>
 				<sts-dialog
 					${ref(this.#mediaLibraryRef)}
 					tag="sts-media-library-dialog"
 					nonBlocking
 				></sts-dialog>
-				` : html`<></>`}
+			` : nothing}
 
-		<div class="wrapper" style=${styleMap({ "--sidebar-width": `${this.inspectorWidth}px` })}>
-			<!-- Scene view -->
-			<sts-studio
-				class=${classMap({
-					"studio-scene": true,
-					"block-pointer-events": this.resizingPanel,
-				})}
-				.objectId=${this.#params.objectId}
-				.bvhPath=${this.#params.bvh}
-				.mixamoPath=${this.#params.mixamo}
-				.sceneImport=${this.#params.sceneImport}
-				.storytellerScene=${this.#params.scene}
-				.skyboxId=${this.#params.skybox ?? "test_scene"}
-				.mode=${this.#params.mode}
-			></sts-studio>
+			<div class="wrapper" style=${styleMap({ "--sidebar-width": `${this.inspectorWidth}px` })}>
+				<!-- Scene view -->
+				<sts-studio
+					class=${classMap({
+						"studio-scene": true,
+						"block-pointer-events": this.resizingPanel,
+					})}
+					.objectId=${this.params.objectId}
+					.bvhPath=${this.params.bvh}
+					.mixamoPath=${this.params.mixamo}
+					.sceneImport=${this.params.sceneImport}
+					.storytellerScene=${this.params.scene}
+					.skyboxId=${this.params.skybox ?? "test_scene"}
+					.mode=${this.params.mode}
+				></sts-studio>
 
-			<!-- Actions toolbar -->
-			<sts-toolbar class="action-toolbar">
-				<sts-toolbar-group>
-					${this.#params.mode === StudioMode.Editor ? html`
+				<!-- Actions toolbar -->
+				<sts-toolbar class="action-toolbar">
+					<sts-toolbar-group>
+						${this.params.mode === StudioMode.Editor ? html`
+							<sts-button
+								@click=${() => studio.saveScene()}
+							>
+								Save Scene
+							</sts-button>
+						` : nothing}
 						<sts-button
-							@click=${() => studio.saveScene()}
+							class=${classMap({ active: this.showHelp })}
+							@click=${this.toggleHelp}
 						>
-							Save Scene
+							Help
 						</sts-button>
-					` : nothing}
-					<sts-button
-						class=${classMap({ active: this.showHelp })}
-						@click=${this.toggleHelp}
-					>
-						Help
-					</sts-button>
-				</sts-toolbar-group>
-			</sts-toolbar>
+					</sts-toolbar-group>
+				</sts-toolbar>
 
-			<!-- Studio-mode-only elements -->
-			${this.#params.mode === StudioMode.Editor ? html`
-				<div class="transform-toolbar">
+				<!-- Studio-mode-only elements -->
+				${this.params.mode === StudioMode.Editor ? html`
+					<div class="transform-toolbar">
 						<sts-button
 							${ref(this.#addToSceneButtonRef)}
 							icon="plus-large"
@@ -209,15 +218,15 @@ export class AppElement extends LitElement {
 							class="video-style-preview-dropdown"
 						>
 						</sts-button>
-					<sts-transform-toolbar></sts-transform-toolbar>
-				</div>
+						<sts-transform-toolbar></sts-transform-toolbar>
+					</div>
 
 					<section
 						${ref(this.#inspectorRef)}
 						class="sidebar"
 						style=${styleMap({
-					width: `${this.inspectorWidth}px`,
-				})}
+							width: `${this.inspectorWidth}px`,
+						})}
 						aria-labelledby="sidebar-heading"
 					>
 						<div class="sidebar-header">
@@ -231,10 +240,10 @@ export class AppElement extends LitElement {
 						<div
 							class="resize-handle"
 							${drag({
-					start: this.onPanelResizeStart,
-					end: this.onPanelResizeEnd,
-					move: this.resizeInspectorWidth,
-				})}
+								start: this.onPanelResizeStart,
+								end: this.onPanelResizeEnd,
+								move: this.resizeInspectorWidth,
+							})}
 						></div>
 					</section>
 
@@ -245,28 +254,29 @@ export class AppElement extends LitElement {
 					<sts-anim-editor
 						class="timeline"
 						style=${styleMap({
-					right: `${this.inspectorWidth + 32}px`
-				})}
+							right: `${this.inspectorWidth + 32}px`
+						})}
 					></sts-anim-editor>
-			` : nothing}
+				` : nothing}
 
 
-			<sts-temp-video-preview
-				.trigger=${ this.#videoStylePreviewBtnRef }>
-			</sts-temp-video-preview>
+				<sts-temp-video-preview
+					.trigger=${ this.#videoStylePreviewBtnRef }>
+				</sts-temp-video-preview>
 
-			<!-- Dialogs and modals -->
-			${this.showHelp ? html`
-			<div class="help">
-				<sts-help></sts-help>
-				</div>
-			` : nothing}
-		</div>
-
+				<!-- Dialogs and modals -->
+				${this.showHelp ? html`
+					<div class="help">
+						<sts-help></sts-help>
+					</div>
+				` : nothing}
+			</div>
+			*/ nothing}
 
 			${this.loading ? html`
 				<sts-loading></sts-loading>
 			` : nothing}
+
 		</sts-overlay-provider>
 		</sts-scene-data-provider>
 		</sts-canvas-provider>

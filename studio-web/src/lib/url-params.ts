@@ -1,5 +1,8 @@
+import { UniqueToken } from "@storyteller/framework";
 import { StudioMode } from "@storyteller/studio";
 import { match } from "@storyteller/utility";
+
+export const STUDIO_PARAMS = UniqueToken.create<StudioParams>();
 
 /**
  * A thin wrapper around
@@ -26,42 +29,37 @@ import { match } from "@storyteller/utility";
  * - **remote://&lt;media-token&gt;.&lt;file-extension&gt;** - A token for a
  *   media file that can be fetched from the Storyteller.ai API
  */
-export class StudioURLParams {
-	#_nativeParams?: URLSearchParams;
-	get #nativeParams() {
-		return this.#_nativeParams ??= new URLSearchParams(document.location.search);
-	}
-
+export interface StudioParams {
 	/**
 	 * Initialize the application from an asset in the "bundled" asset library.
 	 * Takes a filename, including the extension, that can be found under
 	 * `studio/assets/gltf` (e.g., "base-human-female.gltf").
 	 */
-	get objectId() { return this.#nativeParams.get("objectId") ?? undefined; }
+	readonly objectId?: string;
 
 	/**
 	 * Initialize the application by retargeting a BVH animation (currently only
 	 * supports the MocapNET skeleton) onto the bundled `Mannequin.gltf` model.
 	 */
-	get bvh() { return this.#nativeParams.get("bvh") ?? undefined; }
+	readonly bvh?: string;
 
 	/**
 	 * Initialize the application by retargeting a Mixamo animation onto the
 	 * bundled `Mannequin.gltf` model.
 	 */
-	get mixamo() { return this.#nativeParams.get("mixamo") ?? undefined; }
+	readonly mixamo?: string;
 
 	/**
 	 * Initialize the application by loading an arbitrary glTF scene from any
 	 * source.
 	 */
-	get sceneImport() { return this.#nativeParams.get("sceneImport") ?? undefined; }
+	readonly sceneImport?: string;
 
 	/**
 	 * Initialize the application by loading a previously saved Storyteller
 	 * Studio scene in `*.scn.ron` format.
 	 */
-	get scene() { return this.#nativeParams.get("scene") ?? undefined; }
+	readonly scene?: string;
 
 	/**
 	 * One of:
@@ -70,7 +68,7 @@ export class StudioURLParams {
 	 *   "specular" qualifiers (e.g., "gum_trees_4k").
 	 * - A hex-formatted color, without the leading `#` (e.g., "1A1A27")
 	 */
-	get skybox() { return this.#nativeParams.get("skybox") ?? undefined; }
+	readonly skybox?: string;
 
 	/**
 	 * Determines whether the app initializes in a minimal, read-only "viewer"
@@ -82,6 +80,27 @@ export class StudioURLParams {
 	 *
 	 * @default StudioMode.Viewer
 	 */
+	readonly mode: StudioMode;
+}
+
+export class StudioURLParams implements StudioParams {
+	#_nativeParams?: URLSearchParams;
+	get #nativeParams() {
+		return this.#_nativeParams ??= new URLSearchParams(document.location.search);
+	}
+
+	get objectId() { return this.#nativeParams.get("objectId") ?? undefined; }
+
+	get bvh() { return this.#nativeParams.get("bvh") ?? undefined; }
+
+	get mixamo() { return this.#nativeParams.get("mixamo") ?? undefined; }
+
+	get sceneImport() { return this.#nativeParams.get("sceneImport") ?? undefined; }
+
+	get scene() { return this.#nativeParams.get("scene") ?? undefined; }
+
+	get skybox() { return this.#nativeParams.get("skybox") ?? undefined; }
+
 	get mode(): StudioMode {
 		return match(this.#nativeParams.get("mode"), {
 			"studio": () => StudioMode.Editor,
