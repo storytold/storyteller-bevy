@@ -115,7 +115,7 @@ export class WorkspaceElement extends LitElement {
 						.value=${bind(this, "_transformSpace")}
 					>
 						<sts-option .value=${TransformSpace.Local}>
-							<sts-icon icon="xform-local"></sts-icon> <!-- TODO -->
+							<sts-icon icon="xform-local"></sts-icon>
 							Local
 						</sts-option>
 						<sts-option .value=${TransformSpace.World}>
