@@ -3,7 +3,7 @@ import * as studio from "@storyteller/studio";
 import { BlockingCommand, TransformSpace, TransformType } from "@storyteller/studio";
 import { STUDIO_PARAMS, type StudioParams } from "@storyteller/studio-web";
 import { ButtonElement } from "@storyteller/studio-ui/button";
-import { LitElement, TemplateResult, html } from "lit";
+import { LitElement, PropertyValues, TemplateResult, html } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { classMap } from "lit/directives/class-map.js";
 import { createRef, ref } from "lit/directives/ref.js";
@@ -26,8 +26,19 @@ export class WorkspaceElement extends LitElement {
 	@state() _transformType = TransformType.Translate;
 
 	#fileTriggerRef = createRef<ButtonElement>();
+	#mediaLibraryTriggerRef = createRef<ButtonElement>();
 
 	protected override createRenderRoot = () => this;
+
+	protected override update(changes: PropertyValues<this>): void {
+		if (changes.has("_transformSpace"))
+			studio.setTransformSpace(this._transformSpace);
+
+		if (changes.has("_transformType"))
+			studio.setTransformType(this._transformType);
+
+		super.update(changes);
+	}
 
 	protected override render = (): TemplateResult => html`
 		<sts-studio
@@ -53,6 +64,9 @@ export class WorkspaceElement extends LitElement {
 				</sts-button>
 				<sts-button
 					icon="question"
+					@click=${() => {
+						// TODO
+					}}
 				>
 					Help
 				</sts-button>
@@ -60,7 +74,12 @@ export class WorkspaceElement extends LitElement {
 
 			<sts-toolbar class="top-toolbar abs h-center v-start">
 				<sts-toolbar-group>
-					<sts-button secondary icon="plus-large"></sts-button>
+					<sts-button
+						${ref(this.#mediaLibraryTriggerRef)}
+						secondary
+						icon="plus-large"
+						title="Add asset from Media Library"
+					></sts-button>
 				</sts-toolbar-group>
 				<hr />
 				<sts-toolbar-group>
@@ -148,12 +167,18 @@ export class WorkspaceElement extends LitElement {
 				<sts-button
 					role="menuitem"
 					keybind="Ctrl+N"
+					@click=${() => {
+						// TODO
+					}}
 				>
 					New scene
 				</sts-button>
 				<sts-button
 					role="menuitem"
 					keybind="Ctrl+Shift+N"
+					@click=${() => {
+						// TODO
+					}}
 				>
 					New scene from template...
 				</sts-button>
@@ -161,12 +186,21 @@ export class WorkspaceElement extends LitElement {
 				<sts-button
 					role="menuitem"
 					keybind="Ctrl+S"
+					@click=${() => {
+						// TODO: Should we show a spinner here while we're waiting?
+						//       Toast message for success/failure?
+						// TODO: Need to disable this when the scene is not ours
+						studio.saveScene();
+					}}
 				>
 					Save scene
 				</sts-button>
 				<sts-button
 					role="menuitem"
 					keybind="Ctrl+Shift+S"
+					@click=${() => {
+						// TODO
+					}}
 				>
 					Save scene as copy...
 				</sts-button>
@@ -175,5 +209,11 @@ export class WorkspaceElement extends LitElement {
 
 		<div class="sidebar"></div>
 		<div class="timeline"></div>
+
+		<sts-dialog
+			.trigger=${this.#mediaLibraryTriggerRef}
+			tag="sts-media-library-dialog"
+			nonBlocking
+		></sts-dialog>
 	`
 }

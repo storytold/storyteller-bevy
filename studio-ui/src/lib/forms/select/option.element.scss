@@ -22,3 +22,7 @@
 :host(.selected) {
 	background: var(--neutral-200);
 }
+
+::slotted(*) {
+	pointer-events: none;
+}
