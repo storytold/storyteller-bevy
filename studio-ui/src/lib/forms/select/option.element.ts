@@ -1,17 +1,17 @@
-import { LitElement, PropertyValueMap, PropertyValues, html, unsafeCSS } from "lit";
+import { LitElement, PropertyValues, html, unsafeCSS } from "lit";
 import { customElement, property } from "lit/decorators.js";
 
 import styles from "./option.element.scss?inline";
 
 @customElement("sts-option")
-export class OptionElement<T> extends LitElement {
+export class OptionElement extends LitElement {
 	static override styles = unsafeCSS(styles);
 
 	@property({ reflect: true })
 	override role = "option";
 
 	@property({ attribute: false })
-	value?: T;
+	value?: any;
 
 	@property({ type: Boolean })
 	selected?: boolean;

@@ -17,14 +17,14 @@ import "./listbox.element";
 import styles from "./select.element.scss?inline";
 
 @customElement("sts-select")
-export class SelectElement<T> extends FormFieldBaseElement {
+export class SelectElement extends FormFieldBaseElement {
 	static override styles = unsafeCSS(styles);
 
 	@property({ reflect: true })
 	override role = "combobox";
 
 	@property({ attribute: false })
-	value?: T;
+	value?: any;
 
 	@property()
 	placeholder?: string;
@@ -35,7 +35,7 @@ export class SelectElement<T> extends FormFieldBaseElement {
 	@inject(OVERLAY_PROVIDER)
 	_overlay!: OverlayProvider
 
-	@state() _selected?: OptionElement<T>;
+	@state() _selected?: OptionElement;
 
 	#slotRef = createRef<HTMLSlotElement>();
 	#overlayHandle?: WeakRef<OverlayHandle>;
@@ -43,7 +43,7 @@ export class SelectElement<T> extends FormFieldBaseElement {
 	get #selectedOption() {
 		return this.#slotRef.value
 			?.assignedNodes()
-			.find((node: Node): node is OptionElement<T> => (
+			.find((node: Node): node is OptionElement => (
 				node.nodeType === Node.ELEMENT_NODE
 					&& node instanceof OptionElement
 					&& node.value === this.value
@@ -72,10 +72,8 @@ export class SelectElement<T> extends FormFieldBaseElement {
 					cloned.nodeType === Node.ELEMENT_NODE
 					&& cloned instanceof OptionElement
 				) {
-					cloned.value = (node as OptionElement<T>).value;
+					cloned.value = (node as OptionElement).value;
 					cloned.selected = cloned.value === this.value;
-					console.log("option:", cloned);
-					console.log("option.value:", cloned.value);
 				}
 
 				return cloned;
@@ -111,7 +109,7 @@ export class SelectElement<T> extends FormFieldBaseElement {
 	}
 
 	#checkValue(): void {
-		const cloned = this.#selectedOption?.cloneNode(true) as OptionElement<T> | undefined;
+		const cloned = this.#selectedOption?.cloneNode(true) as OptionElement | undefined;
 
 		if (cloned) {
 			this.internals.ariaValueText = cloned.textContent;

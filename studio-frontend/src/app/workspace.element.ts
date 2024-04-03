@@ -1,5 +1,6 @@
 import { bind, inject } from "@storyteller/framework";
-import { TransformSpace } from "@storyteller/studio";
+import * as studio from "@storyteller/studio";
+import { BlockingCommand, TransformSpace, TransformType } from "@storyteller/studio";
 import { STUDIO_PARAMS, type StudioParams } from "@storyteller/studio-web";
 import { ButtonElement } from "@storyteller/studio-ui/button";
 import { LitElement, TemplateResult, html } from "lit";
@@ -9,6 +10,7 @@ import { createRef, ref } from "lit/directives/ref.js";
 
 import "@storyteller/studio-web/studio";
 import "@storyteller/studio-ui/button";
+import "@storyteller/studio-ui/forms/radio";
 import "@storyteller/studio-ui/forms/select";
 import "@storyteller/studio-ui/toolbar";
 
@@ -21,6 +23,7 @@ export class WorkspaceElement extends LitElement {
 
 	@state() private _resizingPanel = false;
 	@state() _transformSpace = TransformSpace.Local;
+	@state() _transformType = TransformType.Translate;
 
 	#fileTriggerRef = createRef<ButtonElement>();
 
@@ -61,10 +64,30 @@ export class WorkspaceElement extends LitElement {
 				</sts-toolbar-group>
 				<hr />
 				<sts-toolbar-group>
-					<sts-button class="primitive" icon="cube"></sts-button>
-					<sts-button class="primitive" icon="cylinder"></sts-button>
-					<sts-button class="primitive" icon="sphere"></sts-button>
-					<sts-button class="primitive" icon="torus"></sts-button>
+					<sts-button
+						class="primitive"
+						icon="cube"
+						title="Cube"
+						@click=${() => studio.dispatchBlockingCommand(BlockingCommand.Cube)}
+					></sts-button>
+					<sts-button
+						class="primitive"
+						icon="cylinder"
+						title="Cylinder"
+						@click=${() => studio.dispatchBlockingCommand(BlockingCommand.Cylinder)}
+					></sts-button>
+					<sts-button
+						class="primitive"
+						icon="sphere"
+						title="Sphere"
+						@click=${() => studio.dispatchBlockingCommand(BlockingCommand.Sphere)}
+					></sts-button>
+					<sts-button
+						class="primitive"
+						icon="torus"
+						title="Torus"
+						@click=${() => studio.dispatchBlockingCommand(BlockingCommand.Torus)}
+					></sts-button>
 				</sts-toolbar-group>
 				<hr />
 				<sts-toolbar-group>
@@ -81,9 +104,21 @@ export class WorkspaceElement extends LitElement {
 							Global
 						</sts-option>
 					</sts-select>
-					<sts-button icon="up-down-left-right"></sts-button>
-					<sts-button icon="rotate"></sts-button>
-					<sts-button icon="scale"></sts-button>
+
+					<sts-radio-group
+						title="Transform type"
+						.value=${bind(this, "_transformType")}
+					>
+						<sts-radio .value=${TransformType.Translate}>
+							<sts-icon icon="up-down-left-right">Translate</sts-icon>
+						</sts-radio>
+						<sts-radio .value=${TransformType.Rotate}>
+							<sts-icon icon="rotate">Rotate</sts-icon>
+						</sts-radio>
+						<sts-radio .value=${TransformType.Scale}>
+							<sts-icon icon="scale">Scale</sts-icon>
+						</sts-radio>
+					</sts-radio-group>
 				</sts-toolbar-group>
 			</sts-toolbar>
 
