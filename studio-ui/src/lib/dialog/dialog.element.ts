@@ -1,6 +1,6 @@
 import { deref, inject } from "@storyteller/framework";
 import { type ArrayOrSingle, asArray, exists } from "@storyteller/utility";
-import { LitElement, TemplateResult, type PropertyValues } from "lit";
+import { LitElement, TemplateResult, type PropertyValues, css } from "lit";
 import { html, unsafeStatic } from "lit/static-html.js";
 import { customElement, property } from "lit/decorators.js";
 import { ifDefined } from "lit/directives/if-defined.js";
@@ -86,6 +86,12 @@ import { type DialogBaseElement } from "./dialog-base.element";
  */
 @customElement("sts-dialog")
 export class DialogElement extends LitElement {
+	static override styles = css`
+		:host {
+			display: none;
+		}
+	`;
+
 	/**
 	 * Tag-name of a custom element inheriting from {@linkcode DialogBaseElement}`
 	 */

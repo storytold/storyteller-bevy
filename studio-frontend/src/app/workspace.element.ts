@@ -80,6 +80,7 @@ export class WorkspaceElement extends LitElement {
 			</div>
 
 			<sts-toolbar class="top-toolbar abs h-center v-start">
+
 				<sts-toolbar-group>
 					<sts-button
 						${ref(this.#mediaLibraryTriggerRef)}
@@ -115,7 +116,9 @@ export class WorkspaceElement extends LitElement {
 						@click=${() => studio.dispatchBlockingCommand(BlockingCommand.Torus)}
 					></sts-button>
 				</sts-toolbar-group>
+
 				<hr />
+
 				<sts-toolbar-group>
 					<sts-select class="transform-space"
 						title="Transform space"
@@ -167,55 +170,56 @@ export class WorkspaceElement extends LitElement {
 				</sts-toolbar-group>
 			</sts-toolbar>
 
-			<sts-menu
-				autoClose
-				.trigger=${this.#fileTriggerRef}
-			>
-				<sts-button
-					role="menuitem"
-					keybind="Ctrl+N"
-					@click=${() => {
-						// TODO
-					}}
-				>
-					New scene
-				</sts-button>
-				<sts-button
-					role="menuitem"
-					keybind="Ctrl+Shift+N"
-					@click=${() => {
-						// TODO
-					}}
-				>
-					New scene from template...
-				</sts-button>
-				<hr />
-				<sts-button
-					role="menuitem"
-					keybind="Ctrl+S"
-					@click=${() => {
-						// TODO: Should we show a spinner here while we're waiting?
-						//       Toast message for success/failure?
-						// TODO: Need to disable this when the scene is not ours
-						studio.saveScene();
-					}}
-				>
-					Save scene
-				</sts-button>
-				<sts-button
-					role="menuitem"
-					keybind="Ctrl+Shift+S"
-					@click=${() => {
-						// TODO
-					}}
-				>
-					Save scene as copy...
-				</sts-button>
-			</sts-menu>
 		</sts-studio>
 
 		<div class="sidebar"></div>
 		<div class="timeline"></div>
+
+		<sts-menu
+			autoClose
+			.trigger=${this.#fileTriggerRef}
+		>
+			<sts-button
+				role="menuitem"
+				keybind="Ctrl+N"
+				@click=${() => {
+					// TODO
+				}}
+			>
+				New scene
+			</sts-button>
+			<sts-button
+				role="menuitem"
+				keybind="Ctrl+Shift+N"
+				@click=${() => {
+					// TODO
+				}}
+			>
+				New scene from template...
+			</sts-button>
+			<hr />
+			<sts-button
+				role="menuitem"
+				keybind="Ctrl+S"
+				@click=${() => {
+					// TODO: Should we show a spinner here while we're waiting?
+					//       Toast message for success/failure?
+					// TODO: Need to disable this when the scene is not ours
+					studio.saveScene();
+				}}
+			>
+				Save scene
+			</sts-button>
+			<sts-button
+				role="menuitem"
+				keybind="Ctrl+Shift+S"
+				@click=${() => {
+					// TODO
+				}}
+			>
+				Save scene as copy...
+			</sts-button>
+		</sts-menu>
 
 		<sts-dialog
 			.trigger=${this.#mediaLibraryTriggerRef}
