@@ -16,6 +16,13 @@ import "@storyteller/studio-ui/toolbar";
 
 import "./workspace.element.scss";
 
+// TODO: A giant wrapper around literally everything that used to be in
+//       `AppElement` is not a particularly useful abstraction, it's just
+//       moving the mess around.
+//
+//       Narrow the scope of this element to just the 3D viewport and its
+//       anchored UI elements, and let it live alongside the sidebar and
+//       timeline in `AppElement`.
 @customElement("sts-workspace")
 export class WorkspaceElement extends LitElement {
 	@inject(STUDIO_PARAMS)
