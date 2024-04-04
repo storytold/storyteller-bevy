@@ -172,11 +172,11 @@ export class AppElement extends LitElement {
 
 					<!-- <div
 						class="resize-handle"
-						${drag({
+						${/*drag({
 							start: this.onPanelResizeStart,
 							end: this.onPanelResizeEnd,
 							move: this.resizeInspectorWidth,
-						})}
+						})*/ nothing}
 					></div> -->
 				</section>
 
