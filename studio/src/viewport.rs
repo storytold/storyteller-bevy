@@ -86,9 +86,11 @@ pub mod wasm {
     ) {
         if let Some(event) = events.read().last() {
             let ViewportSize { width, height } = event.0;
-            window.single_mut().resolution.set(width, height);
+            let mut window = window.single_mut();
+            let scale_factor = window.scale_factor() as f32;
+            window.resolution.set(width * scale_factor, height * scale_factor);
             q_camera.single_mut().viewport = Some(Viewport {
-                physical_size: UVec2::new(width as u32, height as u32),
+                physical_size: UVec2::new((width * scale_factor)  as u32, (height * scale_factor) as u32),
                 ..Default::default()
             });
             info!("Viewport size: ({:.2}, {:.2})", width, height);
