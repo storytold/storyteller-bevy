@@ -9,6 +9,12 @@ $hierarchy-width: 290px;
 	--timeline-height: max-content;
 }
 
+.debug-mode {
+	.studio-scene {
+		z-index: 100;
+	}
+}
+
 .wrapper {
 	position: fixed;
 	top: 0;

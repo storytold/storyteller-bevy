@@ -56,6 +56,8 @@ export class AppElement extends LitElement {
 	@state() resizingPanel = false;
 	@state() inspectorWidth = 320;
 
+	@state() debugMode = false;
+
 	@state() sidebars: Array<{ title: string, name: string}> = [{title: 'Hierarchy', name: 'hierarchy'}];
 
 	@state() currentSidebar : string = 'hierarchy';
@@ -103,6 +105,11 @@ export class AppElement extends LitElement {
 		});
 	}
 
+	@on("window:debug-mode-toggled")
+	onDebugModeToggled({detail: { debugModeActive }}: studio.DefaultModeToggled ): void {
+		this.debugMode = debugModeActive;
+	}
+
 	onPanelResizeStart(): void {
 		this.resizingPanel = true;
 	}
@@ -133,7 +140,7 @@ export class AppElement extends LitElement {
 
 	protected override render() {
 		return html`
-		<sts-canvas-provider class="app-root">
+		<sts-canvas-provider class=${classMap({"app-root": true, "debug-mode": this.debugMode})}>
 		<sts-scene-data-provider>
 		<sts-overlay-provider>
 			<sts-iframe-messaging-bridge></sts-iframe-messaging-bridge>
