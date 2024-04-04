@@ -14,7 +14,7 @@ import "@storyteller/studio-ui/forms/radio";
 import "@storyteller/studio-ui/forms/select";
 import "@storyteller/studio-ui/toolbar";
 
-import "./workspace.element.scss";
+import "./studio-viewport.element.scss";
 
 // TODO: A giant wrapper around literally everything that used to be in
 //       `AppElement` is not a particularly useful abstraction, it's just
@@ -23,8 +23,8 @@ import "./workspace.element.scss";
 //       Narrow the scope of this element to just the 3D viewport and its
 //       anchored UI elements, and let it live alongside the sidebar and
 //       timeline in `AppElement`.
-@customElement("sts-workspace")
-export class WorkspaceElement extends LitElement {
+@customElement("sts-studio-viewport")
+export class StudioViewportElement extends LitElement {
 	@inject(STUDIO_PARAMS)
 	_params!: StudioParams;
 
@@ -50,7 +50,7 @@ export class WorkspaceElement extends LitElement {
 	protected override render = (): TemplateResult => html`
 		<sts-studio
 			class=${classMap({
-				"studio-viewport": true,
+				"studio": true,
 				"block-pointer-events": this._resizingPanel,
 			})}
 			.objectId=${this._params.objectId}
@@ -172,8 +172,8 @@ export class WorkspaceElement extends LitElement {
 
 		</sts-studio>
 
-		<div class="sidebar"></div>
-		<div class="timeline"></div>
+		<!-- <div class="sidebar"></div>
+		<div class="timeline"></div> -->
 
 		<sts-menu
 			autoClose

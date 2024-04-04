@@ -3,94 +3,32 @@
 $hierarchy-width: 290px;
 
 .app-root {
-	position: fixed;
-	inset: 0;
 	--sidebar-width: 300px;
-	--timeline-height: max-content;
-}
+	--timeline-height: min-content;
 
-.debug-mode {
-	.studio-scene {
-		z-index: 100;
-	}
-}
-
-.wrapper {
-	position: fixed;
-	top: 0;
-	bottom: 0;
-	left: 0;
-	right: 0;
 	display: grid;
-	pointer-events: none;
-
-	grid-template-columns: [timeline-start screen-start] 2rem [left-toolbar-start help-start] max-content [left-toolbar-end] auto [center-toolbar-start] max-content [center-toolbar-end] auto [right-toolbar-start] max-content [right-toolbar-end] 2rem [screen-end help-end sidebar-start] var(--sidebar-width) [sidebar-end timeline-end];
-	grid-template-rows: [top-toolbar-start sidebar-start screen-start] min-content [top-toolbar-end help-start sidebar-view-start] max-content [help-end] auto [bottom-toolbar-start] max-content [bottom-toolbar-end sidebar-end sidebar-view-end screen-end timeline-start] var(--timeline-height) [timeline-end];
-
-	.studio-scene {
-		position: fixed;
-		bottom: 0;
-		left: 0;
-		right: 0;
-		pointer-events: all;
+	width: 100vw;
+	height: 100vh;
+	grid-template: {
+		areas:
+			"viewport sidebar"
+			"timeline timeline";
+		rows: minmax(0, 1fr) var(--timeline-height);
+		columns: minmax(0, 1fr) var(--sidebar-width);
 	}
 
-	.action-toolbar {
-		grid-column: left-toolbar;
-		grid-row: top-toolbar;
-		padding-top: var(--padding);
-
-		sts-toolbar-group {
-			gap: var(--padding);
-		}
-
-		sts-button {
-			background-color: var(--color-toolbar-background);
-		}
-
-		z-index: 1;
-	}
-
-	.timeline {
-		grid-row-start: bottom-toolbar-start;
-		grid-row-end: timeline-end;
-		grid-column: timeline;
-		z-index: 1;
-		border-radius: 0;
-	}
+	.viewport { grid-area: viewport; }
+	.sidebar { grid-area: sidebar; }
+	.timeline { grid-area: timeline; }
 
 	.sidebar {
-		display: grid;
-		grid-area: sidebar;
-		grid-template-rows: subgrid;
-		z-index: 1;
+		display: flex;
+		flex-direction: column;
 		background-color: var(--color-panel-background);
-		border-radius: 0;
-
-
-		position: relative;
-		padding: var(--padding);
-		padding-left: 0.5rem;
-
-		.resize-handle {
-			position: absolute;
-			left: 0;
-			top: 0;
-			bottom: 0;
-			width: 0.5rem;
-			background: #0004;
-			transition: 66.666ms background linear;
-
-			&:hover {
-				background: #FFF1;
-			}
-		}
 
 		.sidebar-header {
-			grid-row: top-toolbar;
 			display: flex;
 			flex-direction: row;
-			justify-content: stretch;
 			gap: 0;
 
 			.sidebar-tab {
@@ -108,51 +46,19 @@ $hierarchy-width: 290px;
 		}
 
 		.sidebar-view {
-			grid-row: sidebar-view;
-		}
-	}
-
-	.help {
-		grid-area: help;
-		z-index: 1;
-		display: flex;
-		flex-direction: row;
-		justify-content: start;
-	}
-
-	.entity-inspector {
-		grid-column: left-toolbar;
-		grid-row: bottom-toolbar;
-		z-index: 1;
-		padding-bottom: var(--padding);
-		& > * {
-			pointer-events: all;
-		}
-	}
-
-	.transform-toolbar {
-		grid-column: center-toolbar;
-		grid-row: top-toolbar;
-		background-color: var(--color-toolbar-background);
-		z-index: 1;
-		border-top-right-radius: 0;
-		border-top-left-radius: 0;
-		border-bottom-right-radius: var(--corner-radius);
-		border-bottom-left-radius: var(--corner-radius);
-		padding: var(--padding);
-		display: flex;
-		flex-direction: row;
-		gap: 1rem;
-
-		.add-to-scene-dropdown {
-			background-color: var(--color-toolbar-background-light);
-			font-size: 16px;
-			padding: 10px 12px;
+			padding: 1rem;
 		}
 	}
 }
 
-.studio-scene.block-pointer-events::part(canvas) {
+.help {
+	grid-area: help;
+	display: flex;
+	flex-direction: row;
+	justify-content: start;
+}
+
+.studio.block-pointer-events::part(canvas) {
 	pointer-events: none;
 }
 
