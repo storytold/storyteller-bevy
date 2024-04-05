@@ -724,7 +724,7 @@ fn generate_clip_animation(
 
     let available_targets = valid_targets
         .iter()
-        .map(|(e, a, name, element, skeleton)| (*a, (e, name, element)))
+        .map(|(e, a, name, element, _skeleton)| (*a, (e, name, element)))
         .collect::<HashMap<_, _>>();
 
     let keyframes = keyframes
@@ -748,7 +748,7 @@ fn generate_clip_animation(
                 Option::<(f32, f32, Handle<AnimationClip>)>::None,
                 Vec::<BoxedTweenable<AnimationPlayer>>::new(),
             ),
-            |(last_clip, mut clip_timeline), (keyframe, asset, duration, reference, entity)| {
+            |(last_clip, mut clip_timeline), (keyframe, asset, duration, reference, _entity)| {
                 let time = keyframe.time;
 
                 let (last_start, last_duration, last_clip) = match last_clip {
@@ -773,7 +773,7 @@ fn generate_clip_animation(
                                 Duration::from_secs_f32(duration),
                                 TimedAnimationClipLens {
                                     clip: last_clip,
-                                    duration: duration,
+                                    duration,
                                 },
                             )
                             .into(),
@@ -865,7 +865,7 @@ fn retarget_timed_animation_clip(
 ) {
     let targets = animation_targets
         .iter()
-        .map(|(entity, target, name)| (target.clone(), (entity, name)))
+        .map(|(entity, target, name)| (*target, (entity, name)))
         .collect::<HashMap<_, _>>();
 
     for (entity, asset, retarget, keyframe) in &clip_keys {
@@ -884,7 +884,7 @@ fn retarget_timed_animation_clip(
             continue;
         };
 
-        let Some((target_entity, target_name)) = targets.get(&keyframe.target) else {
+        let Some((_target_entity, target_name)) = targets.get(&keyframe.target) else {
             error!("Animation has no target: {keyframe:?}");
             continue;
         };
@@ -892,7 +892,7 @@ fn retarget_timed_animation_clip(
         match &retarget {
             ClipRetargeting::UseOrigin => {
                 info!("Use Origin");
-                if clip.compatible_with(*target_name) {
+                if clip.compatible_with(target_name) {
                     info!("Animation Already Compatible");
                     commands
                         .entity(entity)

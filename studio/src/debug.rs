@@ -81,10 +81,12 @@ impl Plugin for DebugPlugin {
             update_editor_ui_mode.run_if(resource_changed::<DebugMode>()),
         );
 
-        
         #[cfg(feature = "wasm")]
         {
-            app.add_systems(PostUpdate, wasm::notify_debug_mode_toggle.map(bevy::utils::error));
+            app.add_systems(
+                PostUpdate,
+                wasm::notify_debug_mode_toggle.map(bevy::utils::error),
+            );
         }
     }
 }
@@ -216,13 +218,12 @@ fn sync_editor_camera(
     }
 }
 
-
 #[cfg(feature = "wasm")]
 mod wasm {
+    use super::DebugMode;
+    use bevy::{prelude::*, window::PrimaryWindow};
     use serde_json::json;
     use wasm_bindgen::prelude::*;
-    use bevy::{prelude::*, window::PrimaryWindow};
-    use super::DebugMode;
 
     #[wasm_bindgen(typescript_custom_section)]
     const DEBUG_TYPES: &str = r#"
@@ -242,19 +243,19 @@ mod wasm {
 
     pub fn notify_debug_mode_toggle(
         q_window: Query<&Window, With<PrimaryWindow>>,
-        r_debug_mode: Res<DebugMode>) -> Result<(), String>{
-            if !r_debug_mode.is_changed() {
-                return Ok(());
-            }
-            let Ok(window) = q_window.get_single() else {
-                return Ok(());
-            };
-
-            
-            crate::wasm::dispatch_to_js(
-                window,
-                "debug-mode-toggled",
-                &json!({ "debugModeActive": r_debug_mode.0 })
-            )
+        r_debug_mode: Res<DebugMode>,
+    ) -> Result<(), String> {
+        if !r_debug_mode.is_changed() {
+            return Ok(());
         }
+        let Ok(window) = q_window.get_single() else {
+            return Ok(());
+        };
+
+        crate::wasm::dispatch_to_js(
+            window,
+            "debug-mode-toggled",
+            &json!({ "debugModeActive": r_debug_mode.0 }),
+        )
+    }
 }
