@@ -199,11 +199,11 @@ export class MediaLibraryDialogElement extends DialogBaseElement {
 		this.#transientFileInput = document.createElement("input");
 		this.#transientFileInput.type = "file";
 		this.#transientFileInput.accept = match (this._activeCategory.mediaClass, {
-			[MediaFileClass.Animation]: () => ".bvh,.fbx,.gltf",
+			[MediaFileClass.Animation]: () => ".bvh,.fbx,.gltf,.glb",
 			[MediaFileClass.Audio]: () => ".wav,.mp3",
-			[MediaFileClass.Character]: () => ".fbx,.gltf",
-			[MediaFileClass.Prop]: () => ".fbx,.gltf",
-			[MediaFileClass.Scene]: () => ".fbx,.gltf,.scn.ron",
+			[MediaFileClass.Character]: () => ".fbx,.gltf,.glb",
+			[MediaFileClass.Prop]: () => ".fbx,.gltf,.glb",
+			[MediaFileClass.Scene]: () => ".fbx,.gltf,.glb,.scn.ron",
 			_: () => "",
 		});
 		this.#transientFileInput.multiple = false;
@@ -293,7 +293,7 @@ export class MediaLibraryDialogElement extends DialogBaseElement {
 			path: `remote://${token}${ext}`,
 			name: mediaFile.displayName,
 		};
-			
+
 		const skeletonSelected = this._sceneData.selectedObject?.["id"];
 		if (!skeletonSelected) {
 			console.error(`Attempted to an animation without a selected skeleton`);
