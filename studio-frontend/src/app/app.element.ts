@@ -40,6 +40,7 @@ import "@storyteller/studio-web/studio";
 import "@storyteller/studio-web/transform-toolbar";
 import "./anim-editor.element";
 import "./help.element";
+import "./inspector.element";
 import "./temp-video-preview.element";
 
 import "./app.element.scss";
@@ -212,31 +213,7 @@ export class AppElement extends LitElement {
 					<sts-transform-toolbar></sts-transform-toolbar>
 				</div>
 
-					<section
-						${ref(this.#inspectorRef)}
-						class="sidebar"
-						style=${styleMap({
-					width: `${this.inspectorWidth}px`,
-				})}
-						aria-labelledby="sidebar-heading"
-					>
-						<div class="sidebar-header">
-							${this.sidebars.map(({title, name}) => {
-								return html`<sts-button class=${classMap({"current-tab": name === this.currentSidebar, "sidebar-tab": true})}>${title}</sts-button>`
-							})}
-						</div>
-
-						${this.renderSidebar()}
-
-						<div
-							class="resize-handle"
-							${drag({
-					start: this.onPanelResizeStart,
-					end: this.onPanelResizeEnd,
-					move: this.resizeInspectorWidth,
-				})}
-						></div>
-					</section>
+					<sts-inspector></sts-inspector>
 
 					<div class="entity-inspector">
 						<sts-entity-inspector></sts-entity-inspector>

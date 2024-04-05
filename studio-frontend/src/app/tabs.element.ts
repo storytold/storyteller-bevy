@@ -12,15 +12,18 @@ export class Tabs extends LitElement {
 	@property() value = "";
 
 	protected override render = () => html`
-		<ul class="studio-tabs">
+		<div class="studio-tabs">
 			${ this.tabs.map(({ label, value: itemValue },i) =>
-				html`<li
-					class=${ itemValue === this.value ? "selected-tab" : "" }
+				html`<div
+					class=${
+						`studio-tabs-tab${ itemValue === this.value ? " selected-tab" : "" }`
+					}
 					@click=${ ({ target }: any) => {
+						console.log("💎");
 						this.onChange({ target: { name: this.name, value: itemValue } });
 					} }
-				>${ label }</li>`
+				>${ label }</div>`
 			)}
-		</ul>
+		</div>
 	`
 }

@@ -1,10 +1,22 @@
 @use "sass:math";
 
 :host {
-	// background: red;
+	font-family: "Fira Sans", sans-serif;
+	font-size: 15px;
+	color: #fff;
+
+	label {
+		display: block;
+		margin-bottom: .5rem;
+	}
+}
+
+.studio-bubble-options {
 	display: flex;
 	gap: 0.6rem;
 	box-sizing: border-box;
+	overflow-x: scroll;
+	padding: 4px 4px 1rem;
 }
 
 *, *::before, *::after {
@@ -12,6 +24,7 @@
 }
 
 .bubble {
+	// pointer-events: all;
 	position: relative;
 	flex: 0 0 auto;
 	display: flex;
@@ -26,9 +39,9 @@
 	}
 
 	outline: #FFF2 solid 2px;
-	color: rgba(#fff, 0.75);
+	color: transparent;
 	transition: {
-		property: background-color, outline-color;
+		property: color, background-color, outline-color;
 		duration: 200ms;
 		timing-function: ease;
 	}
@@ -49,9 +62,16 @@
 
 	.label {
 		position: relative;
+		// color: transparent;
+		width: 100%;
+		text-wrap: wrap;
 		font: {
 			size: math.div(12, 16) * 1rem;
 			weight: 500;
 		}
+	}
+
+	&:hover {
+		color: rgba(#fff, 0.75);
 	}
 }

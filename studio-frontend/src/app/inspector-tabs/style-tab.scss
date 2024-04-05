@@ -1,5 +1,27 @@
 .inspector-input-set {
 	label {
 		display: block;
+		color: #fff;
+		margin-bottom: .5rem;
+	}
+	textarea {
+		background: var(--color-panel-item-name-background);
+		border: none;
+		box-sizing: border-box;
+		color: #fff;
+		font-family: "Fira Sans", sans-serif;
+		outline: none;
+		padding: .5rem;
+		border-radius: .5rem;
+		margin-bottom: 1rem;
+		resize: none;
+		width: 100%;
+	}
+
+	.sidebar-button-row {
+		width: 100%;
+		display: flex;
+		justify-content: center;
+		margin-bottom: 1rem;
 	}
 }

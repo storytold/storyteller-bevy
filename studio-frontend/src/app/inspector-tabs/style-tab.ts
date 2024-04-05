@@ -154,8 +154,6 @@ export class StyleTab extends LitElement {
 
 	protected override render = (): TemplateResult => html`
 		<section class="inspector-input-set">
-			${ this.vstStyle }
-			<button @click=${ this.thingy }>State</button>
 			<sts-bubble-select
 				.options=${STYLE_OPTIONS}
 				.value=${bind(this, "vstStyle")}
@@ -163,6 +161,7 @@ export class StyleTab extends LitElement {
 
 			<label htmlFor="inspector-posPrompt">Positive Prompt</label>
 			<textarea
+				rows="7"
 				id="inspector-posPrompt"
 				name="posPrompt"
 				@input=${ this.inputChange }
@@ -171,17 +170,24 @@ export class StyleTab extends LitElement {
 
 			<label htmlFor="inspector-posPrompt">Negative Prompt</label>
 			<textarea
+				rows="7"
 				id="inspector-negPrompt"
 				name="negPrompt"
+				placeholder="Type here to filter out the things you don’t want in the scene..."
 				@input=${ this.inputChange }
 				.value=${ this.negPrompt }
 			></textarea>
 
-			<sts-button
-				@click=${this.compositorEnqueue(this.sceneToken)}
-			>
-				Generate your movie
-			</sts-button>
+			<div class="sidebar-button-row">
+				<sts-button primary
+					@click=${this.compositorEnqueue(this.sceneToken)}
+				>
+					Generate your movie
+				</sts-button>
+			</div>
+<!-- debugging stuff -V
+			${ this.vstStyle }
+			<button @click=${ this.thingy }>State</button> -->
 		</section>
 	`;
 }

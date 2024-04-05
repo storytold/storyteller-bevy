@@ -28,27 +28,30 @@ export class BubbleSelect extends FormFieldBaseElement {
 	}
 
 	protected override render = () => html`
-		${ this.options.map(({ label, value, imageUrl }) => html`
-			<div
-				class=${classMap({
-					"bubble": true,
-					"selected": value === this.value,
-				})}
-				style=${styleMap({
-					"background-image": `url(${imageUrl})`,
-				})}
-				@click=${() => {
-					// this.onChange({ target: { name: this.name, value: itemValue } });
-					this.dispatchEvent(new CustomEvent("value-change", {
-						detail: value,
-					}))
-				} }
-			>
-				<div class="gradient"></div>
-				<span class="label">
-					${ label }
-				</span>
-			</div>`
-		)}
+		<label>Select base style</label>
+		<div class="studio-bubble-options">
+			${ this.options.map(({ label, value, imageUrl }) => html`
+				<div
+					class=${classMap({
+						"bubble": true,
+						"selected": value === this.value,
+					})}
+					style=${styleMap({
+						"background-image": `url(${imageUrl})`,
+					})}
+					@click=${() => {
+						// this.onChange({ target: { name: this.name, value: itemValue } });
+						this.dispatchEvent(new CustomEvent("value-change", {
+							detail: value,
+						}))
+					} }
+				>
+					<div class="gradient"></div>
+					<span class="label">
+						${ label }
+					</span>
+				</div>`
+			)}
+		</div>
 	`
 }
