@@ -4,28 +4,33 @@
 	box-sizing: border-box;
 	display: block;
 	padding: 0.5rem 0.75rem;
-	border-radius: 0.25rem;
+	border-radius: 0.5rem;
 
-	background: #0004;
-	border: 1px solid #FFF2;
-	color: #FFFC;
-	outline: none !important;
+	background: var(--neutral-200);
+	border: 1px solid transparent;
+	color: #FFF;
+	outline: transparent 2px solid {
+		offset: -2px;
+	}
+
 	transition: {
-		property: background-color, border-color, color;
-		duration: 33.333ms;
+		property: background-color, outline-color;
+		duration: 100ms;
 		timing-function: linear;
 	}
 
 	font: {
 		family: "Fira Sans", sans-serif;
-		size: math.div(15, 16) * 1rem;
+		size: math.div(14, 16) * 1rem;
+		weight: 500;
 	}
+	line-height: 1;
+	white-space: nowrap;
 }
 
 :host(:focus-within) {
-	border-color: #FFF4;
-	background: #0006;
-	color: #FFFF;
+	outline-color: var(--color-accent);
+	background: var(--neutral-100)
 }
 
 :host(:not(.editing)) {
@@ -44,5 +49,9 @@
 
 	&:first-line {
 		display: inline-block;
+	}
+
+	&::selection {
+		background: var(--neutral-300);
 	}
 }

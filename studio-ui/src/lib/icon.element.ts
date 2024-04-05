@@ -47,6 +47,7 @@ import fasUpload from "@fortawesome/fontawesome-pro/svgs/solid/upload.svg?raw";
 import fasFilms from "@fortawesome/fontawesome-pro/svgs/solid/films.svg?raw";
 import fasFile from "@fortawesome/fontawesome-pro/svgs/solid/file.svg?raw";
 import fasTrash from "@fortawesome/fontawesome-pro/svgs/solid/trash.svg?raw";
+import fasRightLeft from "@fortawesome/fontawesome-pro/svgs/solid/right-left.svg?raw";
 
 import customCube from "../assets/icons/cube-solid.svg?raw";
 import customCylinder from "../assets/icons/cylinder-solid.svg?raw";
@@ -119,6 +120,7 @@ function renderSvg(iconId: string) {
 		"search": () => fasMagnifyingGlass,
 		"skeleton": () => fasSkeleton,
 		"sphere": () => customSphere,
+		"swap": () => fasRightLeft,
 		"trash": () => fasTrash,
 		"torus": () => customTorus,
 		"up-down-left-right": () => fasUpDownLeftRight,

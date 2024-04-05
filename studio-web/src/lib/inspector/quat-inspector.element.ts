@@ -46,36 +46,44 @@ export class QuatInspectorElement extends LitElement {
 	}
 
 	protected override render = (): TemplateResult => html`
-		<sts-scalar-field
-			class="input"
-			aria-label="X"
-			format="1.1-2 °"
-			emitOn="change"
-			.step=${1}
-			.microStep=${0.1}
-			.value=${this._eulerX}
-			@value-change=${this.#emitUpdate(RotationAxis.X)}
-		></sts-scalar-field>
-		<sts-scalar-field
-			class="input"
-			aria-label="Y"
-			format="1.1-2 °"
-			emitOn="change"
-			.step=${1}
-			.microStep=${0.1}
-			.value=${this._eulerY}
-			@value-change=${this.#emitUpdate(RotationAxis.Y)}
-		></sts-scalar-field>
-		<sts-scalar-field
-			class="input"
-			aria-label="Z"
-			format="1.1-2 °"
-			emitOn="change"
-			.step=${1}
-			.microStep=${0.1}
-			.value=${this._eulerZ}
-			@value-change=${this.#emitUpdate(RotationAxis.Z)}
-		></sts-scalar-field>
+		<label class="field field--x">
+			<span class="label label--x">X</span>
+			<sts-scalar-field
+				class="input"
+				format="1.2-2 °"
+				emitOn="change"
+				.step=${1}
+				.microStep=${0.1}
+				.value=${this._eulerX}
+				@value-change=${this.#emitUpdate(RotationAxis.X)}
+			></sts-scalar-field>
+		</label>
+
+		<label class="field field--y">
+			<span class="label label--y">Y</span>
+			<sts-scalar-field
+				class="input"
+				format="1.2-2 °"
+				emitOn="change"
+				.step=${1}
+				.microStep=${0.1}
+				.value=${this._eulerY}
+				@value-change=${this.#emitUpdate(RotationAxis.Y)}
+			></sts-scalar-field>
+		</label>
+
+		<label class="field field--z">
+			<span class="label label--z">Z</span>
+			<sts-scalar-field
+				class="input"
+				format="1.2-2 °"
+				emitOn="change"
+				.step=${1}
+				.microStep=${0.1}
+				.value=${this._eulerZ}
+				@value-change=${this.#emitUpdate(RotationAxis.Z)}
+			></sts-scalar-field>
+		</label>
 	`;
 }
 

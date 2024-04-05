@@ -1,13 +1,18 @@
 import { bind, inject } from "@storyteller/framework";
 import * as studio from "@storyteller/studio";
 import { BlockingCommand, TransformSpace, TransformType } from "@storyteller/studio";
-import { STUDIO_PARAMS, type StudioParams } from "@storyteller/studio-web";
+import {
+	SCENE_DATA_PROVIDER,
+	STUDIO_PARAMS,
+	type SceneDataProvider,
+	type StudioParams,
+} from "@storyteller/studio-web";
 import { ButtonElement } from "@storyteller/studio-ui/button";
-import { LitElement, PropertyValues, TemplateResult, html } from "lit";
+import { LitElement, PropertyValues, TemplateResult, html, nothing } from "lit";
 import { customElement, state } from "lit/decorators.js";
-import { classMap } from "lit/directives/class-map.js";
 import { createRef, ref } from "lit/directives/ref.js";
 
+import "@storyteller/studio-web/entity-inspector";
 import "@storyteller/studio-web/studio";
 import "@storyteller/studio-ui/button";
 import "@storyteller/studio-ui/forms/radio";
@@ -16,26 +21,35 @@ import "@storyteller/studio-ui/toolbar";
 
 import "./studio-viewport.element.scss";
 
-// TODO: A giant wrapper around literally everything that used to be in
-//       `AppElement` is not a particularly useful abstraction, it's just
-//       moving the mess around.
-//
-//       Narrow the scope of this element to just the 3D viewport and its
-//       anchored UI elements, and let it live alongside the sidebar and
-//       timeline in `AppElement`.
 @customElement("sts-studio-viewport")
 export class StudioViewportElement extends LitElement {
 	@inject(STUDIO_PARAMS)
 	_params!: StudioParams;
 
-	@state() private _resizingPanel = false;
+	@inject(SCENE_DATA_PROVIDER)
+	_sceneData!: SceneDataProvider;
+
 	@state() _transformSpace = TransformSpace.Local;
 	@state() _transformType = TransformType.Translate;
 
 	#fileTriggerRef = createRef<ButtonElement>();
 	#mediaLibraryTriggerRef = createRef<ButtonElement>();
 
+	get #selectedObject() {
+		return this._sceneData.selectedObject;
+	}
+
 	protected override createRenderRoot = () => this;
+
+	override connectedCallback(): void {
+		this._sceneData.addEventListener("property-changes", this.onSceneDataChanges);
+		super.connectedCallback();
+	}
+
+	override disconnectedCallback(): void {
+		this._sceneData.removeEventListener("property-changes", this.onSceneDataChanges);
+		super.disconnectedCallback();
+	}
 
 	protected override update(changes: PropertyValues<this>): void {
 		if (changes.has("_transformSpace"))
@@ -47,12 +61,16 @@ export class StudioViewportElement extends LitElement {
 		super.update(changes);
 	}
 
+	onSceneDataChanges = ({
+		detail: changes,
+	}: CustomEvent<PropertyValues<SceneDataProvider>>): void => {
+		if (changes.has("selectedObject"))
+			this.requestUpdate();
+	}
+
 	protected override render = (): TemplateResult => html`
 		<sts-studio
-			class=${classMap({
-				"studio": true,
-				"block-pointer-events": this._resizingPanel,
-			})}
+			class="studio"
 			.objectId=${this._params.objectId}
 			.bvhPath=${this._params.bvh}
 			.mixamoPath=${this._params.mixamo}
@@ -170,10 +188,39 @@ export class StudioViewportElement extends LitElement {
 				</sts-toolbar-group>
 			</sts-toolbar>
 
-		</sts-studio>
+			${this.#selectedObject != null ? html`
+				<div class="inspector abs h-end v-end offset">
+					<header class="inspector__header">
+						<div class="object-name">
+							${this.#selectedObject.icon != null ? html`
+								<sts-icon .icon=${this.#selectedObject.icon}></sts-icon>
+							` : nothing}
+							<h3>${this.#selectedObject.name}</h3>
+						</div>
+						<sts-button
+							class="swap-object"
+							icon="swap"
+						>
+							Swap object
+						</sts-button>
+					</header>
+					<sts-entity-inspector></sts-entity-inspector>
+					<footer class="inspector__footer">
+						<sts-button
+							class="add-to-timeline"
+						>
+							Add to Timeline
+						</sts-button>
+						<sts-button
+							class="delete"
+							icon="trash"
+							title="Delete Entity"
+						></sts-button>
+					</footer>
+				</div>
+			` : nothing}
 
-		<!-- <div class="sidebar"></div>
-		<div class="timeline"></div> -->
+		</sts-studio>
 
 		<sts-menu
 			autoClose
