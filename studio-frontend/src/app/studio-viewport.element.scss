@@ -72,6 +72,19 @@ sts-studio-viewport {
 		margin-inline-end: 0.75rem;
 	}
 
+	.play-pause {
+		align-self: center;
+		padding: 0.4rem;
+		border-radius: 50%;
+		background: #FFF;
+		color: var(--neutral-100);
+
+		&::part(icon) {
+			width: 1em;
+			font-size: 0.75rem;
+		}
+	}
+
 	.timecode {
 		display: block;
 		align-self: center;

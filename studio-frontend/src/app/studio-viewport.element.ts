@@ -176,15 +176,11 @@ export class StudioViewportElement extends LitElement {
 			<sts-toolbar class="timeline-controls abs h-center v-end">
 				<sts-toolbar-group>
 					<sts-button icon="bwd-step"></sts-button>
-					<sts-button secondary icon="play"></sts-button>
+					<sts-button class="play-pause" icon="play"></sts-button>
 					<sts-button icon="fwd-step"></sts-button>
 					<span class="timecode">
 						<strong>00:00:00</strong> / 00:10:00
 					</span>
-				</sts-toolbar-group>
-				<hr />
-				<sts-toolbar-group>
-					<sts-button icon="trash"></sts-button>
 				</sts-toolbar-group>
 			</sts-toolbar>
 
