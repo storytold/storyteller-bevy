@@ -202,9 +202,17 @@ pub struct TimedAnimationClipDuration(f32);
 #[derive(Component, Clone, Debug)]
 enum RetargetedClipReference {
     UseOrigin,
-    RenamedRoot { retargeted: Handle<AnimationClip> },
-    Mixamo { retargeted: Handle<AnimationClip> },
-    MocapNet { retargeted: Handle<AnimationClip> },
+    RenamedRoot {
+        retargeted: Handle<AnimationClip>,
+    },
+    #[allow(dead_code)]
+    Mixamo {
+        retargeted: Handle<AnimationClip>,
+    },
+    #[allow(dead_code)]
+    MocapNet {
+        retargeted: Handle<AnimationClip>,
+    },
 }
 
 #[derive(Component, Clone, Debug, Reflect, PartialEq, Default, Serialize, Deserialize)]
@@ -1106,10 +1114,10 @@ mod wasm {
             automatic: boolean
         }
     }
-    
+
     declare global {
         export interface GlobalEventHandlersEventMap {
-            "seek-time-changed": CameraKeyframesEvent; 
+            "seek-time-changed": CameraKeyframesEvent;
             "update-animation-targets": UpdateAnimationTargets;
             "update-keyframes": UpdateKeyframes;
         }
