@@ -68,7 +68,8 @@ export class StudioViewportElement extends LitElement {
 		super.update(changes);
 	}
 
-	protected override render = (): TemplateResult => html`
+	protected override render(): TemplateResult {
+		return html`
 		<sts-studio
 			class="studio"
 			.objectId=${this._params.objectId}
@@ -166,6 +167,14 @@ export class StudioViewportElement extends LitElement {
 							<sts-icon icon="scale">Scale</sts-icon>
 						</sts-radio>
 					</sts-radio-group>
+				</sts-toolbar-group>
+
+				<hr />
+
+				<sts-toolbar-group>
+					<sts-button class="stylize" primary>
+						Stylize <sts-icon icon="chevron-right"></sts-icon>
+					</sts-button>
 				</sts-toolbar-group>
 			</sts-toolbar>
 
@@ -274,5 +283,6 @@ export class StudioViewportElement extends LitElement {
 			tag="sts-media-library-dialog"
 			nonBlocking
 		></sts-dialog>
-	`
+		`;
+	}
 }

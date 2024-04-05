@@ -11,6 +11,16 @@ sts-studio-viewport {
 		}
 	}
 
+	.stylize {
+		gap: 0.5rem;
+		padding: 0.5rem 0.75rem;
+		line-height: 1;
+
+		sts-icon {
+			align-self: center;
+		}
+	}
+
 	.timeline-controls {
 		background: var(--neutral-200);
 		border-radius: 0.5rem;
