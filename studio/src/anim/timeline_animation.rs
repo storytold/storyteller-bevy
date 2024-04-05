@@ -4,7 +4,8 @@ use bevy::{prelude::*, utils::hashbrown::HashMap};
 
 use bevy_tweening::{
     lens::{TransformPositionLens, TransformRotationLens, TransformScaleLens},
-    Animator, EaseMethod, Sequence, Targetable, Tracks, Tween, TweenCompleted,
+    Animator, BoxedTweenable, Delay, EaseMethod, Sequence, Targetable, Tracks, Tween,
+    TweenCompleted,
 };
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
@@ -15,6 +16,8 @@ use crate::{
     interaction::{MarkedForDeletion, Selectable},
     scene::SceneElement,
 };
+
+use super::Skeleton;
 
 pub struct TimelinePlugin;
 
@@ -30,6 +33,8 @@ impl Plugin for TimelinePlugin {
             .editor_registry::<Keyframe>()
             .register_type::<KeyframeOrder>()
             .editor_registry::<KeyframeOrder>()
+            .register_type::<ClipRetargeting>()
+            .editor_registry::<ClipRetargeting>()
             .register_type::<EaseType>()
             .register_type::<uuid::Uuid>()
             .add_event::<TimelineInteractionEvent>()
@@ -43,7 +48,10 @@ impl Plugin for TimelinePlugin {
         })
         .add_event::<TweenCompleted>();
 
-        app.add_systems(First, generate_transform_animation);
+        app.add_systems(
+            First,
+            (generate_transform_animation, generate_clip_animation),
+        );
         app.add_systems(PreUpdate, (process_timeline_events, update_tick).chain());
 
         app.add_systems(
@@ -52,11 +60,12 @@ impl Plugin for TimelinePlugin {
                 process_auto_key.run_if(in_state(KeyingMode::Auto)),
                 process_keyframe_events,
                 timeline_bound_component_animator_system::<Transform>,
-                update_timed_animation_clip_duration
+                timeline_bound_component_animator_system::<AnimationPlayer>,
+                update_timed_animation_clip_duration,
             ),
         );
 
-        // app.add_systems(PostUpdate, generate_transform_animation);
+        app.add_systems(PostUpdate, retarget_timed_animation_clip);
 
         #[cfg(feature = "wasm")]
         {
@@ -107,7 +116,8 @@ pub enum KeyframeInteractionEvent {
     InsertAnimationClip {
         target: Entity,
         clip_path: String,
-        display_name: String
+        display_name: String,
+        retargeting_type: ClipRetargeting,
     },
 }
 
@@ -188,6 +198,24 @@ pub struct TimedAnimationClipAsset {
 
 #[derive(Component, Clone, Debug, PartialEq)]
 pub struct TimedAnimationClipDuration(f32);
+
+#[derive(Component, Clone, Debug)]
+enum RetargetedClipReference {
+    UseOrigin,
+    RenamedRoot { retargeted: Handle<AnimationClip> },
+    Mixamo { retargeted: Handle<AnimationClip> },
+    MocapNet { retargeted: Handle<AnimationClip> },
+}
+
+#[derive(Component, Clone, Debug, Reflect, PartialEq, Default, Serialize, Deserialize)]
+#[reflect(Component)]
+#[cfg_attr(all(feature = "wasm"), wasm_bindgen::prelude::wasm_bindgen)]
+pub enum ClipRetargeting {
+    #[default]
+    UseOrigin,
+    Mixamo,
+    MocapNet,
+}
 
 impl PartialOrd for TimedAnimationClipAsset {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
@@ -313,7 +341,7 @@ fn process_keyframe_events(
     q_animation_targets: Query<(Entity, &Transform, &AnimationTarget)>,
     q_potential_targets: Query<Entity, (With<Transform>, Without<AnimationTarget>)>,
     mut q_keyframes: Query<(Entity, &mut Keyframe)>,
-    asset_server: Res<AssetServer>
+    asset_server: Res<AssetServer>,
 ) {
     for event in e_timeline_event.read() {
         info!("Processing Keyframe Event {event:?}");
@@ -373,7 +401,8 @@ fn process_keyframe_events(
             KeyframeInteractionEvent::InsertAnimationClip {
                 target,
                 clip_path,
-                display_name
+                display_name,
+                retargeting_type,
             } => {
                 if let Ok((_target, transform, animation_target)) = q_animation_targets.get(*target)
                 {
@@ -393,6 +422,7 @@ fn process_keyframe_events(
                             clip: asset_server.load(format!("{clip_path}#Animation0")),
                             speed: 1.0,
                         },
+                        retargeting_type.clone(),
                     ));
                 }
             }
@@ -637,11 +667,276 @@ pub fn timeline_bound_component_animator_system<T: Component>(
     }
 }
 
-pub fn update_timed_animation_clip_duration(mut commands: Commands, query: Query<(Entity, &TimedAnimationClipAsset), Without<TimedAnimationClipDuration>>, clips: Res<Assets<AnimationClip>>) {
+#[derive(Component)]
+struct TimedAnimationClipLens {
+    clip: Handle<AnimationClip>,
+    duration: f32,
+}
+
+impl bevy_tweening::lens::Lens<AnimationPlayer> for TimedAnimationClipLens {
+    fn lerp(&mut self, target: &mut AnimationPlayer, ratio: f32) {
+        let inner_time = self.duration * ratio;
+        if target.animation_clip() != &self.clip {
+            target.play(self.clip.clone());
+            target.pause();
+            target.seek_to(inner_time);
+        } else {
+            target.seek_to(inner_time);
+        }
+    }
+}
+
+fn generate_clip_animation(
+    mut commands: Commands,
+    keyframes: Query<
+        (
+            &Keyframe,
+            &TimedAnimationClipAsset,
+            &TimedAnimationClipDuration,
+            &RetargetedClipReference,
+            Entity,
+        ),
+        Without<MarkedForDeletion>,
+    >,
+    valid_targets: Query<(
+        Entity,
+        &AnimationTarget,
+        Option<&Name>,
+        Option<&SceneElement>,
+        &Skeleton,
+    )>,
+    mut e_timeline_event: EventReader<TimelineInteractionEvent>,
+) {
+    let mut playing = false;
+    for e in e_timeline_event.read() {
+        if matches!(
+            e,
+            TimelineInteractionEvent::Play | TimelineInteractionEvent::Seek(_)
+        ) {
+            playing = true;
+            continue;
+        }
+    }
+    if !playing {
+        return;
+    }
+    info!("Generating Animation From Keyframes");
+
+    let available_targets = valid_targets
+        .iter()
+        .map(|(e, a, name, element, skeleton)| (*a, (e, name, element)))
+        .collect::<HashMap<_, _>>();
+
+    let keyframes = keyframes
+        .iter()
+        .into_group_map_by(|(keyframe, _, _, _, _)| keyframe.target);
+
+    for (target, keyframes) in keyframes.into_iter() {
+        info!("Keyframes For Target {target:?}");
+        let Some(target) = available_targets.get(&target) else {
+            info!("No valid target.");
+            continue;
+        };
+        let (target, target_name, target_scene_element) = *target;
+
+        let keyframes = keyframes.iter();
+
+        let keyframes = keyframes.sorted_by(|a, b| a.0.time.total_cmp(&b.0.time));
+
+        let (last, mut clip_timeline) = keyframes.fold(
+            (
+                Option::<(f32, f32, Handle<AnimationClip>)>::None,
+                Vec::<BoxedTweenable<AnimationPlayer>>::new(),
+            ),
+            |(last_clip, mut clip_timeline), (keyframe, asset, duration, reference, entity)| {
+                let time = keyframe.time;
+
+                let (last_start, last_duration, last_clip) = match last_clip {
+                    Some((start, duration, clip)) => (start, duration, Some(clip)),
+                    None => (0., 0., None),
+                };
+
+                let mut reached_now = false;
+                let mut clip_end = last_start + last_duration;
+                if clip_end > time {
+                    reached_now = true;
+                    clip_end = time;
+                }
+
+                if let Some(last_clip) = last_clip {
+                    let duration = clip_end - last_start;
+
+                    if duration > 0f32 {
+                        clip_timeline.push(
+                            Tween::new(
+                                EaseMethod::Linear,
+                                Duration::from_secs_f32(duration),
+                                TimedAnimationClipLens {
+                                    clip: last_clip,
+                                    duration: duration,
+                                },
+                            )
+                            .into(),
+                        );
+                    }
+                }
+
+                if !reached_now {
+                    let duration = time - clip_end;
+                    if duration > 0f32 {
+                        clip_timeline.push(Delay::new(Duration::from_secs_f32(duration)).into());
+                    }
+                }
+
+                let duration = duration.0;
+                let clip = match reference {
+                    RetargetedClipReference::UseOrigin => &asset.clip,
+                    RetargetedClipReference::RenamedRoot { retargeted } => retargeted,
+                    RetargetedClipReference::Mixamo { retargeted } => retargeted,
+                    RetargetedClipReference::MocapNet { retargeted } => retargeted,
+                };
+
+                (Some((time, duration, clip.clone())), clip_timeline)
+            },
+        );
+
+        if let Some((_, duration, clip)) = last {
+            if duration > 0f32 {
+                clip_timeline.push(
+                    Tween::new(
+                        EaseMethod::Linear,
+                        Duration::from_secs_f32(duration),
+                        TimedAnimationClipLens { clip, duration },
+                    )
+                    .into(),
+                );
+            }
+        }
+
+        if clip_timeline.is_empty() {
+            commands
+                .entity(target)
+                .remove::<Animator<AnimationPlayer>>()
+                .remove::<AnimationPlayer>();
+            continue;
+        }
+
+        let clip_timeline = Sequence::new(clip_timeline);
+        info!(
+            "Adding Animation Clip Track for {target_name:?} {target_scene_element:?} {target:?}"
+        );
+        commands
+            .entity(target)
+            .insert((AnimationPlayer::default(), Animator::new(clip_timeline)));
+    }
+}
+
+pub fn update_timed_animation_clip_duration(
+    mut commands: Commands,
+    query: Query<(Entity, &TimedAnimationClipAsset), Without<TimedAnimationClipDuration>>,
+    clips: Res<Assets<AnimationClip>>,
+) {
     for (entity, clip_asset) in &query {
         if let Some(clip) = clips.get(&clip_asset.clip) {
             let duration = clip.duration();
-            commands.entity(entity).insert(TimedAnimationClipDuration(duration));
+            commands
+                .entity(entity)
+                .insert(TimedAnimationClipDuration(duration));
+        }
+    }
+}
+
+fn retarget_timed_animation_clip(
+    mut commands: Commands,
+    clip_keys: Query<
+        (
+            Entity,
+            &TimedAnimationClipAsset,
+            &ClipRetargeting,
+            &Keyframe,
+        ),
+        (
+            With<TimedAnimationClipDuration>,
+            Without<RetargetedClipReference>,
+        ),
+    >,
+    animation_targets: Query<(Entity, &AnimationTarget, &Name), With<Skeleton>>,
+    mut clips: ResMut<Assets<AnimationClip>>,
+) {
+    let targets = animation_targets
+        .iter()
+        .map(|(entity, target, name)| (target.clone(), (entity, name)))
+        .collect::<HashMap<_, _>>();
+
+    for (entity, asset, retarget, keyframe) in &clip_keys {
+        info!("Added Animation: {asset:?} with retargeting {retarget:?}");
+        let Some(clip) = clips.get(&asset.clip) else {
+            continue;
+        };
+        info!("Animation exists");
+        let Some(paths) = clip.field("paths") else {
+            continue;
+        };
+        info!("Parsing Paths");
+        let Some(paths): Option<HashMap<EntityPath, usize>> =
+            HashMap::<EntityPath, usize>::from_reflect(paths)
+        else {
+            continue;
+        };
+
+        let Some((target_entity, target_name)) = targets.get(&keyframe.target) else {
+            error!("Animation has no target: {keyframe:?}");
+            continue;
+        };
+
+        match &retarget {
+            ClipRetargeting::UseOrigin => {
+                info!("Use Origin");
+                if clip.compatible_with(*target_name) {
+                    info!("Animation Already Compatible");
+                    commands
+                        .entity(entity)
+                        .insert(RetargetedClipReference::UseOrigin);
+                } else {
+                    let mut new_clip = AnimationClip::default();
+                    let first_path = paths.keys().next().cloned();
+                    let new_first_path = first_path.as_ref().map(|path| {
+                        let mut new_path = path.clone();
+                        if let Some(root_name) = new_path.parts.first_mut() {
+                            root_name.set(target_name.to_string());
+                        }
+                        new_path
+                    });
+                    for (path, bone_id) in paths.iter() {
+                        let mut new_path = path.clone();
+                        if let Some(root_name) = new_path.parts.first_mut() {
+                            root_name.set(target_name.to_string());
+                        }
+
+                        let Some(curves) = clip.get_curves(*bone_id) else {
+                            continue;
+                        };
+                        for curve in curves {
+                            new_clip.add_curve_to_path(new_path.clone(), curve.clone());
+                        }
+                    }
+                    info!("Inserted Animation With Renamed Root - original {first_path:?} becomes {new_first_path:?}");
+                    let retargeted = clips.add(new_clip);
+                    commands
+                        .entity(entity)
+                        .insert(RetargetedClipReference::RenamedRoot { retargeted });
+                }
+            }
+            ClipRetargeting::Mixamo => {
+                commands
+                    .entity(entity)
+                    .insert(RetargetedClipReference::UseOrigin);
+            }
+            ClipRetargeting::MocapNet => {
+                commands
+                    .entity(entity)
+                    .insert(RetargetedClipReference::UseOrigin);
+            }
         }
     }
 }
@@ -659,7 +954,9 @@ mod wasm {
     };
 
     use super::{
-        AnimationTarget, EaseType, GlobalSeekTime, Keyframe, KeyframeInteractionEvent, KeyingMode, TimedAnimationClipAsset, TimedAnimationClipDuration, TimelineInteractionEvent, TransformKeyframe
+        AnimationTarget, ClipRetargeting, EaseType, GlobalSeekTime, Keyframe,
+        KeyframeInteractionEvent, KeyingMode, TimedAnimationClipAsset, TimedAnimationClipDuration,
+        TimelineInteractionEvent, TransformKeyframe,
     };
 
     static SEEK_TIME: WasmMessageBuffer<TimelineInteractionEvent> = WasmMessageBuffer::new();
@@ -698,13 +995,21 @@ mod wasm {
     }
 
     #[wasm_bindgen(js_name = insertClip)]
-    pub fn insert_clip(entity: String, clip_path: String, display_name: String) {
+    pub fn insert_clip(
+        entity: String,
+        clip_path: String,
+        display_name: String,
+        retargeting_type: ClipRetargeting,
+    ) {
         let Ok(target) = Entity::from_str(&entity) else {
             return;
         };
-        KEYFRAME_EVENT.write_message(
-            vec![KeyframeInteractionEvent::InsertAnimationClip { target, clip_path,  display_name }]
-        );
+        KEYFRAME_EVENT.write_message(vec![KeyframeInteractionEvent::InsertAnimationClip {
+            target,
+            clip_path,
+            display_name,
+            retargeting_type,
+        }]);
     }
 
     #[wasm_bindgen(js_name = moveKeyframeTime)]
@@ -836,7 +1141,7 @@ mod wasm {
         time: f32,
         clip: String,
         speed: f32,
-        duration: f32
+        duration: f32,
     }
 
     #[derive(Serialize, Deserialize)]
@@ -942,8 +1247,18 @@ mod wasm {
             Or<(Changed<Keyframe>, Changed<TransformKeyframe>)>,
         >,
         q_clips: Query<
-            (Entity, &Keyframe, &TimedAnimationClipAsset, &Name, Option<&TimedAnimationClipDuration>),
-            Or<(Changed<Keyframe>, Changed<TimedAnimationClipAsset>, Changed<TimedAnimationClipDuration>)>,
+            (
+                Entity,
+                &Keyframe,
+                &TimedAnimationClipAsset,
+                &Name,
+                Option<&TimedAnimationClipDuration>,
+            ),
+            Or<(
+                Changed<Keyframe>,
+                Changed<TimedAnimationClipAsset>,
+                Changed<TimedAnimationClipDuration>,
+            )>,
         >,
         removed: Query<Entity, With<MarkedForDeletion>>,
     ) -> Result<(), String> {
@@ -969,21 +1284,25 @@ mod wasm {
                     Err(e) => Err(e),
                 }
             })
-            .chain(q_clips.iter().map(|(entity, keyframe, clip, name, duration)| {
-                match serde_json::to_value(TimedAnimationClipInfo {
-                    entity: format!("{entity:?}"),
-                    target: keyframe.target,
-                    time: keyframe.time,
-                    clip: name.to_string(),
-                    speed: clip.speed,
-                    duration: duration.map(|v| v.0).unwrap_or_default()
-                })
-                .map_err(|e| format!("{e}"))
-                {
-                    Ok(value) => Ok((format!("{entity:?}"), value)),
-                    Err(e) => Err(e),
-                }
-            }))
+            .chain(
+                q_clips
+                    .iter()
+                    .map(|(entity, keyframe, clip, name, duration)| {
+                        match serde_json::to_value(TimedAnimationClipInfo {
+                            entity: format!("{entity:?}"),
+                            target: keyframe.target,
+                            time: keyframe.time,
+                            clip: name.to_string(),
+                            speed: clip.speed,
+                            duration: duration.map(|v| v.0).unwrap_or_default(),
+                        })
+                        .map_err(|e| format!("{e}"))
+                        {
+                            Ok(value) => Ok((format!("{entity:?}"), value)),
+                            Err(e) => Err(e),
+                        }
+                    }),
+            )
             .collect::<Result<HashMap<_, _>, String>>()?;
 
         let removed = removed.iter().map(|v| format!("{v:?}")).collect::<Vec<_>>();

@@ -106,7 +106,7 @@ export class AppElement extends LitElement {
 	}
 
 	@on("window:debug-mode-toggled")
-	onDebugModeToggled({detail: { debugModeActive }}: studio.DefaultModeToggled ): void {
+	onDebugModeToggled({detail: { debugModeActive }}: studio.DebugModeToggled ): void {
 		this.debugMode = debugModeActive;
 	}
 

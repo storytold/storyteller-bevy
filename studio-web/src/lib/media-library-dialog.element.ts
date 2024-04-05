@@ -301,8 +301,15 @@ export class MediaLibraryDialogElement extends DialogBaseElement {
 			return;
 		}
 
+		let retargetingType = studio.ClipRetargeting.UseOrigin;
+		if (mediaFile.subtype === MediaFileSubtype.Mixamo) {
+			retargetingType = studio.ClipRetargeting.Mixamo;
+		}  else if (mediaFile.subtype === MediaFileSubtype.MocapNet) {
+			retargetingType = studio.ClipRetargeting.MocapNet
+		}
+
 		console.log(`Inserting Animation ${asset.name} for skeleton ${skeletonSelected}`)
-		studio.insertClip(skeletonSelected, asset.path, asset.name);
+		studio.insertClip(skeletonSelected, asset.path, asset.name, retargetingType);
 		this.dispatchEvent(new CustomEvent("close"));
 	}
 
