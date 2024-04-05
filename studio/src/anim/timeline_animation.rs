@@ -1068,10 +1068,16 @@ mod wasm {
         };
     }
 
+    export interface AnimationTrack {
+        name?: string;
+        targetType: SceneElement;
+        animationTarget: AnimationTarget;
+    }
+
     export interface UpdateAnimationTargets extends CustomEvent {
         type: "update-animation-targets",
         detail: {
-            added: Record<string, { name?: string, target_type: SceneElement, animation_target: AnimationTarget  } >,
+            added: Record<string, AnimationTrack>,
             removed: string[]
         }
     }
@@ -1081,9 +1087,9 @@ mod wasm {
         time: number,
         entity: string,
         incoming_easing: "linear" | "cubic-hermite",
-        affect_translation: bool,
-        affect_rotation: bool,
-        affect_scale: bool
+        affect_translation: boolean,
+        affect_rotation: boolean,
+        affect_scale: boolean
     }
 
     export interface TimedAnimationClipInfo {
@@ -1125,6 +1131,7 @@ mod wasm {
     "#;
 
     #[derive(Serialize, Deserialize)]
+    #[serde(rename_all = "camelCase")]
     struct AddedAnimationTargetRecordItem {
         name: Option<String>,
         target_type: SceneElement,

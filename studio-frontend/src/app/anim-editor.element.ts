@@ -1,7 +1,7 @@
 import * as studio from "@storyteller/studio";
-import type { EntitySelectEvent, SeekTimeChanged, UpdateAnimationTargets, Keyframe } from "@storyteller/studio";
+import type { EntitySelectEvent, SeekTimeChanged, UpdateAnimationTargets, Keyframe, AnimationTrack } from "@storyteller/studio";
 import { bind, drag, inject, on, provide } from "@storyteller/framework";
-import { LitElement, type PropertyValues, html, unsafeCSS, TemplateResult, PropertyValueMap } from "lit";
+import { LitElement, type PropertyValues, html, unsafeCSS, TemplateResult } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { styleMap } from "lit/directives/style-map.js";
 
@@ -27,6 +27,8 @@ function isOutsideEntity(
 	return "outsideEntity" in value;
 }
 
+// TODO: Consider refactoring to get/set most of the `@state` here through
+//       `AnimTimelineController`
 @customElement("sts-anim-editor")
 @provide(TREE_SELECTION_PROVIDER)
 export class AnimEditorElement extends LitElement
@@ -47,7 +49,7 @@ export class AnimEditorElement extends LitElement
 	@state() playHead = 0;
 	@state() playing = false;
 
-	@state() tracks: Record<string, { name?: string, target_type: studio.SceneElement, animation_target: studio.AnimationTarget }> = {};
+	@state() tracks: Record<string, AnimationTrack> = {};
 
 	@state() track_ordered: [string, studio.AnimationTarget][] = [];
 
@@ -115,7 +117,7 @@ export class AnimEditorElement extends LitElement
 			delete tracks[track_entity];
 		}
 
-		this.track_ordered = Object.keys(tracks).map(entity => [entity, tracks[entity].animation_target]);
+		this.track_ordered = Object.keys(tracks).map(entity => [entity, tracks[entity].animationTarget]);
 
 		if (typeof this.selectedTrack === "object") {
 			if (!isOutsideEntity(this.selectedTrack) && !(this.selectedTrack.track in tracks)) {
@@ -309,44 +311,45 @@ export class AnimEditorElement extends LitElement
 
 		let timeline_css_variables = {
 			'--track-count': `${this.trackCount()}`,
-			'--row-count': `calc(var(--track-count) + ${canAddSelected ? 3 : 2})`,
+			'--row-count': `calc(var(--track-count) + ${/*canAddSelected ? 3 :*/ 2})`,
 			'--clip-end': `${clip_end * 100}%`,
 			'--clip-start': `${clip_start * 100}%`
 		};
 
 		const tracklist = this.track_ordered.map(([entity,]) => {
 			let track = this.tracks[entity];
-			let name = track.name ?? track.target_type;
+			let name = track.name ?? track.targetType;
 			let icon = this.sceneData?.entityMap.get(entity)?.icon ?? "minus";
 			return html`
-			<sts-tree class="track"
-				role="listitem"
-				name=${name}
-				icon=${icon}
-				@tree-select=${() => {
-					studio.select(entity);
-				}}
-				.id=${entity}
-			></sts-tree>
+				<sts-tree class="track"
+					role="listitem"
+					name=${name}
+					icon=${icon}
+					@tree-select=${() => {
+						studio.select(entity);
+					}}
+					.id=${entity}
+				></sts-tree>
 			`;
 		});
 
-		if (canAddSelected) {
-			tracklist.push(html`
-				<sts-tree class=${`track`}
-				role="button"
-				.name=${`Add Track: ${this.sceneData?.selectedObject?.name ?? canAddSelected}`}
-				icon="plus-large"
-				@click=${this.addTarget}></sts-tree>
-			`);
-		}
+		// if (canAddSelected) {
+		// 	tracklist.push(html`
+		// 		<sts-tree class=${`track`}
+		// 		role="button"
+		// 		.name=${`Add Track: ${this.sceneData?.selectedObject?.name ?? canAddSelected}`}
+		// 		icon="plus-large"
+		// 		@click=${this.addTarget}></sts-tree>
+		// 	`);
+		// }
 
 		const none_selected = !selected;
 
 		return html`
+		<!--
 		<div class="timeline-controls">
 			<sts-toolbar>
-		<sts-toolbar-group>
+				<sts-toolbar-group>
 					${this.keyingMode === "automatic" ? html`
 						<sts-button class="btn-autokey active"
 							icon="record"
@@ -404,35 +407,36 @@ export class AnimEditorElement extends LitElement
 				</sts-toolbar-group>
 			</sts-toolbar>
 		</div>
+		-->
 		<div class="timeline-wrapper">
-		<div class="sidebar"
-			style=${styleMap({
-			width: `${this.sidebarWidth}px`,
-			...timeline_css_variables
-		})}
-		>
-			<div class="tracklist" role="list">
-			${tracklist}
+			<div class="sidebar"
+				style=${styleMap({
+				width: `${this.sidebarWidth}px`,
+					...timeline_css_variables
+				})}
+			>
+				<div class="tracklist" role="list">
+					${tracklist}
+				</div>
 			</div>
-		</div>
 
-		<div class="divider" style=${styleMap(timeline_css_variables)}
-			${drag({
-				move: this.onSidebarResize,
-			})}
-		></div>
+			<div class="divider" style=${styleMap(timeline_css_variables)}
+				${drag({
+					move: this.onSidebarResize,
+				})}
+			></div>
 
-		<sts-anim-timeline class="timeline"
-		style=${styleMap(timeline_css_variables)}
-			.rangeStart=${bind(this, "timelineStart")}
-			.rangeEnd=${bind(this, "timelineEnd")}
-			.clipStart=${this.clipStart}
-			.clipEnd=${this.clipEnd}
-			.playHead=${this.playHead}
-			.keyframes=${bind(this, "keyframes")}
-			.track_ordered=${track_order_hashed}
-			.track_animation_target_ordered=${track_animation_target_order_hashed}
-		></sts-anim-timeline>
+			<sts-anim-timeline class="timeline"
+				style=${styleMap(timeline_css_variables)}
+				.rangeStart=${bind(this, "timelineStart")}
+				.rangeEnd=${bind(this, "timelineEnd")}
+				.clipStart=${this.clipStart}
+				.clipEnd=${this.clipEnd}
+				.playHead=${this.playHead}
+				.keyframes=${bind(this, "keyframes")}
+				.track_ordered=${track_order_hashed}
+				.track_animation_target_ordered=${track_animation_target_order_hashed}
+			></sts-anim-timeline>
 		</div>
 	`
 	};

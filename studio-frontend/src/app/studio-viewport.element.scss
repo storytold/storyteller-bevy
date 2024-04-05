@@ -11,7 +11,13 @@ sts-studio-viewport {
 		}
 	}
 
-	sts-toolbar {
+	.timeline-controls {
+		background: var(--neutral-200);
+		border-radius: 0.5rem;
+	}
+
+	sts-toolbar,
+	.timeline-controls {
 		&.v-start {
 			border: {
 				top-left-radius: 0;
@@ -72,34 +78,6 @@ sts-studio-viewport {
 		margin-inline-end: 0.75rem;
 	}
 
-	.play-pause {
-		align-self: center;
-		padding: 0.4rem;
-		border-radius: 50%;
-		background: #FFF;
-		color: var(--neutral-100);
-
-		&::part(icon) {
-			width: 1em;
-			font-size: 0.75rem;
-		}
-	}
-
-	.timecode {
-		display: block;
-		align-self: center;
-		margin-inline: 0.5rem;
-		color: rgba(#FFF, 0.5);
-		font: {
-			size: 0.875rem;
-			weight: 500;
-		}
-
-		strong {
-			color: #FFF;
-		}
-	}
-
 	.inspector {
 		min-width: math.div(330, 16) * 1rem;
 		padding: 1rem;
@@ -147,8 +125,12 @@ sts-studio-viewport {
 			gap: 0.5rem;
 			margin: 1.75rem 0 0;
 
+			.add-keyframe,
 			.add-to-timeline {
 				flex: 1 0 0;
+			}
+
+			.add-to-timeline {
 				justify-content: center;
 			}
 

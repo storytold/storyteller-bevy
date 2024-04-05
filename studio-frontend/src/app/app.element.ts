@@ -4,6 +4,7 @@ import {
 	type SceneStateEvent,
 	SceneState,
 	StudioMode,
+	type DebugModeToggled,
 } from "@storyteller/studio";
 import { ButtonElement } from "@storyteller/studio-ui/button";
 import {
@@ -37,6 +38,7 @@ import "@storyteller/studio-web/scene-hierarchy";
 import "@storyteller/studio-web/studio";
 import "@storyteller/studio-web/transform-toolbar";
 import "./anim-editor.element";
+import "./anim-timeline-controller.element";
 import "./help.element";
 import "./studio-viewport.element";
 import "./temp-video-preview.element";
@@ -106,7 +108,7 @@ export class AppElement extends LitElement {
 	}
 
 	@on("window:debug-mode-toggled")
-	onDebugModeToggled({detail: { debugModeActive }}: studio.DebugModeToggled ): void {
+	onDebugModeToggled({detail: { debugModeActive }}: DebugModeToggled ): void {
 		this.debugMode = debugModeActive;
 	}
 
@@ -138,6 +140,7 @@ export class AppElement extends LitElement {
 		return html`
 		<sts-canvas-provider>
 		<sts-scene-data-provider>
+		<sts-anim-timeline-controller>
 		<sts-overlay-provider
 			class=${classMap({
 				"app-root": true,
@@ -205,6 +208,7 @@ export class AppElement extends LitElement {
 			` : nothing}
 
 		</sts-overlay-provider>
+		</sts-anim-timeline-controller>
 		</sts-scene-data-provider>
 		</sts-canvas-provider>
 	`;

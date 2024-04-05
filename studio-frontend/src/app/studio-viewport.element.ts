@@ -11,6 +11,10 @@ import { ButtonElement } from "@storyteller/studio-ui/button";
 import { LitElement, PropertyValues, TemplateResult, html, nothing } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { createRef, ref } from "lit/directives/ref.js";
+import {
+	ANIM_TIMELINE_CONTROLLER,
+	type AnimTimelineController,
+} from "./anim-timeline-controller.element";
 
 import "@storyteller/studio-web/entity-inspector";
 import "@storyteller/studio-web/studio";
@@ -18,6 +22,7 @@ import "@storyteller/studio-ui/button";
 import "@storyteller/studio-ui/forms/radio";
 import "@storyteller/studio-ui/forms/select";
 import "@storyteller/studio-ui/toolbar";
+import "./anim-timeline-controls.element";
 
 import "./studio-viewport.element.scss";
 
@@ -26,12 +31,23 @@ export class StudioViewportElement extends LitElement {
 	@inject(STUDIO_PARAMS)
 	_params!: StudioParams;
 
-	@observe(["selectedObject"])
+	@observe(["selectedEntity", "selectedObject"])
 	@inject(SCENE_DATA_PROVIDER)
 	_sceneData!: SceneDataProvider;
 
+	@observe(["tracks"])
+	@inject(ANIM_TIMELINE_CONTROLLER)
+	_timeline!: AnimTimelineController;
+
 	@state() _transformSpace = TransformSpace.Local;
 	@state() _transformType = TransformType.Translate;
+
+	get #selectedEntityInTracklist() {
+		return (
+			this._sceneData.selectedEntity != null
+			&& this._sceneData.selectedEntity in this._timeline.tracks
+		);
+	}
 
 	#fileTriggerRef = createRef<ButtonElement>();
 	#mediaLibraryTriggerRef = createRef<ButtonElement>();
@@ -157,16 +173,9 @@ export class StudioViewportElement extends LitElement {
 				<sts-button>Switch to Camera View</sts-button>
 			</div>
 
-			<sts-toolbar class="timeline-controls abs h-center v-end">
-				<sts-toolbar-group>
-					<sts-button icon="bwd-step"></sts-button>
-					<sts-button class="play-pause" icon="play"></sts-button>
-					<sts-button icon="fwd-step"></sts-button>
-					<span class="timecode">
-						<strong>00:00:00</strong> / 00:10:00
-					</span>
-				</sts-toolbar-group>
-			</sts-toolbar>
+			<sts-anim-timeline-controls
+				class="timeline-controls abs h-center v-end"
+			></sts-anim-timeline-controls>
 
 			${this.#selectedObject != null ? html`
 				<div class="inspector abs h-end v-end offset">
@@ -186,11 +195,23 @@ export class StudioViewportElement extends LitElement {
 					</header>
 					<sts-entity-inspector></sts-entity-inspector>
 					<footer class="inspector__footer">
-						<sts-button
-							class="add-to-timeline"
-						>
-							Add to Timeline
-						</sts-button>
+						${this.#selectedEntityInTracklist ? html`
+							<sts-button
+								class="add-keyframe"
+								keybind="K"
+								@click=${() => this._timeline.addKeyframe()}
+							>
+								Add Keyframe
+							</sts-button>
+						` : this._sceneData.selectedEntity != null ? html`
+							<sts-button
+								class="add-to-timeline"
+								@click=${() => this._timeline.addTrack(this._sceneData.selectedEntity!)}
+							>
+								Add to Timeline
+							</sts-button>
+						` : nothing}
+
 						<sts-button
 							class="delete"
 							icon="trash"

@@ -316,6 +316,8 @@ fn initialize(mut cmd: Commands) {
             ..default()
         },
         Fxaa::default(),
+        // FIXME: This should not be the user-visible/keyframable camera
+        SceneElement::Camera,
     ));
 }
 

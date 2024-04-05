@@ -1,0 +1,28 @@
+.play-pause {
+	align-self: center;
+	padding: 0.4rem;
+	border-radius: 50%;
+	background: #FFF;
+	color: var(--neutral-100);
+
+	&::part(icon) {
+		width: 1em;
+		font-size: 0.75rem;
+	}
+}
+
+.timecode {
+	display: block;
+	align-self: center;
+	margin-inline: 0.5rem;
+	color: rgba(#FFF, 0.5);
+	font: {
+		size: 0.875rem;
+		weight: 500;
+		variant-numeric: tabular-nums;
+	}
+
+	strong {
+		color: #FFF;
+	}
+}
