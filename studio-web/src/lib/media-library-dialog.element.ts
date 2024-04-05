@@ -1,6 +1,6 @@
 import * as studio from "@storyteller/studio";
 import { SceneElement } from "@storyteller/studio";
-import { bind, inject } from "@storyteller/framework";
+import { bind, inject, observe } from "@storyteller/framework";
 import { DialogBaseElement, DialogElement } from "@storyteller/studio-ui/dialog";
 import {
 	type MediaFile as IMediaFile,
@@ -56,6 +56,7 @@ export class MediaLibraryDialogElement extends DialogBaseElement {
 	@inject(StorytellerApi)
 	_api!: StorytellerApi;
 
+	@observe(["selectedObject"])
 	@inject(SCENE_DATA_PROVIDER)
 	_sceneData!: SceneDataProvider;
 
@@ -102,22 +103,6 @@ export class MediaLibraryDialogElement extends DialogBaseElement {
 		const skeletonSelected = this._sceneData.selectedObject?.type === SceneElement.Skeleton;
 
 		return oneAnimationSelected && skeletonSelected;
-	}
-
-	override connectedCallback(): void {
-		this._sceneData?.addEventListener("property-changes", this.onProviderChanges);
-		this.loadResults();
-		super.connectedCallback();
-	}
-
-	override disconnectedCallback(): void {
-		this._sceneData?.removeEventListener("property-changes", this.onProviderChanges);
-		super.disconnectedCallback();
-	}
-
-	onProviderChanges = ({ detail: changes }: CustomEvent<PropertyValues<SceneDataProvider>>) => {
-		if (changes.has("selectedObject"))
-			this.requestUpdate();
 	}
 
 	protected override willUpdate(changes: PropertyValues<this>): void {

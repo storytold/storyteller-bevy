@@ -1,5 +1,5 @@
-import { type DynamicProvider, inject, UniqueToken } from "@storyteller/framework";
-import { LitElement, type PropertyValues, html, nothing, unsafeCSS } from "lit";
+import { type DynamicProvider, inject, UniqueToken, observe } from "@storyteller/framework";
+import { LitElement, html, nothing, unsafeCSS } from "lit";
 import { customElement, property } from "lit/decorators.js";
 import { classMap } from "lit/directives/class-map.js";
 import { ifDefined } from "lit/directives/if-defined.js";
@@ -34,23 +34,9 @@ export class TreeElement extends LitElement {
 		return !!this.id && this._selectionProvider?.selectedId === this.id
 	}
 
+	@observe(["selectedId"])
 	@inject(TREE_SELECTION_PROVIDER)
-	_selectionProvider?: TreeSelectionProvider;
-
-	override connectedCallback(): void {
-		this._selectionProvider?.addEventListener("property-changes", this.onProviderChanges);
-		super.connectedCallback();
-	}
-
-	override disconnectedCallback(): void {
-		this._selectionProvider?.removeEventListener("property-changes", this.onProviderChanges);
-		super.disconnectedCallback();
-	}
-
-	onProviderChanges = ({ detail: changes }: CustomEvent<PropertyValues<TreeSelectionProvider>>) => {
-		if (changes.has("selectedId"))
-			this.requestUpdate();
-	}
+	_selectionProvider!: TreeSelectionProvider;
 
 	toggleExpanded(): void {
 		this.expanded = !this.expanded;

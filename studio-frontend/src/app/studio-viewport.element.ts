@@ -1,4 +1,4 @@
-import { bind, inject } from "@storyteller/framework";
+import { bind, inject, observe } from "@storyteller/framework";
 import * as studio from "@storyteller/studio";
 import { BlockingCommand, TransformSpace, TransformType } from "@storyteller/studio";
 import {
@@ -26,6 +26,7 @@ export class StudioViewportElement extends LitElement {
 	@inject(STUDIO_PARAMS)
 	_params!: StudioParams;
 
+	@observe(["selectedObject"])
 	@inject(SCENE_DATA_PROVIDER)
 	_sceneData!: SceneDataProvider;
 
@@ -41,16 +42,6 @@ export class StudioViewportElement extends LitElement {
 
 	protected override createRenderRoot = () => this;
 
-	override connectedCallback(): void {
-		this._sceneData.addEventListener("property-changes", this.onSceneDataChanges);
-		super.connectedCallback();
-	}
-
-	override disconnectedCallback(): void {
-		this._sceneData.removeEventListener("property-changes", this.onSceneDataChanges);
-		super.disconnectedCallback();
-	}
-
 	protected override update(changes: PropertyValues<this>): void {
 		if (changes.has("_transformSpace"))
 			studio.setTransformSpace(this._transformSpace);
@@ -59,13 +50,6 @@ export class StudioViewportElement extends LitElement {
 			studio.setTransformType(this._transformType);
 
 		super.update(changes);
-	}
-
-	onSceneDataChanges = ({
-		detail: changes,
-	}: CustomEvent<PropertyValues<SceneDataProvider>>): void => {
-		if (changes.has("selectedObject"))
-			this.requestUpdate();
 	}
 
 	protected override render = (): TemplateResult => html`

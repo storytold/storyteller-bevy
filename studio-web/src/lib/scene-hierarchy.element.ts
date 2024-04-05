@@ -1,6 +1,6 @@
-import { inject } from "@storyteller/framework";
+import { inject, observe } from "@storyteller/framework";
 import * as studio from "@storyteller/studio";
-import { LitElement, type PropertyValues, html, unsafeCSS } from "lit";
+import { LitElement, html, unsafeCSS } from "lit";
 import { customElement } from "lit/decorators.js";
 
 import { SCENE_DATA_PROVIDER, type SceneDataProvider } from "./scene-data-provider.element";
@@ -13,23 +13,9 @@ import styles from "./scene-hierarchy.element.scss?inline";
 export class SceneHierarchyElement extends LitElement {
 	static override styles = unsafeCSS(styles);
 
+	@observe(["tree"])
 	@inject(SCENE_DATA_PROVIDER)
-	_sceneData?: SceneDataProvider;
-
-	override connectedCallback(): void {
-		this._sceneData?.addEventListener("property-changes", this.onProviderChanges);
-		super.connectedCallback();
-	}
-
-	override disconnectedCallback(): void {
-		this._sceneData?.removeEventListener("property-changes", this.onProviderChanges);
-		super.disconnectedCallback();
-	}
-
-	onProviderChanges = ({ detail: changes }: CustomEvent<PropertyValues<SceneDataProvider>>) => {
-		if (changes.has("tree"))
-			this.requestUpdate();
-	}
+	_sceneData!: SceneDataProvider;
 
 	protected override render = () => html`
 		${this._sceneData?.tree.map(obj => html`

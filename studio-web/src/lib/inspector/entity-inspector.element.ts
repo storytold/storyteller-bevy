@@ -1,5 +1,5 @@
-import { inject } from "@storyteller/framework";
-import { LitElement, type PropertyValues, html, unsafeCSS, nothing } from "lit";
+import { inject, observe } from "@storyteller/framework";
+import { LitElement, html, unsafeCSS, nothing } from "lit";
 import { customElement } from "lit/decorators.js";
 
 import { SCENE_DATA_PROVIDER, type SceneDataProvider } from "../scene-data-provider.element";
@@ -16,23 +16,9 @@ import styles from "./entity-inspector.element.scss?inline";
 export class EntityInspectorElement extends LitElement {
 	static override styles = unsafeCSS(styles);
 
+	@observe(["selectionComponents"])
 	@inject(SCENE_DATA_PROVIDER)
-	_sceneData?: SceneDataProvider;
-
-	override connectedCallback(): void {
-		this._sceneData?.addEventListener("property-changes", this.onProviderChanges);
-		super.connectedCallback();
-	}
-
-	override disconnectedCallback(): void {
-		this._sceneData?.removeEventListener("property-changes", this.onProviderChanges);
-		super.disconnectedCallback();
-	}
-
-	onProviderChanges = ({ detail: changes }: CustomEvent<PropertyValues<SceneDataProvider>>) => {
-		if (changes.has("selectionComponents"))
-			this.requestUpdate();
-	}
+	_sceneData!: SceneDataProvider;
 
 	protected override render = () => html`
 		${this._sceneData
