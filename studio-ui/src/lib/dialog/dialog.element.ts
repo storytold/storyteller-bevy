@@ -329,6 +329,24 @@ export class DialogElement extends LitElement {
 
 	#overlayHandle?: WeakRef<OverlayHandle>;
 
+	get #overlayTemplate(): [LitElement, TemplateResult] | undefined {
+		if (!this.template)
+			return;
+
+		if (this.skipWrapper)
+			return this.template;
+
+		const [host, template] = this.template;
+		return [host, html`
+			<sts-dialog-base
+				role=${ifDefined(this.dialogRole)}
+				@close=${() => this.close()}
+			>
+				${template}
+			</sts-dialog-base>
+		`]
+	}
+
 	open(): void {
 		if (!this.tag && !this.template)
 			return;
@@ -348,23 +366,12 @@ export class DialogElement extends LitElement {
 		const onBackdropClick = this.onBackdropClick;
 
 		if (this.template) {
-			const [host, template] = this.template;
+			const [host, template] = this.#overlayTemplate!;
 
-			this.#overlayHandle = this._overlay.attach(
-				host,
-				this.skipWrapper ? template : html`
-					<sts-dialog-base
-						role=${ifDefined(this.dialogRole)}
-						@close=${() => this.close()}
-					>
-						${template}
-					</sts-dialog-base>
-				`,
-				{
-					containerStyles,
-					onBackdropClick,
-				},
-			);
+			this.#overlayHandle = this._overlay.attach(host, template, {
+				containerStyles,
+				onBackdropClick,
+			});
 		} else {
 			this.#overlayHandle = this._overlay.attach(this, html`
 				<${unsafeStatic(this.tag!)}
@@ -400,7 +407,7 @@ export class DialogElement extends LitElement {
 
 		if (changes.has("template")) {
 			if (this.#overlayHandle && this.template)
-				this._overlay.reRender(this.#overlayHandle, this.template);
+				this._overlay.reRender(this.#overlayHandle, this.#overlayTemplate!);
 		}
 
 		super.updated(changes);
