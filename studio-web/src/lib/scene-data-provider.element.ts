@@ -1,4 +1,4 @@
-import { DynamicProvider, UniqueToken, on, provide } from "@storyteller/framework";
+import { DynamicProvider, UniqueToken, inject, on, provide } from "@storyteller/framework";
 import * as studio from "@storyteller/studio";
 import {
 	SceneElement,
@@ -10,17 +10,22 @@ import {
 } from "@storyteller/studio";
 import { TREE_SELECTION_PROVIDER, TreeSelectionProvider } from "@storyteller/studio-ui/tree";
 import { match } from "@storyteller/utility";
-import { LitElement, type PropertyValues, html } from "lit";
+import { LitElement, type PropertyValues, html, css } from "lit";
 import { customElement, state } from "lit/decorators.js";
 
 import { InspectorComponent } from "./inspector/inspector.types";
+import { MediaFileToken } from "./storyteller-api";
+import { STUDIO_PARAMS, StudioParams } from "./url-params";
 
 export interface SceneDataProvider extends DynamicProvider<SceneDataProvider> {
+	readonly sceneToken: MediaFileToken | null;
 	readonly tree: readonly SceneObject[];
 	readonly entityMap: ReadonlyMap<string, SceneObject>;
 	readonly selectedEntity: string | null;
 	readonly selectedObject: SceneObject | null;
 	readonly selectionComponents: readonly InspectorComponent[];
+
+	setSceneToken(token: MediaFileToken | null): void;
 }
 
 export const SCENE_DATA_PROVIDER = UniqueToken.create<SceneDataProvider>();
@@ -37,6 +42,17 @@ export class SceneDataProviderElement
 	extends LitElement
 	implements SceneDataProvider, TreeSelectionProvider
 {
+	static override styles = css`
+		:host {
+			display: contents;
+		}
+	`;
+
+	@inject(STUDIO_PARAMS)
+	_params!: StudioParams;
+
+	@state() sceneToken: MediaFileToken | null = null;
+
 	get tree() { return this._tree; }
 	get entityMap() { return this.#entityMap; }
 
@@ -57,6 +73,21 @@ export class SceneDataProviderElement
 	@state() _selection: string | null = null;
 	@state() _components: InspectorComponent[] = [];
 
+	setSceneToken(token: MediaFileToken | null): void {
+		this.sceneToken = token;
+	}
+
+	override connectedCallback(): void {
+		if (this._params.scene != null) {
+			this.sceneToken = this._params.scene
+				.match(/^remote:\/\/([a-zA-Z0-9_]+)\.scn\.ron/)
+				?.[1]
+				?? null;
+		}
+
+		super.connectedCallback();
+	}
+
 	// TODO: This workflow allows dependents of this provider to listen for the
 	//       "property-changes" event and manually trigger updates when relevant
 	//       properties change, but it's pretty fiddly to set up. Probably not
@@ -64,6 +95,9 @@ export class SceneDataProviderElement
 	protected override update(changes: PropertyValues<this>): void {
 		const downstreamChanges: PropertyValues<SceneDataProvider & TreeSelectionProvider>
 			= new Map();
+
+		if (changes.has("sceneToken"))
+			downstreamChanges.set("sceneToken", changes.get("sceneToken"));
 
 		if (changes.has("_tree")) {
 			downstreamChanges.set("tree", changes.get("_tree"));

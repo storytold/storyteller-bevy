@@ -78,25 +78,6 @@ export class AppElement extends LitElement {
 		return this;
 	}
 
-	@on("scene-saved")
-	async onSceneSaved({ detail: scene }: SceneSavedEvent): Promise<void> {
-		try {
-			const file = new File([scene], "scene.scn.ron", { type: "text/ron" });
-
-			const token = await this.api.createScene(file);
-
-			this.dispatchEvent(new CustomEvent("scene-uploaded", {
-				detail: token,
-				bubbles: true,
-				composed: true,
-			}));
-
-		}
-		catch (err) {
-			console.error(err);
-		}
-	}
-
 	@on("scene-state")
 	onSceneStateChange({ detail: state }: SceneStateEvent): void {
 		console.log("scene state change:", SceneState[state]);

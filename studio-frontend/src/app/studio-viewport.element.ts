@@ -23,6 +23,7 @@ import "@storyteller/studio-ui/forms/radio";
 import "@storyteller/studio-ui/forms/select";
 import "@storyteller/studio-ui/toolbar";
 import "./anim-timeline-controls.element";
+import "./file-menu.element";
 
 import "./studio-viewport.element.scss";
 import { match } from "@storyteller/utility";
@@ -251,51 +252,7 @@ export class StudioViewportElement extends LitElement {
 			})}
 		</sts-studio>
 
-		<sts-menu
-			autoClose
-			.trigger=${this.#fileTriggerRef}
-		>
-			<sts-button
-				role="menuitem"
-				keybind="Ctrl+N"
-				@click=${() => {
-					// TODO
-				}}
-			>
-				New scene
-			</sts-button>
-			<sts-button
-				role="menuitem"
-				keybind="Ctrl+Shift+N"
-				@click=${() => {
-					// TODO
-				}}
-			>
-				New scene from template...
-			</sts-button>
-			<hr />
-			<sts-button
-				role="menuitem"
-				keybind="Ctrl+S"
-				@click=${() => {
-					// TODO: Should we show a spinner here while we're waiting?
-					//       Toast message for success/failure?
-					// TODO: Need to disable this when the scene is not ours
-					studio.saveScene();
-				}}
-			>
-				Save scene
-			</sts-button>
-			<sts-button
-				role="menuitem"
-				keybind="Ctrl+Shift+S"
-				@click=${() => {
-					// TODO
-				}}
-			>
-				Save scene as copy...
-			</sts-button>
-		</sts-menu>
+		<sts-file-menu .trigger=${this.#fileTriggerRef}></sts-file-menu>
 
 		<sts-dialog
 			.trigger=${this.#mediaLibraryTriggerRef}

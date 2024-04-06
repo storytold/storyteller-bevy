@@ -1,3 +1,7 @@
+:host {
+	display: contents;
+}
+
 ::slotted([slot="canvas"]) {
 	display: none;
 }

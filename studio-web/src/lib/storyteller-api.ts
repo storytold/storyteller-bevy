@@ -6,7 +6,7 @@ import * as studio from "@storyteller/studio";
 export const mockApi = window.location.search.includes("mock-api");
 
 interface IStorytellerApi {
-	createScene(file: File): Promise<MediaFileToken>
+	createScene(file: File, title?: string): Promise<MediaFileToken>
 	session(): Promise<Session>
 	listMediaFiles(options: ListMediaFilesOptions): Promise<ListMediaFilesResult>
 	uploadMediaFile(
@@ -16,6 +16,7 @@ interface IStorytellerApi {
 	renameMediaFile(token: MediaFileToken, name: string): Promise<void>
 	convertFbxToGltf(token: MediaFileToken): Promise<void>
 	mediaFile(token: MediaFileToken): Promise<MediaFile>
+	writeSceneFile(token: MediaFileToken, file: File): Promise<MediaFileToken>;
 }
 
 export class StorytellerRemoteApi implements IStorytellerApi {
@@ -24,15 +25,16 @@ export class StorytellerRemoteApi implements IStorytellerApi {
 		withCredentials: true,
 	});
 
-	async createScene(file: File): Promise<MediaFileToken> {
+	async createScene(file: File, title = "Untitled"): Promise<MediaFileToken> {
 		const response = await this.#api.postForm<MediaUploadResponse>(
 			"v1/engine/create_scene",
 			{
 				uuid_idempotency_token: uuid(),
 				file,
+				title,
 			}, {
-			headers: { Accept: "text/plain" },
-		},
+				headers: { Accept: "text/plain" },
+			},
 		);
 		this.#validateResponse(response);
 
@@ -108,6 +110,23 @@ export class StorytellerRemoteApi implements IStorytellerApi {
 		return response.data.media_file;
 	}
 
+	async writeSceneFile(token: MediaFileToken, file: File): Promise<MediaFileToken> {
+		const response = await this.#api.postForm<MediaUploadResponse>(
+			"v1/media_files/write/scene_file",
+			{
+				uuid_idempotency_token: uuid(),
+				media_file_token: token,
+				file,
+			},
+			{
+				headers: { Accept: "text/plain" },
+			},
+		);
+		this.#validateResponse(response);
+
+		return response.data.media_file_token;
+	}
+
 	#validateResponse<R extends AxiosResponse>(response: R): asserts response is OkResponse<R> {
 		if (response.status !== 200)
 			throw new Error(`API responded with status ${response.status}: "${response.statusText}"`);
@@ -177,7 +196,7 @@ export class StorytellerLocalApi implements IStorytellerApi {
 		return this.database
 	}
 
-	async createScene(file: File): Promise<string> {
+	async createScene(file: File, title = "Untitled"): Promise<string> {
 		let token = uuid();
 		let original_file_name = file.name;
 		let filename = token + "-" + file.name;
@@ -190,7 +209,7 @@ export class StorytellerLocalApi implements IStorytellerApi {
 			public_bucket_path: filename,
 			creator_set_visibility: Visibility.Public,
 			is_emulated_media_file: false,
-			maybe_title: filename,
+			maybe_title: title,
 			maybe_original_filename: original_file_name,
 			stats: {
 				positive_rating_count: 0,
@@ -425,6 +444,10 @@ export class StorytellerLocalApi implements IStorytellerApi {
 		return file;
 	}
 
+	async writeSceneFile(token: MediaFileToken, file: File): Promise<MediaFileToken> {
+		throw new Error("StorytellerLocalApi.writeSceneFile is not yet implemented");
+	}
+
 	async mediaBlob(path: string): Promise<Uint8Array> {
 		let db = await this.getDatabase();
 		let file = await db.get('file-blobs', path);
@@ -436,8 +459,8 @@ export class StorytellerLocalApi implements IStorytellerApi {
 }
 
 export class StorytellerApi implements IStorytellerApi {
-	createScene(file: File): Promise<string> {
-		return this.apiBase.createScene(file)
+	createScene(file: File, title?: string): Promise<string> {
+		return this.apiBase.createScene(file, title)
 	}
 	session(): Promise<Session> {
 		return this.apiBase.session()
@@ -457,6 +480,10 @@ export class StorytellerApi implements IStorytellerApi {
 	mediaFile(token: string): Promise<MediaFile> {
 		return this.apiBase.mediaFile(token)
 	}
+	writeSceneFile(token: MediaFileToken, file: File): Promise<MediaFileToken> {
+		return this.apiBase.writeSceneFile(token, file);
+	}
+
 	apiBase: IStorytellerApi;
 
 	constructor(apiBase: IStorytellerApi) {
