@@ -35,4 +35,9 @@ describe("deref", () => {
 		const v3 = deref((() => {})());
 		expect(v3).toBe(undefined);
 	});
+
+	it("should return `undefined` when given an empty Ref", () => {
+		const derefed = deref(createRef());
+		expect(derefed).toBe(undefined);
+	});
 });

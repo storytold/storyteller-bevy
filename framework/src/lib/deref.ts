@@ -11,6 +11,9 @@ function isRef<T>(refOrValue: Ref<T> | T): refOrValue is Ref<T> {
 	if (!refOrValue || typeof refOrValue !== "object")
 		return false;
 
+	if (refOrValue instanceof Element)
+		return false;
+
 	const keys = Object.keys(refOrValue);
-	return keys.length === 1 && keys[0] === "value"
+	return keys.length === 0 || (keys.length === 1 && keys[0] === "value")
 }
