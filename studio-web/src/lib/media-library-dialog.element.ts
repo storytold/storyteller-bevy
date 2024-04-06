@@ -105,6 +105,11 @@ export class MediaLibraryDialogElement extends DialogBaseElement {
 		return oneAnimationSelected && skeletonSelected;
 	}
 
+	override connectedCallback(): void {
+		this.loadResults();
+		super.connectedCallback();
+	}
+
 	protected override willUpdate(changes: PropertyValues<this>): void {
 		if (changes.has("_activeCategory") || changes.has("_searchTerm")) {
 			this._filters = [
