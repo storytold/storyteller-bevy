@@ -15,7 +15,7 @@ import { customElement, state } from "lit/decorators.js";
 
 import { InspectorComponent } from "./inspector/inspector.types";
 import { MediaFileToken } from "./storyteller-api";
-import { STUDIO_PARAMS, StudioParams } from "./url-params";
+import { STUDIO_PARAMS, type StudioParams } from "./url-params";
 
 export interface SceneDataProvider extends DynamicProvider<SceneDataProvider> {
 	readonly sceneToken: MediaFileToken | null;
