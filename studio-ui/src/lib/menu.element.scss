@@ -14,7 +14,7 @@
 	border-radius: unset;
 }
 
-::slotted(sts-button:hover) {
+::slotted(sts-button:not(.disabled):hover) {
 	background: var(--neutral-300);
 }
 
