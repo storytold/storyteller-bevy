@@ -52,6 +52,7 @@ export class StudioViewportElement extends LitElement {
 
 	#fileTriggerRef = createRef<ButtonElement>();
 	#mediaLibraryTriggerRef = createRef<ButtonElement>();
+	#helpDialogTriggerRef = createRef<ButtonElement>();
 
 	get #selectedObject() {
 		return this._sceneData.selectedObject;
@@ -85,6 +86,7 @@ export class StudioViewportElement extends LitElement {
 				[StudioMode.Headless]: () => nothing,
 				[StudioMode.Viewer]: () => html`
 					<sts-button
+						${ref(this.#helpDialogTriggerRef)}
 						class="abs h-start v-start offset"
 						icon="question"
 						@click=${() => {
@@ -104,6 +106,7 @@ export class StudioViewportElement extends LitElement {
 							File
 						</sts-button>
 						<sts-button
+							${ref(this.#helpDialogTriggerRef)}
 							icon="question"
 							@click=${() => {
 								// TODO
@@ -298,6 +301,12 @@ export class StudioViewportElement extends LitElement {
 			.trigger=${this.#mediaLibraryTriggerRef}
 			tag="sts-media-library-dialog"
 			nonBlocking
+		></sts-dialog>
+
+		<sts-dialog
+			.trigger=${this.#helpDialogTriggerRef}
+			tag="sts-help"
+			skipWrapper
 		></sts-dialog>
 		`;
 	}
