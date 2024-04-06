@@ -1,6 +1,5 @@
-import { drag, on, provide } from "@storyteller/framework";
+import { on, provide } from "@storyteller/framework";
 import {
-	type SceneSavedEvent,
 	type SceneStateEvent,
 	SceneState,
 	StudioMode,
