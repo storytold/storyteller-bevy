@@ -1,5 +1,5 @@
 import * as studio from "@storyteller/studio";
-import { LitElement, type PropertyValues, html, nothing, unsafeCSS, TemplateResult } from "lit";
+import { LitElement, type PropertyValues, html, nothing, unsafeCSS, TemplateResult, css } from "lit";
 import { type Ref, createRef, ref } from "lit/directives/ref.js";
 import { customElement, property, state } from "lit/decorators.js";
 import { ifDefined } from "lit/directives/if-defined.js";
@@ -22,6 +22,12 @@ enum InspectorMode {
 
 @customElement("sts-temp-video-preview")
 export class TempVideoPreview extends LitElement {
+	static override styles = css`
+		:host {
+			display: none;
+		}
+	`;
+
 	@property({ attribute: false })
 	trigger?: Ref<HTMLElement>;
 

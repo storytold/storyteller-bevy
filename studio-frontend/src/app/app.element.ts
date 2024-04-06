@@ -145,6 +145,8 @@ export class AppElement extends LitElement {
 			class=${classMap({
 				"app-root": true,
 				"debug-mode": this.debugMode,
+				"viewer-mode": this.params.mode === StudioMode.Viewer,
+				"editor-mode": this.params.mode === StudioMode.Editor,
 			})}
 		>
 			<sts-iframe-messaging-bridge></sts-iframe-messaging-bridge>

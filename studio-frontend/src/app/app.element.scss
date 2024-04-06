@@ -6,15 +6,17 @@ $hierarchy-width: 290px;
 	--sidebar-width: 300px;
 	--timeline-height: min-content;
 
-	display: grid;
-	width: 100vw;
-	height: 100vh;
-	grid-template: {
-		areas:
-			"viewport sidebar"
-			"timeline timeline";
-		rows: minmax(0, 1fr) var(--timeline-height);
-		columns: minmax(0, 1fr) var(--sidebar-width);
+	&.editor-mode {
+		display: grid;
+		width: 100vw;
+		height: 100vh;
+		grid-template: {
+			areas:
+				"viewport sidebar"
+				"timeline timeline";
+			rows: minmax(0, 1fr) var(--timeline-height);
+			columns: minmax(0, 1fr) var(--sidebar-width);
+		}
 	}
 
 	.viewport { grid-area: viewport; }
