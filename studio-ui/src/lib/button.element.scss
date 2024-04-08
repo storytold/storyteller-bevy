@@ -1,13 +1,15 @@
+@use "sass:math";
+
 :host {
 	display: inline-flex;
-	align-items: center;
+	align-items: baseline;
 	gap: 0.75rem;
 	padding: 0.5rem 1rem;
 	border-radius: 0.5rem;
 
 	font: {
 		family: "Fira Sans", sans-serif;
-		size: 15px;
+		size: math.div(15, 16) * 1rem;
 		weight: 500;
 	}
 	line-height: 1.5;
@@ -16,9 +18,8 @@
 	cursor: pointer;
 	user-select: none;
 
-	background: var(--background-color, #0006);
-	color: #FFFC;
-	backdrop-filter: blur(16px);
+	background: var(--neutral-200);
+	color: #FFF;
 	transition: {
 		property: background, color;
 		duration: 0.1s;
@@ -26,10 +27,19 @@
 	}
 }
 
-:host(:hover) {
-	background: #0008;
-	color: #FFFF;
+:host(.icon-only) {
+	padding-inline: 0.5rem;
 }
+
+:host(:hover) {
+	background: var(--neutral-250);
+}
+
+:host(.primary) { background: var(--color-accent) }
+:host(.primary:hover) { background: var(--color-accent-hover) }
+
+:host(.secondary) { background: var(--neutral-400) }
+:host(.secondary:hover) { background: var(--neutral-450) }
 
 :host(.disabled),
 :host(.disabled:hover) {
@@ -38,6 +48,23 @@
 	cursor: default;
 }
 
-.icon {
+.icon, .dropdown-icon {
+	align-self: center;
 	fill: currentColor;
+}
+
+.dropdown-icon {
+	font-size: 0.75rem;
+}
+
+.keybind {
+	// margin-inline-start: auto;
+	flex: 1 0 0;
+	margin-inline-start: 2.25rem;
+	color: rgba(#FFF, 0.75);
+	font: {
+		size: 0.875rem;
+		weight: 400;
+	}
+	text-align: end;
 }

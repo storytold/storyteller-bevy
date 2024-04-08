@@ -1,16 +1,22 @@
 import { on } from "@storyteller/framework";
 import * as studio from "@storyteller/studio";
 import { SceneState, type SceneStateEvent } from "@storyteller/studio";
-import { LitElement, nothing } from "lit";
+import { LitElement, css, nothing } from "lit";
 import { customElement } from "lit/decorators.js";
 
 @customElement("sts-iframe-messaging-bridge")
 export class IframeMessagingBridgeElement extends LitElement {
+	static override styles = css`
+		:host {
+			display: none;
+		}
+	`;
+
 	#parentWindow?: Window;
 
 	override connectedCallback(): void {
 		console.log('window.parent', window.parent);
-		
+
 		try {
 			if (
 				window.parent

@@ -60,7 +60,7 @@ import panelStyles from "./menu.element.scss?inline";
 export class MenuElement extends LitElement {
 	static override styles = css`
 		:host {
-			visibility: hidden;
+			display: none;
 		}
 	`;
 

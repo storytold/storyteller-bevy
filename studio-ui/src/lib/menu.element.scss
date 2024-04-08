@@ -5,24 +5,17 @@
 	padding: 0.5rem 0;
 	min-width: 220px;
 
-	background: #0006;
-	backdrop-filter: blur(16px);
+	background: var(--neutral-200);
 	overflow: hidden;
 }
 
 ::slotted(sts-button) {
 	background: unset;
-	backdrop-filter: unset;
 	border-radius: unset;
 }
 
 ::slotted(sts-button:hover) {
-	background: #0004;
-
-	// FIXME: https://github.com/w3c/csswg-drafts/issues/3896
-	&::part(icon) {
-		opacity: 0.75;
-	}
+	background: var(--neutral-300);
 }
 
 ::slotted(hr) {
@@ -31,5 +24,5 @@
 	border: none;
 	height: 1px;
 	margin: 0.5rem 0;
-	background: #FFF1;
+	background: rgba(#FFF, 0.1);
 }

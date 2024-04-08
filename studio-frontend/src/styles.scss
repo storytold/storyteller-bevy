@@ -10,14 +10,33 @@ html, body {
 
 	--color-panel-background: #1e1e2c;
 	--color-toolbar-background: #2c2c3b;
-	--color-toolbar-background-light: #595970;	
+	--color-toolbar-background-light: #595970;
 	--color-panel-item-name-background: #39394d;
 	--color-panel-item-background: #55556b;
 	--color-accent: #fc6b68;
+	--color-accent-hover: #FF8D8B;
+	--color-accent-fade: #fc6b6840;
 	--color-text: #dbdbdf;
 	--color-text-bright: #ffffff;
 	--color-text-disabled: #7c7c85;
 
+	--axis-red: rgb(220, 53, 69);
+	--axis-green: rgb(25, 135, 84);
+	--axis-blue: rgb(13, 110, 253);
+
 	--corner-radius: 0.75rem;
 	--padding: 0.4rem;
+
+	--neutral-100: #242433;
+	--neutral-200: #39394D;
+	--neutral-250: #44445C;
+	--neutral-300: #515168;
+	--neutral-350: #505068;
+	--neutral-400: #676781;
+	--neutral-450: #6D6D80;
+}
+
+body {
+	color-scheme: dark;
+	font-family: "Fira Sans", sans-serif;
 }

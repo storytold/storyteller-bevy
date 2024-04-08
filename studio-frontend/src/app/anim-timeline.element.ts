@@ -406,23 +406,50 @@ export class AnimTimelineElement extends LitElement {
 					([id]) => id,
 					([id, keyframe]) => {
 						let row = this.track_animation_target_ordered[keyframe.target];
-						return html`
-						<div id=${id}
-							class=${classMap({
-								keyframe: true,
-								selected: this._selectedKeyframe === id
-							})}
-							style=${styleMap({
-								left: `${100 * (keyframe.time - this.rangeStart) / range}%`,
-								gridRow: row + 2,
-							})}
-							tabindex="-1"
-							${drag({
-								move: event => this.onKeyframeDrag(id, event),
-							})}
-							@click=${() => this.selectKeyframe(id)}
-						></div>
-					`;
+						if ("clip" in keyframe) {
+							let clip = keyframe.clip;
+							let duration = keyframe.duration;
+							let time = keyframe.time;
+
+							return html`
+								<div id=${id}
+									class=${classMap({
+										clip: true,
+										selected: this._selectedKeyframe === id
+									})}
+									style=${styleMap({
+										left: `${100 * (time - this.rangeStart) / range}%`,
+										right: `${100 * (this.rangeEnd - (time + duration)) / range}%`,
+										gridRow: row + 2,
+										'--clip-name': `"${clip}"`,
+									})}
+									tabindex="-1"
+									${drag({
+										move: event => this.onKeyframeDrag(id, event),
+									})}
+									@click=${() => this.selectKeyframe(id)}
+									>
+									</div>
+							`;
+						} else {
+							return html`
+							<div id=${id}
+								class=${classMap({
+									keyframe: true,
+									selected: this._selectedKeyframe === id
+								})}
+								style=${styleMap({
+									left: `${100 * (keyframe.time - this.rangeStart) / range}%`,
+									gridRow: row + 2,
+								})}
+								tabindex="-1"
+								${drag({
+									move: event => this.onKeyframeDrag(id, event),
+								})}
+								@click=${() => this.selectKeyframe(id)}
+							></div>
+						`;
+						}
 					}
 				)}
 			</div>

@@ -1,6 +1,6 @@
 import * as studio from "@storyteller/studio";
 import { SceneElement } from "@storyteller/studio";
-import { bind, inject } from "@storyteller/framework";
+import { bind, inject, observe } from "@storyteller/framework";
 import { DialogBaseElement, DialogElement } from "@storyteller/studio-ui/dialog";
 import {
 	type MediaFile as IMediaFile,
@@ -56,6 +56,7 @@ export class MediaLibraryDialogElement extends DialogBaseElement {
 	@inject(StorytellerApi)
 	_api!: StorytellerApi;
 
+	@observe(["selectedObject"])
 	@inject(SCENE_DATA_PROVIDER)
 	_sceneData!: SceneDataProvider;
 
@@ -105,19 +106,8 @@ export class MediaLibraryDialogElement extends DialogBaseElement {
 	}
 
 	override connectedCallback(): void {
-		this._sceneData?.addEventListener("property-changes", this.onProviderChanges);
 		this.loadResults();
 		super.connectedCallback();
-	}
-
-	override disconnectedCallback(): void {
-		this._sceneData?.removeEventListener("property-changes", this.onProviderChanges);
-		super.disconnectedCallback();
-	}
-
-	onProviderChanges = ({ detail: changes }: CustomEvent<PropertyValues<SceneDataProvider>>) => {
-		if (changes.has("selectedObject"))
-			this.requestUpdate();
 	}
 
 	protected override willUpdate(changes: PropertyValues<this>): void {
@@ -147,6 +137,7 @@ export class MediaLibraryDialogElement extends DialogBaseElement {
 					MediaFileType.Glb,
 					MediaFileType.Gltf,
 					MediaFileType.ScnRon,
+					MediaFileType.Mocap
 				],
 			});
 
@@ -198,11 +189,11 @@ export class MediaLibraryDialogElement extends DialogBaseElement {
 		this.#transientFileInput = document.createElement("input");
 		this.#transientFileInput.type = "file";
 		this.#transientFileInput.accept = match (this._activeCategory.mediaClass, {
-			[MediaFileClass.Animation]: () => ".bvh,.fbx,.gltf",
+			[MediaFileClass.Animation]: () => ".bvh,.fbx,.gltf,.glb",
 			[MediaFileClass.Audio]: () => ".wav,.mp3",
-			[MediaFileClass.Character]: () => ".fbx,.gltf",
-			[MediaFileClass.Prop]: () => ".fbx,.gltf",
-			[MediaFileClass.Scene]: () => ".fbx,.gltf,.scn.ron",
+			[MediaFileClass.Character]: () => ".fbx,.gltf,.glb",
+			[MediaFileClass.Prop]: () => ".fbx,.gltf,.glb",
+			[MediaFileClass.Scene]: () => ".fbx,.gltf,.glb,.scn.ron",
 			_: () => "",
 		});
 		this.#transientFileInput.multiple = false;
@@ -267,8 +258,48 @@ export class MediaLibraryDialogElement extends DialogBaseElement {
 	}
 
 	#addAnimation(): void {
-		// TODO: Make this actually work
-		console.warn("Adding animations not yet implemented!");
+		const token = this._selected[0];
+		if (!this._mediaFiles) {
+			console.error("Expected `_mediaFiles` map to be present when spawning assets");
+			this.dispatchEvent(new CustomEvent("close"));
+			return;
+		}
+
+		const mediaFile = this._mediaFiles.get(token);
+		if (!mediaFile) {
+			console.error(`Attempted to spawn an invalid token: "${token}"`);
+			this.dispatchEvent(new CustomEvent("close"));
+			return;
+		}
+
+		const ext = mediaFile.extension;
+		if (!ext) {
+			console.error("Expected media file to have a non-null `extension` field");
+			this.dispatchEvent(new CustomEvent("close"));
+			return;
+		}
+
+		const asset = {
+			path: `remote://${token}${ext}`,
+			name: mediaFile.displayName,
+		};
+
+		const skeletonSelected = this._sceneData.selectedObject?.["id"];
+		if (!skeletonSelected) {
+			console.error(`Attempted to an animation without a selected skeleton`);
+			this.dispatchEvent(new CustomEvent("close"));
+			return;
+		}
+
+		let retargetingType = studio.ClipRetargeting.UseOrigin;
+		if (mediaFile.subtype === MediaFileSubtype.Mixamo) {
+			retargetingType = studio.ClipRetargeting.Mixamo;
+		}  else if (mediaFile.subtype === MediaFileSubtype.MocapNet) {
+			retargetingType = studio.ClipRetargeting.MocapNet
+		}
+
+		console.log(`Inserting Animation ${asset.name} for skeleton ${skeletonSelected}`)
+		studio.insertClip(skeletonSelected, asset.path, asset.name, retargetingType);
 		this.dispatchEvent(new CustomEvent("close"));
 	}
 

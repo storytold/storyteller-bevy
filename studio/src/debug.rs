@@ -92,6 +92,19 @@ impl Plugin for DebugPlugin {
             app.auto_undo::<SceneElement>();
             app.auto_undo::<Selectable>();
 
+        app.add_systems(Update, sync_editor_camera);
+        app.add_systems(
+            Update,
+            update_editor_ui_mode.run_if(resource_changed::<DebugMode>()),
+        );
+
+        #[cfg(feature = "wasm")]
+        {
+            app.add_systems(
+                PostUpdate,
+                wasm::notify_debug_mode_toggle.map(bevy::utils::error),
+            );
+        }
             app.add_systems(Update, sync_editor_camera);
             app.add_systems(
                 Update,
@@ -226,5 +239,47 @@ fn sync_editor_camera(
 ) {
     for ent in q_cam.iter_mut() {
         cmd.entity(ent).insert(EditorCameraMarker);
+    }
+}
+
+#[cfg(feature = "wasm")]
+mod wasm {
+    use super::DebugMode;
+    use bevy::{prelude::*, window::PrimaryWindow};
+    use serde_json::json;
+    use wasm_bindgen::prelude::*;
+
+    #[wasm_bindgen(typescript_custom_section)]
+    const DEBUG_TYPES: &str = r#"
+    export interface DebugModeToggled extends CustomEvent {
+        type: "debug-mode-toggled",
+        detail: {
+            debugModeActive: boolean
+        }
+    }
+    
+    declare global {
+        export interface GlobalEventHandlersEventMap {
+            "debug-mode-toggled": DebugModeToggled
+        }
+    }
+    "#;
+
+    pub fn notify_debug_mode_toggle(
+        q_window: Query<&Window, With<PrimaryWindow>>,
+        r_debug_mode: Res<DebugMode>,
+    ) -> Result<(), String> {
+        if !r_debug_mode.is_changed() {
+            return Ok(());
+        }
+        let Ok(window) = q_window.get_single() else {
+            return Ok(());
+        };
+
+        crate::wasm::dispatch_to_js(
+            window,
+            "debug-mode-toggled",
+            &json!({ "debugModeActive": r_debug_mode.0 }),
+        )
     }
 }

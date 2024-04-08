@@ -1,0 +1,30 @@
+:host {
+	position: relative;
+	padding: 0.5rem;
+	border-radius: 0.5rem;
+	color: #FFF;
+	outline: transparent 2px solid;
+
+	transition: {
+		property: background, outline-color;
+		duration: 100ms;
+		timing-function: linear;
+	}
+	cursor: pointer;
+}
+
+::slotted(*) {
+	pointer-events: none;
+}
+
+:host(:hover) {
+	background: var(--neutral-250);
+}
+
+:host(.checked) {
+	outline-color: var(--color-accent);
+}
+
+:host(.checked:hover) {
+	background: var(--color-accent-fade);
+}

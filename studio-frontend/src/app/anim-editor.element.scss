@@ -23,7 +23,6 @@
 .timeline-wrapper {
 	grid-area: timeline;
 	display: grid;
-	border-radius: 8px;
 	background: var(--color-panel-background);
 	grid-template-columns:
 		[sidebar-start] min-content [sidebar-end
@@ -146,7 +145,7 @@
 	grid-template-columns: subgrid;
 	grid-row: 2 / span var(--track-count);
 
-	
+
 	.track {
 		&:hover {
 			background: #0000001F;

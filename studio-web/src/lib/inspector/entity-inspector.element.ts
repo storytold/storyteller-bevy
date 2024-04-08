@@ -1,5 +1,5 @@
-import { inject } from "@storyteller/framework";
-import { LitElement, type PropertyValues, html, unsafeCSS, nothing } from "lit";
+import { inject, observe } from "@storyteller/framework";
+import { LitElement, html, unsafeCSS, nothing } from "lit";
 import { customElement } from "lit/decorators.js";
 
 import { SCENE_DATA_PROVIDER, type SceneDataProvider } from "../scene-data-provider.element";
@@ -16,89 +16,69 @@ import styles from "./entity-inspector.element.scss?inline";
 export class EntityInspectorElement extends LitElement {
 	static override styles = unsafeCSS(styles);
 
+	@observe(["selectionComponents"])
 	@inject(SCENE_DATA_PROVIDER)
-	_sceneData?: SceneDataProvider;
+	_sceneData!: SceneDataProvider;
 
-	override connectedCallback(): void {
-		this._sceneData?.addEventListener("property-changes", this.onProviderChanges);
-		super.connectedCallback();
-	}
+	protected override render = () => html`
+		${this._sceneData
+			?.selectionComponents
+			.slice()
+			.sort((a, b) => {
+				const ordA = COMPONENT_SORT_ORDER.indexOf(a.name);
+				const ordB = COMPONENT_SORT_ORDER.indexOf(b.name);
 
-	override disconnectedCallback(): void {
-		this._sceneData?.removeEventListener("property-changes", this.onProviderChanges);
-		super.disconnectedCallback();
-	}
+				if (ordA === -1) return Infinity;
+				if (ordB === -1) return -Infinity;
 
-	onProviderChanges = ({ detail: changes }: CustomEvent<PropertyValues<SceneDataProvider>>) => {
-		if (changes.has("selectionComponents"))
-			this.requestUpdate();
-	}
+				return ordA - ordB;
+			})
+			.map(({ name, value }) => {
+				switch (name) {
+					// TODO?
+					// case "bevy_core::name::Name": {
+					// 	return html`
+					// 		<sts-name-inspector
+					// 			.value=${value.name}
+					// 		></sts-name-inspector>
+					// 	`;
+					// }
+					case "bevy_transform::components::transform::Transform": {
+						return html`
+							<sts-transform-inspector
+								.translation=${value.translation}
+								.rotation=${value.rotation}
+								.scale=${value.scale}
+							></sts-transform-inspector>
+						`;
+					}
+					case "bevy_pbr::pbr_material::StandardMaterial": {
+						const { colorSpace, baseColor } = isLinear(value.base_color)
+							? { colorSpace: "linear", baseColor: value.base_color.RgbaLinear }
+							: { colorSpace: "srgb", baseColor: value.base_color.Rgba };
 
-	protected override render () {
-		let components = this._sceneData
-		?.selectionComponents
-		.slice()
-		.sort((a, b) => {
-			const ordA = COMPONENT_SORT_ORDER.indexOf(a.name);
-			const ordB = COMPONENT_SORT_ORDER.indexOf(b.name);
-
-			if (ordA === -1) return Infinity;
-			if (ordB === -1) return -Infinity;
-
-			return ordA - ordB;
-		})
-		.map(({ name, value }) => {
-			switch (name) {
-				case "bevy_core::name::Name": {
-					return html`
-						<sts-name-inspector
-							.value=${value.name}
-						></sts-name-inspector>
-					`;
+						return html`
+							<sts-material-inspector
+								.baseColor=${baseColor}
+								.colorSpace=${colorSpace}
+								.roughness=${value.perceptual_roughness}
+								.metallic=${value.metallic}
+								.reflectance=${value.reflectance}
+							></sts-material-inspector>
+						`;
+					}
+					default: {
+						return nothing;
+						// return html`
+						// 	<h3>Unknown Component: ${name}</h3>
+						// 	<pre>${JSON.stringify({ name, value }, null, "   ")}</pre>
+						// `;
+					}
 				}
-				case "bevy_transform::components::transform::Transform": {
-					return html`
-						<sts-transform-inspector
-							.translation=${value.translation}
-							.rotation=${value.rotation}
-							.scale=${value.scale}
-						></sts-transform-inspector>
-					`;
-				}
-				case "bevy_pbr::pbr_material::StandardMaterial": {
-					const { colorSpace, baseColor } = isLinear(value.base_color)
-						? { colorSpace: "linear", baseColor: value.base_color.RgbaLinear }
-						: { colorSpace: "srgb", baseColor: value.base_color.Rgba };
-
-					return html`
-						<sts-material-inspector
-							.baseColor=${baseColor}
-							.colorSpace=${colorSpace}
-							.roughness=${value.perceptual_roughness}
-							.metallic=${value.metallic}
-							.reflectance=${value.reflectance}
-						></sts-material-inspector>
-					`;
-				}
-				default: {
-					return nothing;
-					// return html`
-					// 	<h3>Unknown Component: ${name}</h3>
-					// 	<pre>${JSON.stringify({ name, value }, null, "   ")}</pre>
-					// `;
-				}
-			}
-		}).filter((value) => value !== nothing) || [];
-		if (components?.length === 0) {
-			return nothing;
+			})
+			?? nothing
 		}
-		return html`
-		<div class="container">
-		${components
-		}
-		</div>
 	`;
-	}
 }
 
 const COMPONENT_SORT_ORDER: Array<InspectorComponent["name"]> = [

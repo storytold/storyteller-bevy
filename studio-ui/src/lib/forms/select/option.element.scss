@@ -1,0 +1,28 @@
+@use "sass:math";
+
+:host {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.5rem;
+
+	color: #FFF;
+	transition: background 100ms linear;
+	cursor: pointer;
+	user-select: none;
+
+	font-size: math.div(15, 16) * 1rem;
+	line-height: 1;
+}
+
+:host(:hover) {
+	background: rgba(#FFF, 0.1);
+}
+
+:host(.selected) {
+	background: var(--neutral-200);
+}
+
+::slotted(*) {
+	pointer-events: none;
+}

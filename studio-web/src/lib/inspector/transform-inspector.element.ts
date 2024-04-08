@@ -39,7 +39,6 @@ export class TransformInspectorElement extends LitElement {
 	}
 
 	protected override render = () => html`
-		<h4>Transform</h4>
 		<div
 			class="fieldset"
 			role="group"
@@ -48,31 +47,44 @@ export class TransformInspectorElement extends LitElement {
 			<legend id=${this.#positionLabelId}>
 				Position
 			</legend>
-			<sts-scalar-field
-				class="input"
-				aria-label="X"
-				.step=${0.01}
-				.microStep=${0.001}
-				.value=${this.translation.x}
-				@value-change=${this.updateField("translation.x")}
-			></sts-scalar-field>
-			<sts-scalar-field
-				class="input"
-				aria-label="Y"
-				.step=${0.01}
-				.microStep=${0.001}
-				.value=${this.translation.y}
-				@value-change=${this.updateField("translation.y")}
-			></sts-scalar-field>
-			<sts-scalar-field
-				class="input"
-				aria-label="Z"
-				.step=${0.01}
-				.microStep=${0.001}
-				.value=${this.translation.z}
-				@value-change=${this.updateField("translation.z")}
-			></sts-scalar-field>
+
+			<label class="field field--x">
+				<span class="label label--x">X</span>
+				<sts-scalar-field
+					class="input"
+					format="1.3"
+					.step=${0.01}
+					.microStep=${0.001}
+					.value=${this.translation.x}
+					@value-change=${this.updateField("translation.x")}
+				></sts-scalar-field>
+			</label>
+
+			<label class="field field--y">
+				<span class="label label--y">Y</span>
+				<sts-scalar-field
+					class="input"
+					format="1.3"
+					.step=${0.01}
+					.microStep=${0.001}
+					.value=${this.translation.y}
+					@value-change=${this.updateField("translation.y")}
+				></sts-scalar-field>
+			</label>
+
+			<label class="field field--z">
+				<span class="label label--z">Z</span>
+				<sts-scalar-field
+					class="input"
+					format="1.3"
+					.step=${0.01}
+					.microStep=${0.001}
+					.value=${this.translation.z}
+					@value-change=${this.updateField("translation.z")}
+				></sts-scalar-field>
+			</label>
 		</div>
+
 		<div
 			class="fieldset"
 			role="group"
@@ -86,6 +98,7 @@ export class TransformInspectorElement extends LitElement {
 				@value-change=${this.updateField("rotation")}
 			></sts-quat-inspector>
 		</div>
+
 		<div
 			class="fieldset"
 			role="group"
@@ -94,30 +107,42 @@ export class TransformInspectorElement extends LitElement {
 			<legend id=${this.#scaleLabelId}>
 				Scale
 			</legend>
-			<sts-scalar-field
-				class="input"
-				aria-label="X"
-				.step=${0.1}
-				.microStep=${0.01}
-				.value=${this.scale.x}
-				@value-change=${this.updateField("scale.x")}
-			></sts-scalar-field>
-			<sts-scalar-field
-				class="input"
-				aria-label="Y"
-				.step=${0.1}
-				.microStep=${0.01}
-				.value=${this.scale.y}
-				@value-change=${this.updateField("scale.y")}
-			></sts-scalar-field>
-			<sts-scalar-field
-				class="input"
-				aria-label="Z"
-				.step=${0.1}
-				.microStep=${0.01}
-				.value=${this.scale.z}
-				@value-change=${this.updateField("scale.z")}
-			></sts-scalar-field>
+
+			<label class="field field--x">
+				<span class="label label--x">X</span>
+				<sts-scalar-field
+					class="input"
+					format="1.3"
+					.step=${0.1}
+					.microStep=${0.01}
+					.value=${this.scale.x}
+					@value-change=${this.updateField("scale.x")}
+				></sts-scalar-field>
+			</label>
+
+			<label class="field field--y">
+				<span class="label label--y">Y</span>
+				<sts-scalar-field
+					class="input"
+					format="1.3"
+					.step=${0.1}
+					.microStep=${0.01}
+					.value=${this.scale.y}
+					@value-change=${this.updateField("scale.y")}
+				></sts-scalar-field>
+			</label>
+
+			<label class="field field--z">
+				<span class="label label--z">Z</span>
+				<sts-scalar-field
+					class="input"
+					format="1.3"
+					.step=${0.1}
+					.microStep=${0.01}
+					.value=${this.scale.z}
+					@value-change=${this.updateField("scale.z")}
+				></sts-scalar-field>
+			</label>
 		</div>
 	`;
 }

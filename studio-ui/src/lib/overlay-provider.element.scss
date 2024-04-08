@@ -1,4 +1,6 @@
 .overlay-stack {
+	width: 0;
+	height: 0;
 	isolation: isolate;
 	z-index: 99999;
 }

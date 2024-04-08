@@ -1,0 +1,40 @@
+@use "sass:math";
+
+:host {
+	padding: 0.5rem;
+	background: var(--neutral-350);
+	color: #FFF;
+
+	transition: {
+		property: background;
+		duration: 100ms;
+		timing-function: linear;
+	}
+	user-select: none;
+	cursor: pointer;
+
+	font-size: math.div(15, 16) * 1rem;
+	line-height: 1;
+}
+
+:host(:hover) {
+	background: var(--neutral-400);
+}
+
+.selected {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+
+	sts-option {
+		padding: 0;
+	}
+}
+
+.dropdown-icon {
+	font-size: 0.75rem;
+}
+
+.hidden {
+	display: none;
+}

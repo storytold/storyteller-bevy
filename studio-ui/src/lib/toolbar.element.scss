@@ -1,4 +1,16 @@
 :host {
 	display: flex;
-	gap: 16px;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.5rem;
+	border-radius: 0.5rem;
+	background: var(--neutral-200);
+}
+
+::slotted(hr) {
+	display: block;
+	width: 2px;
+	height: 1.125rem;
+	border: none;
+	background: rgba(#FFF, 0.1);
 }

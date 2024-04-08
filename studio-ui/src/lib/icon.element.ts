@@ -4,13 +4,12 @@ import { LitElement, TemplateResult, html, nothing, unsafeCSS } from "lit";
 import { customElement, property } from "lit/decorators.js";
 import { unsafeSVG } from "lit/directives/unsafe-svg.js";
 
-import farCrosshairs from "@fortawesome/fontawesome-pro/svgs/regular/crosshairs.svg?raw";
-import farVideo from "@fortawesome/fontawesome-pro/svgs/regular/video.svg?raw";
+import fasCrosshairs from "@fortawesome/fontawesome-pro/svgs/solid/crosshairs.svg?raw";
+import fasVideo from "@fortawesome/fontawesome-pro/svgs/solid/video.svg?raw";
 import fasCircleQuestion from "@fortawesome/fontawesome-pro/svgs/solid/circle-question.svg?raw";
 import fasKey from "@fortawesome/fontawesome-pro/svgs/solid/key.svg?raw";
-import farCube from "@fortawesome/fontawesome-pro/svgs/regular/cube.svg?raw";
-import farGlobe from "@fortawesome/fontawesome-pro/svgs/regular/globe.svg?raw";
-import farUpDownLeftRight from "@fortawesome/fontawesome-pro/svgs/regular/arrows-up-down-left-right.svg?raw";
+import fasGlobe from "@fortawesome/fontawesome-pro/svgs/solid/globe.svg?raw";
+import fasUpDownLeftRight from "@fortawesome/fontawesome-pro/svgs/solid/arrows-up-down-left-right.svg?raw";
 import fasPlay from "@fortawesome/fontawesome-pro/svgs/solid/play.svg?raw";
 import fasPause from "@fortawesome/fontawesome-pro/svgs/solid/pause.svg?raw";
 import fasFwdStep from "@fortawesome/fontawesome-pro/svgs/solid/forward-step.svg?raw";
@@ -18,12 +17,12 @@ import fasFwdFast from "@fortawesome/fontawesome-pro/svgs/solid/forward-fast.svg
 import fasBwdStep from "@fortawesome/fontawesome-pro/svgs/solid/backward-step.svg?raw";
 import fasBwdFast from "@fortawesome/fontawesome-pro/svgs/solid/backward-fast.svg?raw";
 import fasQuestion from "@fortawesome/fontawesome-pro/svgs/solid/question.svg?raw";
-import farRotate from "@fortawesome/fontawesome-pro/svgs/regular/arrows-rotate.svg?raw";
-import farScale from "@fortawesome/fontawesome-pro/svgs/regular/arrow-up-right-and-arrow-down-left-from-center.svg?raw";
+import fasRotate from "@fortawesome/fontawesome-pro/svgs/solid/arrows-rotate.svg?raw";
+import fasScale from "@fortawesome/fontawesome-pro/svgs/solid/arrow-up-right-and-arrow-down-left-from-center.svg?raw";
 import fasCaretRight from "@fortawesome/fontawesome-pro/svgs/solid/caret-right.svg?raw";
 import fasFloppyDisk from "@fortawesome/fontawesome-pro/svgs/solid/floppy-disk.svg?raw";
-import farSkeleton from "@fortawesome/fontawesome-pro/svgs/regular/skeleton.svg?raw";
-import farBone from "@fortawesome/fontawesome-pro/svgs/regular/bone.svg?raw";
+import fasSkeleton from "@fortawesome/fontawesome-pro/svgs/regular/skeleton.svg?raw";
+import fasBone from "@fortawesome/fontawesome-pro/svgs/regular/bone.svg?raw";
 import fasBrightness from "@fortawesome/fontawesome-pro/svgs/solid/brightness.svg?raw";
 import fasCheck from "@fortawesome/fontawesome-pro/svgs/solid/check.svg?raw";
 import fasXmark from "@fortawesome/fontawesome-pro/svgs/solid/xmark.svg?raw";
@@ -33,23 +32,29 @@ import fasMinus from "@fortawesome/fontawesome-pro/svgs/solid/minus.svg?raw";
 import fasListTree from "@fortawesome/fontawesome-pro/svgs/solid/list-tree.svg?raw";
 import fasBars from "@fortawesome/fontawesome-pro/svgs/solid/bars.svg?raw";
 import fasPlusLarge from "@fortawesome/fontawesome-pro/svgs/solid/plus-large.svg?raw";
-import farFileImport from "@fortawesome/fontawesome-pro/svgs/regular/file-import.svg?raw";
-import farPhotoFilmMusic from "@fortawesome/fontawesome-pro/svgs/regular/photo-film-music.svg?raw";
+import fasFileImport from "@fortawesome/fontawesome-pro/svgs/regular/file-import.svg?raw";
+import fasPhotoFilmMusic from "@fortawesome/fontawesome-pro/svgs/regular/photo-film-music.svg?raw";
 import fasChevronDown from "@fortawesome/fontawesome-pro/svgs/solid/chevron-down.svg?raw";
-import farVolume from "@fortawesome/fontawesome-pro/svgs/regular/volume.svg?raw";
-import farFilm from "@fortawesome/fontawesome-pro/svgs/regular/film.svg?raw";
+import fasVolume from "@fortawesome/fontawesome-pro/svgs/regular/volume.svg?raw";
+import fasFilm from "@fortawesome/fontawesome-pro/svgs/regular/film.svg?raw";
 import fasPersonRunning from "@fortawesome/fontawesome-pro/svgs/solid/person-running.svg?raw";
-import farMountainSun from "@fortawesome/fontawesome-pro/svgs/regular/mountain-sun.svg?raw";
-import farArrowRightToBracket from "@fortawesome/fontawesome-pro/svgs/regular/arrow-right-to-bracket.svg?raw";
-import farMagnifyingGlass from "@fortawesome/fontawesome-pro/svgs/regular/magnifying-glass.svg?raw";
+import fasMountainSun from "@fortawesome/fontawesome-pro/svgs/regular/mountain-sun.svg?raw";
+import fasArrowRightToBracket from "@fortawesome/fontawesome-pro/svgs/regular/arrow-right-to-bracket.svg?raw";
+import fasMagnifyingGlass from "@fortawesome/fontawesome-pro/svgs/regular/magnifying-glass.svg?raw";
 import fasHouse from "@fortawesome/fontawesome-pro/svgs/solid/house.svg?raw";
 import fasRecord from "@fortawesome/fontawesome-pro/svgs/solid/circle.svg?raw";
 import fasUpload from "@fortawesome/fontawesome-pro/svgs/solid/upload.svg?raw";
 import fasFilms from "@fortawesome/fontawesome-pro/svgs/solid/films.svg?raw";
+import fasFile from "@fortawesome/fontawesome-pro/svgs/solid/file.svg?raw";
+import fasTrash from "@fortawesome/fontawesome-pro/svgs/solid/trash.svg?raw";
+import fasRightLeft from "@fortawesome/fontawesome-pro/svgs/solid/right-left.svg?raw";
+import fasChevronRight from "@fortawesome/fontawesome-pro/svgs/solid/chevron-right.svg?raw";
 
-import customCylinder from "../assets/icons/cylinder.svg?raw";
-import customSphere from "../assets/icons/sphere.svg?raw";
-import customTorus from "../assets/icons/torus.svg?raw";
+import customCube from "../assets/icons/cube-solid.svg?raw";
+import customCylinder from "../assets/icons/cylinder-solid.svg?raw";
+import customSphere from "../assets/icons/sphere-solid.svg?raw";
+import customTorus from "../assets/icons/torus-solid.svg?raw";
+import customXformLocal from "../assets/icons/xform-local.svg?raw";
 
 import styles from "./icon.element.scss?inline";
 
@@ -77,49 +82,54 @@ function renderSvg(iconId: string) {
 
 	const svgSrc = match (iconId, {
 		"bars": () => fasBars,
-		"bone": () => farBone,
+		"bone": () => fasBone,
 		"bwd-fast": () => fasBwdFast,
 		"bwd-step": () => fasBwdStep,
 		"caret-right": () => fasCaretRight,
 		"check": () => fasCheck,
 		"chevron-down": () => fasChevronDown,
+		"chevron-right": () => fasChevronRight,
 		"circle-check": () => fasCircleCheck,
 		"circle-question": () => fasCircleQuestion,
 		"circle-xmark": () => fasCircleXmark,
-		"crosshairs": () => farCrosshairs,
-		"cube": () => farCube,
+		"crosshairs": () => fasCrosshairs,
+		"cube": () => customCube,
 		"cylinder": () => customCylinder,
 		"figure": () => fasPersonRunning,
-		"file-import": () => farFileImport,
-		"film": () => farFilm,
+		"file": () => fasFile,
+		"file-import": () => fasFileImport,
+		"film": () => fasFilm,
 		"films": () => fasFilms,
 		"floppy-disk": () => fasFloppyDisk,
 		"fwd-fast": () => fasFwdFast,
 		"fwd-step": () => fasFwdStep,
 		"home": () => fasHouse,
-		"import": () => farArrowRightToBracket,
+		"import": () => fasArrowRightToBracket,
 		"key": () => fasKey,
 		"light": () => fasBrightness,
 		"list-tree": () => fasListTree,
 		"minus": () => fasMinus,
-		"globe": () => farGlobe,
-		"photo-film-music": () => farPhotoFilmMusic,
+		"globe": () => fasGlobe,
+		"photo-film-music": () => fasPhotoFilmMusic,
 		"play": () => fasPlay,
 		"pause": () => fasPause,
 		"plus-large": () => fasPlusLarge,
 		"question": () => fasQuestion,
 		"record": () => fasRecord,
-		"rotate": () => farRotate,
-		"scale": () => farScale,
-		"scene": () => farMountainSun,
-		"search": () => farMagnifyingGlass,
-		"skeleton": () => farSkeleton,
+		"rotate": () => fasRotate,
+		"scale": () => fasScale,
+		"scene": () => fasMountainSun,
+		"search": () => fasMagnifyingGlass,
+		"skeleton": () => fasSkeleton,
 		"sphere": () => customSphere,
+		"swap": () => fasRightLeft,
+		"trash": () => fasTrash,
 		"torus": () => customTorus,
-		"up-down-left-right": () => farUpDownLeftRight,
+		"up-down-left-right": () => fasUpDownLeftRight,
 		"upload": () => fasUpload,
-		"video": () => farVideo,
-		"volume": () => farVolume,
+		"video": () => fasVideo,
+		"volume": () => fasVolume,
+		"xform-local": () => customXformLocal,
 		"xmark": () => fasXmark,
 		_: () => null,
 	});
