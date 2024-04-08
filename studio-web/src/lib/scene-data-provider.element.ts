@@ -18,21 +18,23 @@ import { type MediaFile, type MediaFileToken, StorytellerApi } from "./storytell
 import { STUDIO_PARAMS, type StudioParams } from "./url-params";
 import { saveScene } from "./save-scene";
 
+export const SCENE_DATA_PROVIDER = UniqueToken.create<SceneDataProvider>();
 export interface SceneDataProvider extends DynamicProvider<SceneDataProvider> {
-	readonly sceneToken: MediaFileToken | null;
 	readonly tree: readonly SceneObject[];
 	readonly entityMap: ReadonlyMap<string, SceneObject>;
 	readonly selectedEntity: string | null;
 	readonly selectedObject: SceneObject | null;
 	readonly selectionComponents: readonly InspectorComponent[];
+}
 
+export const REMOTE_SCENE_MANAGER = UniqueToken.create<RemoteSceneManager>();
+export interface RemoteSceneManager extends DynamicProvider<RemoteSceneManager> {
+	readonly sceneToken: MediaFileToken | null;
 	readonly canSaveInPlace: boolean;
 	readonly canSaveAsCopy: boolean;
 	saveInPlace(): Promise<void>;
 	saveAsCopy(title: string): Promise<MediaFileToken>;
 }
-
-export const SCENE_DATA_PROVIDER = UniqueToken.create<SceneDataProvider>();
 
 export interface SceneObject extends Omit<studio.SceneObject, "children"> {
 	icon?: string;
@@ -41,10 +43,14 @@ export interface SceneObject extends Omit<studio.SceneObject, "children"> {
 
 @customElement("sts-scene-data-provider")
 @provide(SCENE_DATA_PROVIDER)
+@provide(REMOTE_SCENE_MANAGER)
 @provide(TREE_SELECTION_PROVIDER)
 export class SceneDataProviderElement
 	extends LitElement
-	implements SceneDataProvider, TreeSelectionProvider
+	implements
+		SceneDataProvider,
+		RemoteSceneManager,
+		TreeSelectionProvider
 {
 	static override styles = css`
 		:host {
@@ -184,8 +190,13 @@ export class SceneDataProviderElement
 	//       properties change, but it's pretty fiddly to set up. Probably not
 	//       worth fixing before we migrate over to Bevy-native UI.
 	protected override update(changes: PropertyValues<this>): void {
-		const downstreamChanges: PropertyValues<SceneDataProvider & TreeSelectionProvider>
-			= new Map();
+		type Interfaces
+			= SceneDataProvider
+			& RemoteSceneManager
+			& TreeSelectionProvider
+			;
+
+		const downstreamChanges: PropertyValues<Interfaces> = new Map();
 
 		if (changes.has("sceneToken"))
 			downstreamChanges.set("sceneToken", changes.get("sceneToken"));

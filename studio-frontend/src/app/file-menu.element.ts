@@ -1,9 +1,9 @@
 import { bind, inject, observe } from "@storyteller/framework";
 import { DialogElement } from "@storyteller/studio-ui";
 import {
-	SCENE_DATA_PROVIDER,
+	REMOTE_SCENE_MANAGER,
+	type RemoteSceneManager,
 	StorytellerApi,
-	type SceneDataProvider,
 } from "@storyteller/studio-web";
 import { LitElement, TemplateResult, html, unsafeCSS } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
@@ -19,8 +19,8 @@ export class FileMenuElement extends LitElement {
 	trigger = createRef<HTMLElement>();
 
 	@observe(["canSaveInPlace", "canSaveAsCopy"])
-	@inject(SCENE_DATA_PROVIDER)
-	_scene!: SceneDataProvider;
+	@inject(REMOTE_SCENE_MANAGER)
+	_sceneManager!: RemoteSceneManager;
 
 	@inject(StorytellerApi)
 	_api!: StorytellerApi;
@@ -30,7 +30,7 @@ export class FileMenuElement extends LitElement {
 	#saveAsCopyDialogRef = createRef<DialogElement>();
 
 	_onSaveInPlace(): void {
-		this._scene.saveInPlace().catch(console.error);
+		this._sceneManager.saveInPlace().catch(console.error);
 	}
 
 	_onSaveAsCopy(): void {
@@ -38,7 +38,7 @@ export class FileMenuElement extends LitElement {
 		this.#saveAsCopyDialogRef.value?.close();
 		this._saveAsCopyTitle = "";
 
-		this._scene.saveAsCopy(title).catch(console.error);
+		this._sceneManager.saveAsCopy(title).catch(console.error);
 	}
 
 	get #saveAsCopyDialogTemplate(): TemplateResult {
@@ -108,7 +108,7 @@ export class FileMenuElement extends LitElement {
 				<sts-button
 					role="menuitem"
 					keybind="Ctrl+S"
-					?disabled=${!this._scene.canSaveInPlace}
+					?disabled=${!this._sceneManager.canSaveInPlace}
 					@click=${this._onSaveInPlace}
 				>
 					Save scene
@@ -116,7 +116,7 @@ export class FileMenuElement extends LitElement {
 				<sts-button
 					role="menuitem"
 					keybind="Ctrl+Shift+S"
-					?disabled=${!this._scene.canSaveAsCopy}
+					?disabled=${!this._sceneManager.canSaveAsCopy}
 					@click=${() => {
 						this.#saveAsCopyDialogRef.value?.open();
 					}}
