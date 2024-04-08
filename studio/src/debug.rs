@@ -92,19 +92,14 @@ impl Plugin for DebugPlugin {
             app.auto_undo::<SceneElement>();
             app.auto_undo::<Selectable>();
 
-        app.add_systems(Update, sync_editor_camera);
-        app.add_systems(
-            Update,
-            update_editor_ui_mode.run_if(resource_changed::<DebugMode>()),
-        );
+            #[cfg(feature = "wasm")]
+            {
+                app.add_systems(
+                    PostUpdate,
+                    wasm::notify_debug_mode_toggle.map(bevy::utils::error),
+                );
+            }
 
-        #[cfg(feature = "wasm")]
-        {
-            app.add_systems(
-                PostUpdate,
-                wasm::notify_debug_mode_toggle.map(bevy::utils::error),
-            );
-        }
             app.add_systems(Update, sync_editor_camera);
             app.add_systems(
                 Update,
