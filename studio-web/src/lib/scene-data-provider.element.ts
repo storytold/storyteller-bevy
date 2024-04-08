@@ -29,10 +29,46 @@ export interface SceneDataProvider extends DynamicProvider<SceneDataProvider> {
 
 export const REMOTE_SCENE_MANAGER = UniqueToken.create<RemoteSceneManager>();
 export interface RemoteSceneManager extends DynamicProvider<RemoteSceneManager> {
+	/**
+	 * The media token for the current scene. Can be `null` if:
+	 *
+	 * - This is a new scene that hasn't been saved yet
+	 * - We're in a `StudioMode.Viewer` instance for some other asset type, like
+	 *   an FBX/glTF import or an animation
+	 * - We're in a dev instance loading assets from the local `assets` directory
+	 * - Probably some other scenarios I'm not considering
+	 */
 	readonly sceneToken: MediaFileToken | null;
+
+	/**
+	 * Indicates whether the user is permitted to save the current scene by
+	 * overwriting the remote media file.
+	 */
 	readonly canSaveInPlace: boolean;
+
+	/**
+	 * Indicates whether the user is permitted to save the current scene as a
+	 * copy to their account. (Presumably this should only be `false` if the user
+	 * is not logged in.)
+	 */
 	readonly canSaveAsCopy: boolean;
+
+	/**
+	 * Save the current scene to the user's account by overwriting the existing
+	 * media file.
+	 *
+	 * @returns a rejected Promise if there is no active {@linkcode sceneToken}
+	 * or if {@linkcode canSaveInPlace} is false.
+	 */
 	saveInPlace(): Promise<void>;
+
+	/**
+	 * Save the current scene to a new {@linkcode MediaFile} in the user's
+	 * account.
+	 *
+	 * @returns the new scene token.
+	 * @returns a rejected Promise if {@linkcode canSaveAsCopy} is false.
+	 */
 	saveAsCopy(title: string): Promise<MediaFileToken>;
 }
 
@@ -92,13 +128,6 @@ export class SceneDataProviderElement
 	@state() _canSaveInPlace = false;
 	@state() _canSaveAsCopy = false;
 
-	/**
-	 * Save the current scene to the user's account by overwriting the existing
-	 * media file.
-	 *
-	 * @returns a rejected Promise if there is no active {@linkcode sceneToken}
-	 * or if {@linkcode canSaveInPlace} is false.
-	 */
 	async saveInPlace(): Promise<void> {
 		if (!this.canSaveInPlace)
 			return Promise.reject(new Error("User not permitted to overwrite the current scene"));
@@ -117,13 +146,6 @@ export class SceneDataProviderElement
 		}
 	}
 
-	/**
-	 * Save the current scene to a new {@linkcode MediaFile} in the user's
-	 * account.
-	 *
-	 * @returns the new scene token.
-	 * @returns a rejected Promise if {@linkcode canSaveAsCopy} is false.
-	 */
 	async saveAsCopy(title: string): Promise<MediaFileToken> {
 		if (!this.canSaveAsCopy)
 			return Promise.reject(new Error("User not permitted to save the scene as a copy"))
