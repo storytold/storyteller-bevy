@@ -27,6 +27,7 @@ export class FileMenuElement extends LitElement {
 
 	@state() _saveAsCopyTitle = "";
 
+	#saveAsCopyFormRef = createRef<HTMLFormElement>();
 	#saveAsCopyDialogRef = createRef<DialogElement>();
 
 	_onSaveInPlace(): void {
@@ -47,14 +48,29 @@ export class FileMenuElement extends LitElement {
 				Save Scene
 			</sts-dialog-header>
 
-			<label>
-				Title
-				<sts-text-field
-					autofocus
-					name="title"
-					.value=${bind(this, "_saveAsCopyTitle")}
-				></sts-text-field>
-			</label>
+			<form
+				${ref(this.#saveAsCopyFormRef)}
+				action=""
+				@submit=${(event: SubmitEvent) => {
+					event.preventDefault();
+					event.stopImmediatePropagation();
+					this._onSaveAsCopy();
+				}}
+			>
+				<label>
+					Title
+					<sts-text-field
+						autofocus
+						name="title"
+						required
+						.value=${bind(this, "_saveAsCopyTitle")}
+						@keydown=${(event: KeyboardEvent) => {
+							if (event.key === "Enter" && this._saveAsCopyTitle)
+								this.#saveAsCopyFormRef.value?.requestSubmit();
+						}}
+					></sts-text-field>
+				</label>
+			</form>
 
 			<sts-dialog-footer>
 				<sts-button
@@ -69,7 +85,7 @@ export class FileMenuElement extends LitElement {
 					secondary
 					?disabled=${!this._saveAsCopyTitle}
 					@click=${() => {
-						this._onSaveAsCopy();
+						this.#saveAsCopyFormRef.value?.requestSubmit();
 					}}
 				>
 					Save
