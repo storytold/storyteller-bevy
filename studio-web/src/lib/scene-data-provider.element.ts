@@ -94,9 +94,6 @@ export class SceneDataProviderElement
 	 * or if {@linkcode canSaveInPlace} is false.
 	 */
 	async saveInPlace(): Promise<void> {
-		if (!this.sceneToken)
-			return Promise.reject(new Error("Unable to save scene in-place: no active scene token"));
-
 		if (!this.canSaveInPlace)
 			return Promise.reject(new Error("User not permitted to overwrite the current scene"));
 
@@ -104,8 +101,10 @@ export class SceneDataProviderElement
 			const scene = await saveScene();
 			const file = new File([scene], "scene.scn.ron", { type: "text/plain" });
 
-			// FIXME: The backend seems to be storing this as the wrong filetype
-			// await this._api.writeSceneFile(token, file);
+			if (!this.sceneToken)
+				return Promise.reject(new Error("Unable to save scene in-place: no active scene token"));
+
+			await this._api.writeSceneFile(this.sceneToken, file);
 		}
 		catch (err) {
 			return Promise.reject(err);
