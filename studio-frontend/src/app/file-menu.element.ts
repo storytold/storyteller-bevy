@@ -1,10 +1,6 @@
 import { bind, inject, observe } from "@storyteller/framework";
 import { DialogElement } from "@storyteller/studio-ui";
-import {
-	REMOTE_SCENE_MANAGER,
-	type RemoteSceneManager,
-	StorytellerApi,
-} from "@storyteller/studio-web";
+import { REMOTE_SCENE_MANAGER, type RemoteSceneManager } from "@storyteller/studio-web";
 import { LitElement, TemplateResult, html, unsafeCSS } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { createRef, ref } from "lit/directives/ref.js";
@@ -22,13 +18,10 @@ export class FileMenuElement extends LitElement {
 	@inject(REMOTE_SCENE_MANAGER)
 	_sceneManager!: RemoteSceneManager;
 
-	@inject(StorytellerApi)
-	_api!: StorytellerApi;
-
 	@state() _saveAsCopyTitle = "";
 
-	#saveAsCopyFormRef = createRef<HTMLFormElement>();
-	#saveAsCopyDialogRef = createRef<DialogElement>();
+	_saveAsCopyFormRef = createRef<HTMLFormElement>();
+	_saveAsCopyDialogRef = createRef<DialogElement>();
 
 	_onSaveInPlace(): void {
 		this._sceneManager.saveInPlace().catch(console.error);
@@ -36,20 +29,20 @@ export class FileMenuElement extends LitElement {
 
 	_onSaveAsCopy(): void {
 		const title = this._saveAsCopyTitle;
-		this.#saveAsCopyDialogRef.value?.close();
+		this._saveAsCopyDialogRef.value?.close();
 		this._saveAsCopyTitle = "";
 
 		this._sceneManager.saveAsCopy(title).catch(console.error);
 	}
 
-	get #saveAsCopyDialogTemplate(): TemplateResult {
+	get _saveAsCopyDialogTemplate(): TemplateResult {
 		return html`
 			<sts-dialog-header icon="floppy-disk">
 				Save Scene
 			</sts-dialog-header>
 
 			<form
-				${ref(this.#saveAsCopyFormRef)}
+				${ref(this._saveAsCopyFormRef)}
 				action=""
 				@submit=${(event: SubmitEvent) => {
 					event.preventDefault();
@@ -66,7 +59,7 @@ export class FileMenuElement extends LitElement {
 						.value=${bind(this, "_saveAsCopyTitle")}
 						@keydown=${(event: KeyboardEvent) => {
 							if (event.key === "Enter" && this._saveAsCopyTitle)
-								this.#saveAsCopyFormRef.value?.requestSubmit();
+								this._saveAsCopyFormRef.value?.requestSubmit();
 						}}
 					></sts-text-field>
 				</label>
@@ -75,7 +68,7 @@ export class FileMenuElement extends LitElement {
 			<sts-dialog-footer>
 				<sts-button
 					@click=${() => {
-						this.#saveAsCopyDialogRef.value?.close();
+						this._saveAsCopyDialogRef.value?.close();
 						this._saveAsCopyTitle = "";
 					}}
 				>
@@ -85,7 +78,7 @@ export class FileMenuElement extends LitElement {
 					secondary
 					?disabled=${!this._saveAsCopyTitle}
 					@click=${() => {
-						this.#saveAsCopyFormRef.value?.requestSubmit();
+						this._saveAsCopyFormRef.value?.requestSubmit();
 					}}
 				>
 					Save
@@ -134,7 +127,7 @@ export class FileMenuElement extends LitElement {
 					keybind="Ctrl+Shift+S"
 					?disabled=${!this._sceneManager.canSaveAsCopy}
 					@click=${() => {
-						this.#saveAsCopyDialogRef.value?.open();
+						this._saveAsCopyDialogRef.value?.open();
 					}}
 				>
 					Save scene as copy...
@@ -142,8 +135,8 @@ export class FileMenuElement extends LitElement {
 			</sts-menu>
 
 			<sts-dialog
-				${ref(this.#saveAsCopyDialogRef)}
-				.template=${[this, this.#saveAsCopyDialogTemplate] as const}
+				${ref(this._saveAsCopyDialogRef)}
+				.template=${[this, this._saveAsCopyDialogTemplate] as const}
 			></sts-dialog>
 		`;
 	}
