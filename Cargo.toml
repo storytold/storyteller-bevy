@@ -9,7 +9,7 @@ members = [
 anyhow = "1.0.75"
 
 [workspace.dependencies.bevy]
-version = "0.13.1"
+version = "0.13.2"
 features = ["tonemapping_luts"]
 
 [profile.dev-custom]

@@ -55,7 +55,7 @@ fn sync_camera_viewport(
         physical_position: UVec2::new(0, 0),
         physical_size: UVec2::new(window.physical_width(), window.physical_height()),
         ..default()
-    })
+    });
 }
 
 #[derive(Component)]
