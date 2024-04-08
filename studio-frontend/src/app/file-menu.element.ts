@@ -3,10 +3,9 @@ import { DialogElement } from "@storyteller/studio-ui";
 import {
 	SCENE_DATA_PROVIDER,
 	StorytellerApi,
-	saveScene,
 	type SceneDataProvider,
 } from "@storyteller/studio-web";
-import { LitElement, PropertyValues, TemplateResult, html, unsafeCSS } from "lit";
+import { LitElement, TemplateResult, html, unsafeCSS } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { createRef, ref } from "lit/directives/ref.js";
 
@@ -19,82 +18,27 @@ export class FileMenuElement extends LitElement {
 	@property({ attribute: false })
 	trigger = createRef<HTMLElement>();
 
-	@observe(["sceneToken"])
+	@observe(["canSaveInPlace", "canSaveAsCopy"])
 	@inject(SCENE_DATA_PROVIDER)
-	_sceneData!: SceneDataProvider;
+	_scene!: SceneDataProvider;
 
 	@inject(StorytellerApi)
 	_api!: StorytellerApi;
-
-	@state() _canSaveScene = false;
-	@state() _canSaveAsCopy = false;
 
 	@state() _saveAsCopyTitle = "";
 
 	#saveAsCopyDialogRef = createRef<DialogElement>();
 
-	protected override async update(changes: PropertyValues<this>): Promise<void> {
-		super.update(changes);
-
-		if (!this._sceneData.sceneToken)
-			this._canSaveScene = false;
-
-		try {
-			const session = await this._api.session();
-			if (session.logged_in)
-				this._canSaveAsCopy = true;
-
-			if (this._sceneData.sceneToken != null) {
-				const sceneFile = await this._api.mediaFile(this._sceneData.sceneToken);
-				if (
-					session.user?.user_token != null
-					&& sceneFile.maybe_creator_user?.user_token === session.user.user_token
-				) {
-					this._canSaveScene = true;
-				}
-			}
-		}
-		catch (err) {
-			console.error(err);
-		}
+	_onSaveInPlace(): void {
+		this._scene.saveInPlace().catch(console.error);
 	}
 
-	async _onSaveInPlace(): Promise<void> {
-		try {
-			const token = this._sceneData.sceneToken;
-			if (!token) return;
-
-			const scene = await saveScene();
-			const file = new File([scene], "scene.scn.ron", { type: "text/plain" });
-
-			// FIXME: The backend seems to be storing this as the wrong filetype
-			// await this._api.writeSceneFile(token, file);
-		}
-		catch (err) {
-			console.error(err);
-		}
-	}
-
-	async _onSaveAsCopy(): Promise<void> {
+	_onSaveAsCopy(): void {
 		const title = this._saveAsCopyTitle;
 		this.#saveAsCopyDialogRef.value?.close();
 		this._saveAsCopyTitle = "";
 
-		try {
-			const scene = await saveScene();
-			const file = new File([scene], "scene.scn.ron", { type: "text/plain" });
-			const token = await this._api.createScene(file, title);
-
-			this._sceneData.setSceneToken(token);
-			this.dispatchEvent(new CustomEvent("scene-uploaded", {
-				detail: token,
-				bubbles: true,
-				composed: true,
-			}));
-		}
-		catch (err) {
-			console.error(err);
-		}
+		this._scene.saveAsCopy(title).catch(console.error);
 	}
 
 	get #saveAsCopyDialogTemplate(): TemplateResult {
@@ -164,7 +108,7 @@ export class FileMenuElement extends LitElement {
 				<sts-button
 					role="menuitem"
 					keybind="Ctrl+S"
-					?disabled=${!this._canSaveScene}
+					?disabled=${!this._scene.canSaveInPlace}
 					@click=${this._onSaveInPlace}
 				>
 					Save scene
@@ -172,7 +116,7 @@ export class FileMenuElement extends LitElement {
 				<sts-button
 					role="menuitem"
 					keybind="Ctrl+Shift+S"
-					?disabled=${!this._canSaveAsCopy}
+					?disabled=${!this._scene.canSaveAsCopy}
 					@click=${() => {
 						this.#saveAsCopyDialogRef.value?.open();
 					}}

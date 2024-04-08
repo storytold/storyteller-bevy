@@ -14,8 +14,9 @@ import { LitElement, type PropertyValues, html, css } from "lit";
 import { customElement, state } from "lit/decorators.js";
 
 import { InspectorComponent } from "./inspector/inspector.types";
-import { MediaFileToken } from "./storyteller-api";
+import { type MediaFile, type MediaFileToken, StorytellerApi } from "./storyteller-api";
 import { STUDIO_PARAMS, type StudioParams } from "./url-params";
+import { saveScene } from "./save-scene";
 
 export interface SceneDataProvider extends DynamicProvider<SceneDataProvider> {
 	readonly sceneToken: MediaFileToken | null;
@@ -25,7 +26,10 @@ export interface SceneDataProvider extends DynamicProvider<SceneDataProvider> {
 	readonly selectedObject: SceneObject | null;
 	readonly selectionComponents: readonly InspectorComponent[];
 
-	setSceneToken(token: MediaFileToken | null): void;
+	readonly canSaveInPlace: boolean;
+	readonly canSaveAsCopy: boolean;
+	saveInPlace(): Promise<void>;
+	saveAsCopy(title: string): Promise<MediaFileToken>;
 }
 
 export const SCENE_DATA_PROVIDER = UniqueToken.create<SceneDataProvider>();
@@ -51,6 +55,9 @@ export class SceneDataProviderElement
 	@inject(STUDIO_PARAMS)
 	_params!: StudioParams;
 
+	@inject(StorytellerApi)
+	_api!: StorytellerApi;
+
 	@state() sceneToken: MediaFileToken | null = null;
 
 	get tree() { return this._tree; }
@@ -66,6 +73,9 @@ export class SceneDataProviderElement
 
 	get selectionComponents() { return this._components; }
 
+	get canSaveInPlace() { return this._canSaveInPlace; }
+	get canSaveAsCopy() { return this._canSaveAsCopy; }
+
 	@state() _tree: SceneObject[] = [];
 	#sceneObjectsFlat: studio.SceneObject[] = [];
 	#entityMap = new Map<string, SceneObject>();
@@ -73,8 +83,62 @@ export class SceneDataProviderElement
 	@state() _selection: string | null = null;
 	@state() _components: InspectorComponent[] = [];
 
-	setSceneToken(token: MediaFileToken | null): void {
-		this.sceneToken = token;
+	@state() _canSaveInPlace = false;
+	@state() _canSaveAsCopy = false;
+
+	/**
+	 * Save the current scene to the user's account by overwriting the existing
+	 * media file.
+	 *
+	 * @returns a rejected Promise if there is no active {@linkcode sceneToken}
+	 * or if {@linkcode canSaveInPlace} is false.
+	 */
+	async saveInPlace(): Promise<void> {
+		if (!this.sceneToken)
+			return Promise.reject(new Error("Unable to save scene in-place: no active scene token"));
+
+		if (!this.canSaveInPlace)
+			return Promise.reject(new Error("User not permitted to overwrite the current scene"));
+
+		try {
+			const scene = await saveScene();
+			const file = new File([scene], "scene.scn.ron", { type: "text/plain" });
+
+			// FIXME: The backend seems to be storing this as the wrong filetype
+			// await this._api.writeSceneFile(token, file);
+		}
+		catch (err) {
+			return Promise.reject(err);
+		}
+	}
+
+	/**
+	 * Save the current scene to a new {@linkcode MediaFile} in the user's
+	 * account.
+	 *
+	 * @returns the new scene token.
+	 * @returns a rejected Promise if {@linkcode canSaveAsCopy} is false.
+	 */
+	async saveAsCopy(title: string): Promise<MediaFileToken> {
+		if (!this.canSaveAsCopy)
+			return Promise.reject(new Error("User not permitted to save the scene as a copy"))
+
+		try {
+			const scene = await saveScene();
+			const file = new File([scene], "scene.scn.ron", { type: "text/plain" });
+
+			this.sceneToken = await this._api.createScene(file, title);
+			this.dispatchEvent(new CustomEvent("scene-uploaded", {
+				detail: this.sceneToken,
+				bubbles: true,
+				composed: true,
+			}));
+
+			return this.sceneToken;
+		}
+		catch (err) {
+			return Promise.reject(err);
+		}
 	}
 
 	override connectedCallback(): void {
@@ -88,6 +152,34 @@ export class SceneDataProviderElement
 		super.connectedCallback();
 	}
 
+	protected override async willUpdate(changes: PropertyValues<this>): Promise<void> {
+		if (changes.has("sceneToken")) {
+			if (!this.sceneToken)
+				this._canSaveInPlace = false;
+
+			try {
+				const session = await this._api.session();
+				if (session.logged_in)
+					this._canSaveAsCopy = true;
+
+				if (this.sceneToken != null) {
+					const sceneFile = await this._api.mediaFile(this.sceneToken);
+					if (
+						session.user?.user_token != null
+						&& sceneFile.maybe_creator_user?.user_token === session.user.user_token
+					) {
+						this._canSaveInPlace = true;
+					}
+				}
+			}
+			catch (err) {
+				console.error(err);
+			}
+		}
+
+		super.willUpdate(changes);
+	}
+
 	// TODO: This workflow allows dependents of this provider to listen for the
 	//       "property-changes" event and manually trigger updates when relevant
 	//       properties change, but it's pretty fiddly to set up. Probably not
@@ -98,6 +190,12 @@ export class SceneDataProviderElement
 
 		if (changes.has("sceneToken"))
 			downstreamChanges.set("sceneToken", changes.get("sceneToken"));
+
+		if (changes.has("_canSaveInPlace"))
+			downstreamChanges.set("canSaveInPlace", changes.get("_canSaveInPlace"));
+
+		if (changes.has("_canSaveAsCopy"))
+			downstreamChanges.set("canSaveAsCopy", changes.get("_canSaveAsCopy"));
 
 		if (changes.has("_tree")) {
 			downstreamChanges.set("tree", changes.get("_tree"));
