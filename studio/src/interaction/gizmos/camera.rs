@@ -48,5 +48,4 @@ pub(super) fn sync_gizmo_and_main_cameras(
     };
 
     gizmo_cam.viewport = main_cam.viewport.clone();
-    info!("gizmo viewport: {:?}", gizmo_cam.viewport);
 }

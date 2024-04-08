@@ -149,7 +149,7 @@ fn minimal_scene_setup(mut cmd: Commands) {
         DirectionalLightBundle {
             directional_light: DirectionalLight {
                 shadows_enabled: false,
-                illuminance: 20000.0,
+                illuminance: 5000.0,
                 ..default()
             },
             transform: Transform::default().looking_at(Vec3::NEG_ONE, Vec3::Y),
