@@ -10,7 +10,7 @@ use bevy::{
         renderer::RenderDevice,
         view::ViewTarget,
         Extract, Render, RenderSet,
-    },
+    }, tasks::Task,
 };
 use bytemuck::AnyBitPattern;
 use image::{
@@ -18,6 +18,7 @@ use image::{
     PixelWithColorType, Rgba,
 };
 use wgpu::{Extent3d, MaintainBase};
+use std::sync::Mutex;
 
 use crate::scene::SceneState;
 
@@ -130,10 +131,20 @@ fn update_screen_capture_on_extract_step(
     mut screen_captures: Query<&mut ScreenCapture>,
     mut exit_event: EventWriter<AppExit>,
 ) {
+
+    let loading_count;
+    {
+        let mut queue = QUEUE_SAVE.lock().unwrap();
+        queue.retain(|task| {
+            !task.is_finished()
+        });
+        loading_count = queue.len();
+    }
+
     for mut screen_capture in screen_captures.iter_mut() {
         screen_capture.frames += 1;
 
-        if !screen_capture.should_capture() {
+        if !screen_capture.should_capture() && loading_count == 0 {
             exit_event.send(AppExit);
         }
         // if screen_capture.number_of_frames == 0 {
@@ -251,6 +262,8 @@ impl ViewNode for ScreenCaptureNode {
 //                        Saving the buffer to file
 //==============================================================================
 
+static QUEUE_SAVE: Mutex<Vec<Task<()>>> = Mutex::new(Vec::new());
+
 fn save_buffer_to_file(
     mut frames_to_skip: Local<Option<u32>>,
     buffers: Query<(&ScreenCapture, &ScreenCaptureBuffers)>,
@@ -295,14 +308,23 @@ fn save_buffer_to_file(
             screen_capture.to_directory, screen_capture.frames
         );
 
-        save_buffer::<Rgba<u8>>(&main_image_values, &buffers.main_buffer_extent, &path);
+        let pool = bevy::tasks::AsyncComputeTaskPool::get();
+        let extent = buffers.main_buffer_extent;
+        let task = pool.spawn(async move {
+            save_buffer::<Rgba<u8>>(
+                main_image_values,
+                extent,
+                path.clone(),
+            );
+        });
+        QUEUE_SAVE.lock().unwrap().push(task);
     }
 }
 
 fn save_buffer<P: Pixel + PixelWithColorType>(
-    image_bytes: &[P::Subpixel],
-    source_size: &Extent3d,
-    path: &str,
+    image_bytes: Vec<P::Subpixel>,
+    source_size: Extent3d,
+    path: String,
 ) where
     P::Subpixel: AnyBitPattern,
     [P::Subpixel]: EncodableLayout,

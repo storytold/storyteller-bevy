@@ -4,7 +4,7 @@ use bevy::{
     app::{AppExit, ScheduleRunnerPlugin},
     asset::AssetMetaCheck,
     core_pipeline::Skybox,
-    prelude::*,
+    prelude::*, winit::WinitPlugin,
 };
 use bevy_web_asset::WebAssetPlugin;
 use space_editor::prelude::{EditorEvent, EditorPrefabPath};
@@ -61,6 +61,12 @@ pub fn start_headless(
         WebAssetPlugin,
         RemoteAssetPlugin,
         DefaultPlugins
+            .set(TaskPoolPlugin {
+                task_pool_options: TaskPoolOptions {
+                    async_compute: bevy::core::TaskPoolThreadAssignmentPolicy { min_threads: 1, max_threads: usize::MAX, percent: 0.75 },
+                    ..default()
+                }
+            })
             .set(WindowPlugin {
                 primary_window: None,
                 exit_condition: bevy::window::ExitCondition::DontExit,
@@ -69,7 +75,8 @@ pub fn start_headless(
             .set(AssetPlugin {
                 mode: AssetMode::Unprocessed,
                 ..default()
-            }),
+            })
+            .disable::<WinitPlugin>(),
         ScreenShotPlugin,
         CommonPlugins
             .build()
