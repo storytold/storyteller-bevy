@@ -39,7 +39,7 @@ pub fn start_headless(
     mode: HeadlessMode,
     fps: u32,
     outout_dir: &str,
-    frames_to_capture: u32,
+    frames_to_capture: Option<u32>,
     image_res: Extent3d,
 ) -> App {
     let mut app = App::new();
@@ -149,7 +149,7 @@ pub fn is_not_headless(studio_state: Res<StudioMode>) -> bool {
 pub struct HeadlessSettings {
     pub output_dims: Extent3d,
     pub output_dir: String,
-    pub max_frames: u32,
+    pub max_frames: Option<u32>,
     pub fps: f32,
     pub frame_delta: f32,
 }
@@ -163,7 +163,7 @@ impl Default for HeadlessSettings {
                 depth_or_array_layers: 1,
             },
             output_dir: "./screen_shots/".to_string(),
-            max_frames: u32::MAX,
+            max_frames: None,
             fps: 24.0,
             frame_delta: 1.0 / 24.0,
         }
@@ -215,7 +215,16 @@ fn start_timeline_animation(
     mut ev: EventWriter<TimelineInteractionEvent>,
 ) {
     if keyframes.is_empty() {
-        // return;
+        let camera = camera.single();
+        commands.entity(camera).insert(
+            ScreenCapture::from_out(&headless_settings.output_dir)
+                //Part of quick hack, see screenshot.rs#261
+                .with_max_frames(headless_settings.max_frames.unwrap_or(0) + 3),
+        );
+        if headless_settings.max_frames.is_none() {
+            error!("Both keyframes and max_frames are empty. Aborting.");
+        }
+        return;
     }
     commands.remove_resource::<CameraMotion>();
     let total_time = keyframes
@@ -224,13 +233,17 @@ fn start_timeline_animation(
         .max(3.0)
         .min(1.0);
 
-    let frames = (total_time * headless_settings.fps).ceil() as u32;
-    headless_settings.max_frames = frames;
+    let mut frames = (total_time * headless_settings.fps).ceil() as u32;
+    if let Some(max_frames) = headless_settings.max_frames {
+        frames = max_frames;
+    }
+    info!("Frames to capture {}", frames);
+    headless_settings.max_frames = Some(frames);
     ev.send(TimelineInteractionEvent::Play);
     let camera = camera.single();
     commands.entity(camera).insert(
         ScreenCapture::from_out(&headless_settings.output_dir)
             //Part of quick hack, see screenshot.rs#261
-            .with_max_frames(headless_settings.max_frames + 3),
+            .with_max_frames(frames + 3),
     );
 }

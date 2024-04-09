@@ -89,7 +89,6 @@ fn main() {
                 depth_or_array_layers: 1,
             });
             let fps = fps.unwrap_or(24);
-            let frames = frames.unwrap_or(30);
             let skybox = skybox.unwrap_or("gum_trees_4k".to_string());
             let mut app = start_headless(
                 HeadlessMode::Scene(scene_dir, skybox),
@@ -140,7 +139,6 @@ fn main() {
                 depth_or_array_layers: 1,
             });
             let fps = fps.unwrap_or(24);
-            let frames = frames.unwrap_or(u32::MAX);
             let skybox = skybox.unwrap_or("gum_trees_4k".to_string());
             start_headless(
                 HeadlessMode::Bvh(bvh_dir, skybox),
@@ -165,7 +163,6 @@ fn main() {
                 depth_or_array_layers: 1,
             });
             let fps = fps.unwrap_or(24);
-            let frames = frames.unwrap_or(u32::MAX);
             let skybox = skybox.unwrap_or("gum_trees_4k".to_string());
             start_headless(
                 HeadlessMode::Mixamo(mixamo_dir, skybox),
