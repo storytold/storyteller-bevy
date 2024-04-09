@@ -115,7 +115,7 @@ impl ScreenCapture {
     }
 
     pub fn should_capture(&self) -> bool {
-        self.frames < self.max_frames && self.is_capturing()
+        self.frames <= self.max_frames && self.is_capturing()
     }
 
     pub fn frames_captured(&self) -> u32 {
