@@ -49,4 +49,5 @@ COPY ./ .
 RUN LD_LIBRARY_PATH=/usr/lib:${LD_LIBRARY_PATH} \
   $HOME/.cargo/bin/cargo build \
   --release \
-  --bin studio-headless
+  --bin studio-headless \
+  --features headless

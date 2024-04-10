@@ -13,7 +13,9 @@ if [ ! -f "${full_path}" ]; then
   wget "${scene_url}" -O "${full_path}"
 fi
 
-cargo run -p studio --bin studio-headless \
+cargo run -p studio \
+        --bin studio-headless \
+        --features headless \
         -- \
         scene \
         -o frames/ \

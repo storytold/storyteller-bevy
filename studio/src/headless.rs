@@ -15,12 +15,10 @@ use crate::{
     anim::timeline_animation::{Keyframe, TimelineInteractionEvent},
     bvh::{BvhAnimCompleteEvent, TestBvh},
     scene::{SceneState, SkyboxHolder},
+    screenshot::{ScreenCapture, ScreenShotPlugin},
     BvhPlugin, CommonPlugins, LoadLibraryObjectEvent, LoadSceneEvent, MainCamera,
     MixamoImportEvent, MixamoPlugin, RemoteAssetPlugin, SkyboxId, StudioMode, WorldGridPlugin,
 };
-
-#[cfg(not(feature = "wasm"))]
-use crate::screenshot::{ScreenCapture, ScreenShotPlugin};
 
 #[derive(Debug, Resource, Clone)]
 pub enum HeadlessMode {
@@ -84,7 +82,6 @@ pub fn start_headless(
                 ..default()
             })
             .disable::<WinitPlugin>(),
-        #[cfg(not(feature = "wasm"))]
         ScreenShotPlugin,
         CommonPlugins
             .build()
@@ -105,8 +102,6 @@ pub fn start_headless(
                     ew.send(LoadLibraryObjectEvent("Mannequin.gltf".to_string()));
                 },
             );
-
-            #[cfg(not(feature = "wasm"))]
             app.add_systems(
                 PostUpdate,
                 check_for_bvh_capture_complete.run_if(in_state(SceneState::Active)),
@@ -126,8 +121,6 @@ pub fn start_headless(
                     ew.send(EditorEvent::Load(EditorPrefabPath::File(scene.clone())));
                 },
             );
-
-            #[cfg(not(feature = "wasm"))]
             app.add_systems(OnEnter(SceneState::Active), start_timeline_animation);
         }
         HeadlessMode::Mixamo(mixamo_path, skybox) => {
@@ -142,7 +135,6 @@ pub fn start_headless(
                     commands.insert_resource(SkyboxId(skybox.clone()));
                 },
             );
-            #[cfg(not(feature = "wasm"))]
             app.add_systems(
                 PostUpdate,
                 check_for_mixamo_capture_complete.run_if(in_state(SceneState::Active)),
@@ -154,14 +146,6 @@ pub fn start_headless(
     }
 
     app
-}
-
-pub fn is_headless(studio_state: Res<StudioMode>) -> bool {
-    *studio_state == StudioMode::Headless
-}
-
-pub fn is_not_headless(studio_state: Res<StudioMode>) -> bool {
-    *studio_state != StudioMode::Headless
 }
 
 #[derive(Resource)]
@@ -189,7 +173,6 @@ impl Default for HeadlessSettings {
     }
 }
 
-#[cfg(not(feature = "wasm"))]
 fn check_for_bvh_capture_complete(
     mut close_app: EventWriter<AppExit>,
     mut main_camera: Query<&mut ScreenCapture, With<MainCamera>>,
@@ -205,7 +188,6 @@ fn check_for_bvh_capture_complete(
     }
 }
 
-#[cfg(not(feature = "wasm"))]
 fn check_for_mixamo_capture_complete(
     mut close_app: EventWriter<AppExit>,
     mut main_camera: Query<&mut ScreenCapture, With<MainCamera>>,

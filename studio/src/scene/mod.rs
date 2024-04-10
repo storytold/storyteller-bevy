@@ -1,16 +1,10 @@
 use bevy::{
     asset::{DependencyLoadState, LoadState},
-    core_pipeline::{
-        bloom::{BloomCompositeMode, BloomPrefilterSettings, BloomSettings},
-        fxaa::Fxaa,
-        tonemapping::Tonemapping,
-        Skybox,
-    },
+    core_pipeline::{tonemapping::Tonemapping, Skybox},
     gltf::Gltf,
     math::vec2,
-    pbr::ShadowFilteringMethod,
     prelude::*,
-    render::{camera::RenderTarget, primitives::Aabb},
+    render::primitives::Aabb,
     scene::InstanceId,
     utils::HashSet,
 };
@@ -25,20 +19,17 @@ use space_editor::{
 };
 #[cfg(feature = "wasm")]
 use wasm_bindgen::prelude::wasm_bindgen;
-use wgpu::{TextureDescriptor, TextureUsages};
 
 use crate::{
     anim::timeline_animation::AnimationTarget,
     camera_controller::{CameraController, CameraControllerBundle},
-    change_tracking::{ChangeTracker, ChangeTrackingPlugin},
     debug::DebugPoint,
-    headless::{is_headless, is_not_headless, HeadlessSettings},
     is_editor,
     math::{Combinable, Extrema},
     MainCamera,
 };
 
-#[cfg(not(feature = "wasm"))]
+#[cfg(feature = "headless")]
 use crate::screenshot::ScreenCapture;
 
 #[cfg(feature = "wasm")]
@@ -51,7 +42,8 @@ pub struct SceneSpawnerSystem;
 
 impl Plugin for ScenePlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(ChangeTrackingPlugin);
+        #[cfg(not(feature = "headless"))]
+        app.add_plugins(crate::change_tracking::ChangeTrackingPlugin);
 
         app.insert_resource(ClearColor(Color::hsl(0.0, 0.0, 0.25)))
             .insert_resource(Msaa::Off)
@@ -59,21 +51,15 @@ impl Plugin for ScenePlugin {
             .add_event::<LoadLibraryObjectEvent>()
             .add_event::<LoadSceneEvent>()
             .add_event::<ImportSceneEvent>()
-            .add_systems(
-                Startup,
-                (
-                    initialize.run_if(is_not_headless),
-                    initialiaze_headless.run_if(is_headless),
-                ),
-            )
+            .add_systems(Startup, initialize)
             .add_systems(
                 Update,
                 (
                     init_object_loading,
                     init_scene_import,
                     init_scene_loading,
-                    #[cfg(not(feature = "wasm"))]
-                    start_capture.run_if(is_headless),
+                    #[cfg(feature = "headless")]
+                    start_capture,
                 )
                     .in_set(SceneSpawnerSystem),
             )
@@ -313,7 +299,17 @@ pub struct SceneData {
 #[derive(Component)]
 pub struct SceneRoot;
 
+#[cfg(not(feature = "headless"))]
 fn initialize(mut cmd: Commands) {
+    use crate::change_tracking::ChangeTracker;
+    use bevy::{
+        core_pipeline::{
+            bloom::{BloomCompositeMode, BloomPrefilterSettings, BloomSettings},
+            fxaa::Fxaa,
+        },
+        pbr::ShadowFilteringMethod,
+    };
+
     // Camera, graphics settings
     let focus = Vec3::ZERO;
     let camera_xform = Transform::from_xyz(-2.5, 4.5, 5.0).looking_at(focus, Vec3::Y);
@@ -349,11 +345,15 @@ fn initialize(mut cmd: Commands) {
     ));
 }
 
-fn initialiaze_headless(
+#[cfg(feature = "headless")]
+fn initialize(
     mut cmd: Commands,
     mut image_assets: ResMut<Assets<Image>>,
-    headless_settings: Res<HeadlessSettings>,
+    headless_settings: Res<crate::headless::HeadlessSettings>,
 ) {
+    use bevy::render::camera::RenderTarget;
+    use wgpu::{TextureDescriptor, TextureUsages};
+
     // Camera, graphics settings
     let focus = Vec3::ZERO;
     let camera_xform = Transform::from_xyz(-2.5, 4.5, 5.0).looking_at(focus, Vec3::Y);
@@ -639,7 +639,7 @@ fn frame_scene_in_view(
     cam_xform.translation = cam.focus + cam_xform.back() * radius;
 }
 
-#[cfg(not(feature = "wasm"))]
+#[cfg(feature = "headless")]
 fn start_capture(mut captures: Query<&mut ScreenCapture, Added<ScreenCapture>>) {
     for mut capture in captures.iter_mut() {
         capture.start_capturing();

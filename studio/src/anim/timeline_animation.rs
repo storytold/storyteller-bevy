@@ -12,7 +12,6 @@ use serde::{Deserialize, Serialize};
 use space_editor::{prelude::PrefabMarker, space_prefab::editor_registry::EditorRegistryExt};
 
 use crate::{
-    headless::HeadlessSettings,
     interaction::{MarkedForDeletion, Selectable},
     scene::SceneElement,
 };
@@ -341,13 +340,18 @@ fn process_timeline_events(
 fn update_tick(
     mut r_global_seek_time: ResMut<GlobalSeekTime>,
     time: Res<Time>,
-    headless_settings: Option<Res<HeadlessSettings>>,
+    #[cfg(feature = "headless")] headless_settings: Option<Res<crate::headless::HeadlessSettings>>,
 ) {
     if r_global_seek_time.playing {
+        #[cfg(feature = "headless")]
         let delta = match headless_settings {
             Some(headless_settings) => headless_settings.frame_delta,
             None => time.delta_seconds(),
         };
+
+        #[cfg(not(feature = "headless"))]
+        let delta = time.delta_seconds();
+
         r_global_seek_time.time += delta;
         r_global_seek_time.delta = Some(delta);
     }

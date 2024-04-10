@@ -16,6 +16,7 @@ mod camera_controller;
 mod change_tracking;
 mod debug;
 mod design_system;
+#[cfg(feature = "headless")]
 pub mod headless;
 mod hierarchy;
 mod input;
@@ -28,7 +29,7 @@ mod path;
 mod persistance;
 mod remote;
 pub mod scene;
-#[cfg(not(feature = "wasm"))]
+#[cfg(feature = "headless")]
 pub mod screenshot;
 mod skybox;
 mod ui;

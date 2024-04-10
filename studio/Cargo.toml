@@ -14,6 +14,7 @@ path = "src/main.rs"
 
 [[bin]]
 name = "studio-headless"
+required-features = ["headless"]
 path = "src/main-headless.rs"
 
 [dependencies]
@@ -80,6 +81,7 @@ wasm = [
 	"bevy_rapier3d/wasm-bindgen",
 ]
 desktop = []
+headless = []
 
 [dependencies.bevy]
 workspace = true
