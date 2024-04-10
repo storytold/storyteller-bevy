@@ -39,7 +39,7 @@ impl Plugin for CameraControllerPlugin {
 #[cfg(not(feature = "wasm"))]
 fn sync_camera_viewport(
     mut camera: Query<&mut Camera, With<crate::MainCamera>>,
-    mut window: Query<&mut Window, With<PrimaryWindow>>,
+    window: Query<&Window, With<PrimaryWindow>>,
 ) {
     use bevy::render::camera::Viewport;
 
@@ -47,7 +47,7 @@ fn sync_camera_viewport(
         return;
     };
 
-    let Ok(mut window) = window.get_single_mut() else {
+    let Ok(window) = window.get_single() else {
         return;
     };
 
