@@ -24,6 +24,7 @@ import "@storyteller/studio-ui/forms/select";
 import "@storyteller/studio-ui/toolbar";
 import "./anim-timeline-controls.element";
 import "./file-menu.element";
+import "./temp-video-preview.element";
 
 import "./studio-viewport.element.scss";
 import { match } from "@storyteller/utility";
@@ -52,6 +53,7 @@ export class StudioViewportElement extends LitElement {
 	}
 
 	#fileTriggerRef = createRef<ButtonElement>();
+	#stylizeTriggerRef = createRef<ButtonElement>();
 	#mediaLibraryTriggerRef = createRef<ButtonElement>();
 	#helpDialogTriggerRef = createRef<ButtonElement>();
 
@@ -191,7 +193,11 @@ export class StudioViewportElement extends LitElement {
 						<hr />
 
 						<sts-toolbar-group>
-							<sts-button class="stylize" primary>
+							<sts-button
+								${ref(this.#stylizeTriggerRef)}
+								class="stylize"
+								primary
+							>
 								Stylize <sts-icon icon="chevron-right"></sts-icon>
 							</sts-button>
 						</sts-toolbar-group>
@@ -265,6 +271,10 @@ export class StudioViewportElement extends LitElement {
 			tag="sts-help"
 			skipWrapper
 		></sts-dialog>
+
+		<sts-temp-video-preview
+			.trigger=${this.#stylizeTriggerRef}>
+		</sts-temp-video-preview>
 		`;
 	}
 }

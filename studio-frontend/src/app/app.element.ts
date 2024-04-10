@@ -40,7 +40,6 @@ import "./anim-editor.element";
 import "./anim-timeline-controller.element";
 import "./help.element";
 import "./studio-viewport.element";
-import "./temp-video-preview.element";
 
 import "./app.element.scss";
 
@@ -54,7 +53,6 @@ import "./app.element.scss";
 	provide() { return this.params; }
 })
 export class AppElement extends LitElement {
-	@state() showHelp = false;
 	@state() loading = true;
 
 	// @state() resizingPanel = false;
@@ -69,7 +67,6 @@ export class AppElement extends LitElement {
 	api = new StorytellerApi(mockApi ? new StorytellerLocalApi() : new StorytellerRemoteApi());
 	params = new StudioURLParams();
 
-	#videoStylePreviewBtnRef = createRef<ButtonElement>();
 	#inspectorRef = createRef<HTMLDivElement>();
 	#hierarchyRef = createRef<SceneHierarchyElement>();
 
@@ -100,10 +97,6 @@ export class AppElement extends LitElement {
 	// 	const updated = this.inspectorWidth - event.movementX;
 	// 	this.inspectorWidth = Math.max(Math.min(updated, 1024), 128);
 	// }
-
-	toggleHelp(): void {
-		this.showHelp = !this.showHelp;
-	}
 
 	renderSidebar(): TemplateResult<1> {
 		if (this.currentSidebar === 'hierarchy') {
@@ -165,25 +158,10 @@ export class AppElement extends LitElement {
 					></div> -->
 				</section>
 
-				<!-- TODO
-				<div class="entity-inspector">
-					<sts-entity-inspector></sts-entity-inspector>
-				</div>
-				-->
-
 				<sts-anim-editor class="timeline"></sts-anim-editor>
 			` : nothing}
 
 			<!-- Dialogs and modals -->
-			<sts-temp-video-preview
-				.trigger=${ this.#videoStylePreviewBtnRef }>
-			</sts-temp-video-preview>
-
-			${this.showHelp ? html`
-				<div class="help">
-					<sts-help></sts-help>
-				</div>
-			` : nothing}
 
 			${this.loading ? html`
 				<sts-loading></sts-loading>
