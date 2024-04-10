@@ -23,6 +23,7 @@ RUN apt-get update \
         fontconfig \
         libfontconfig1-dev \
         libssl-dev \
+        libwayland-client0 \
         pkg-config
 
 # Install Rust
