@@ -5,7 +5,6 @@ use bevy::{
     window::{CursorGrabMode, PrimaryWindow},
 };
 
-use crate::MainCamera;
 use crate::{
     input::{self, Action, CameraMotion, InputAction, Lifecycle},
     interaction::Selection,
@@ -14,7 +13,6 @@ use crate::{
         NearlyZero, Velocity,
     },
 };
-use bevy::render::camera::Viewport;
 
 pub struct CameraControllerPlugin;
 
@@ -40,9 +38,11 @@ impl Plugin for CameraControllerPlugin {
 
 #[cfg(not(feature = "wasm"))]
 fn sync_camera_viewport(
-    mut camera: Query<&mut Camera, With<MainCamera>>,
+    mut camera: Query<&mut Camera, With<crate::MainCamera>>,
     mut window: Query<&mut Window, With<PrimaryWindow>>,
 ) {
+    use bevy::render::camera::Viewport;
+
     let Ok(mut camera) = camera.get_single_mut() else {
         return;
     };

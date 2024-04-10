@@ -35,9 +35,11 @@ use crate::{
     headless::{is_headless, is_not_headless, HeadlessSettings},
     is_editor,
     math::{Combinable, Extrema},
-    screenshot::ScreenCapture,
     MainCamera,
 };
+
+#[cfg(not(feature = "wasm"))]
+use crate::screenshot::ScreenCapture;
 
 #[cfg(feature = "wasm")]
 mod wasm;
@@ -70,6 +72,7 @@ impl Plugin for ScenePlugin {
                     init_object_loading,
                     init_scene_import,
                     init_scene_loading,
+                    #[cfg(not(feature = "wasm"))]
                     start_capture.run_if(is_headless),
                 )
                     .in_set(SceneSpawnerSystem),
@@ -636,6 +639,7 @@ fn frame_scene_in_view(
     cam_xform.translation = cam.focus + cam_xform.back() * radius;
 }
 
+#[cfg(not(feature = "wasm"))]
 fn start_capture(mut captures: Query<&mut ScreenCapture, Added<ScreenCapture>>) {
     for mut capture in captures.iter_mut() {
         capture.start_capturing();

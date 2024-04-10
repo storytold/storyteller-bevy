@@ -28,6 +28,7 @@ mod path;
 mod persistance;
 mod remote;
 pub mod scene;
+#[cfg(not(feature = "wasm"))]
 pub mod screenshot;
 mod skybox;
 mod ui;

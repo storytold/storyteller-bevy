@@ -4,7 +4,8 @@ use bevy::{
     app::{AppExit, ScheduleRunnerPlugin},
     asset::AssetMetaCheck,
     core_pipeline::Skybox,
-    prelude::*, winit::WinitPlugin,
+    prelude::*,
+    winit::WinitPlugin,
 };
 use bevy_web_asset::WebAssetPlugin;
 use space_editor::prelude::{EditorEvent, EditorPrefabPath};
@@ -14,10 +15,12 @@ use crate::{
     anim::timeline_animation::{Keyframe, TimelineInteractionEvent},
     bvh::{BvhAnimCompleteEvent, TestBvh},
     scene::{SceneState, SkyboxHolder},
-    screenshot::{ScreenCapture, ScreenShotPlugin},
     BvhPlugin, CommonPlugins, LoadLibraryObjectEvent, LoadSceneEvent, MainCamera,
     MixamoImportEvent, MixamoPlugin, RemoteAssetPlugin, SkyboxId, StudioMode, WorldGridPlugin,
 };
+
+#[cfg(not(feature = "wasm"))]
+use crate::screenshot::{ScreenCapture, ScreenShotPlugin};
 
 #[derive(Debug, Resource, Clone)]
 pub enum HeadlessMode {
@@ -63,9 +66,13 @@ pub fn start_headless(
         DefaultPlugins
             .set(TaskPoolPlugin {
                 task_pool_options: TaskPoolOptions {
-                    async_compute: bevy::core::TaskPoolThreadAssignmentPolicy { min_threads: 1, max_threads: usize::MAX, percent: 0.75 },
+                    async_compute: bevy::core::TaskPoolThreadAssignmentPolicy {
+                        min_threads: 1,
+                        max_threads: usize::MAX,
+                        percent: 0.75,
+                    },
                     ..default()
-                }
+                },
             })
             .set(WindowPlugin {
                 primary_window: None,
@@ -77,6 +84,7 @@ pub fn start_headless(
                 ..default()
             })
             .disable::<WinitPlugin>(),
+        #[cfg(not(feature = "wasm"))]
         ScreenShotPlugin,
         CommonPlugins
             .build()
@@ -98,6 +106,7 @@ pub fn start_headless(
                 },
             );
 
+            #[cfg(not(feature = "wasm"))]
             app.add_systems(
                 PostUpdate,
                 check_for_bvh_capture_complete.run_if(in_state(SceneState::Active)),
@@ -116,8 +125,10 @@ pub fn start_headless(
 
                     ew.send(EditorEvent::Load(EditorPrefabPath::File(scene.clone())));
                 },
-            )
-            .add_systems(OnEnter(SceneState::Active), start_timeline_animation);
+            );
+
+            #[cfg(not(feature = "wasm"))]
+            app.add_systems(OnEnter(SceneState::Active), start_timeline_animation);
         }
         HeadlessMode::Mixamo(mixamo_path, skybox) => {
             app.add_plugins(MixamoPlugin);
@@ -131,6 +142,7 @@ pub fn start_headless(
                     commands.insert_resource(SkyboxId(skybox.clone()));
                 },
             );
+            #[cfg(not(feature = "wasm"))]
             app.add_systems(
                 PostUpdate,
                 check_for_mixamo_capture_complete.run_if(in_state(SceneState::Active)),
@@ -177,6 +189,7 @@ impl Default for HeadlessSettings {
     }
 }
 
+#[cfg(not(feature = "wasm"))]
 fn check_for_bvh_capture_complete(
     mut close_app: EventWriter<AppExit>,
     mut main_camera: Query<&mut ScreenCapture, With<MainCamera>>,
@@ -192,6 +205,7 @@ fn check_for_bvh_capture_complete(
     }
 }
 
+#[cfg(not(feature = "wasm"))]
 fn check_for_mixamo_capture_complete(
     mut close_app: EventWriter<AppExit>,
     mut main_camera: Query<&mut ScreenCapture, With<MainCamera>>,
@@ -214,6 +228,7 @@ fn check_for_mixamo_capture_complete(
     }
 }
 
+#[cfg(not(feature = "wasm"))]
 fn start_timeline_animation(
     mut headless_settings: ResMut<HeadlessSettings>,
     keyframes: Query<&Keyframe>,
@@ -236,9 +251,8 @@ fn start_timeline_animation(
     commands.remove_resource::<CameraMotion>();
     let total_time = keyframes
         .iter()
-        .fold(0f32, |previous, keyframe| previous.max(keyframe.time))
-        .max(3.0)
-        .min(1.0);
+        .fold(1f32, |previous, keyframe| previous.max(keyframe.time))
+        .max(3.0);
 
     let mut frames = (total_time * headless_settings.fps).ceil() as u32;
     if let Some(max_frames) = headless_settings.max_frames {

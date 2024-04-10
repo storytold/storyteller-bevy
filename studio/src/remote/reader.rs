@@ -1,6 +1,5 @@
 use std::{io::ErrorKind, path::Path, sync::Arc};
 
-use async_compat::Compat;
 use bevy::{
     asset::io::{AssetReader, AssetReaderError, PathStream, Reader, VecReader},
     prelude::*,
@@ -117,7 +116,9 @@ impl AssetReader for RemoteAssetReader {
             info!("wasm mode not detected");
             // NB: Headless mode (server rendering) is running without a Tokio runtime.
             // The reqwest HTTP client requires async-compat to function at runtime.
-            Box::pin(Compat::new(async move { self.load(path).await }))
+            Box::pin(async_compat::Compat::new(
+                async move { self.load(path).await },
+            ))
         }
 
         #[cfg(all(feature = "wasm", target_family = "wasm"))]
@@ -187,7 +188,7 @@ mod wasm {
         type: "request-file";
         detail: string;
     }
-    
+
     declare global {
         export interface GlobalEventHandlersEventMap {
             "request-file": RequestFileEvent;
