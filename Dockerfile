@@ -23,6 +23,9 @@ RUN apt-get update \
         fontconfig \
         libfontconfig1-dev \
         libssl-dev \
+        librust-wayland-commons-dev \
+        librust-wayland-sys-dev \
+        libwayland-client++0 \
         libwayland-client0 \
         pkg-config
 
