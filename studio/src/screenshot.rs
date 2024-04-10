@@ -10,15 +10,16 @@ use bevy::{
         renderer::RenderDevice,
         view::ViewTarget,
         Extract, Render, RenderSet,
-    }, tasks::Task,
+    },
+    tasks::Task,
 };
 use bytemuck::AnyBitPattern;
 use image::{
     error::UnsupportedErrorKind, EncodableLayout, ImageBuffer, ImageError, Pixel,
     PixelWithColorType, Rgba,
 };
-use wgpu::{Extent3d, MaintainBase};
 use std::sync::Mutex;
+use wgpu::{Extent3d, MaintainBase};
 
 use crate::scene::SceneState;
 
@@ -131,13 +132,10 @@ fn update_screen_capture_on_extract_step(
     mut screen_captures: Query<&mut ScreenCapture>,
     mut exit_event: EventWriter<AppExit>,
 ) {
-
     let loading_count;
     {
         let mut queue = QUEUE_SAVE.lock().unwrap();
-        queue.retain(|task| {
-            !task.is_finished()
-        });
+        queue.retain(|task| !task.is_finished());
         loading_count = queue.len();
     }
 
@@ -311,11 +309,7 @@ fn save_buffer_to_file(
         let pool = bevy::tasks::AsyncComputeTaskPool::get();
         let extent = buffers.main_buffer_extent;
         let task = pool.spawn(async move {
-            save_buffer::<Rgba<u8>>(
-                main_image_values,
-                extent,
-                path.clone(),
-            );
+            save_buffer::<Rgba<u8>>(main_image_values, extent, path.clone());
         });
         QUEUE_SAVE.lock().unwrap().push(task);
     }
