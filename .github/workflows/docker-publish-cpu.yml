@@ -18,6 +18,7 @@ jobs:
   # See also https://depot.dev/blog/docker-layer-caching-in-github-actions
   # See also https://evilmartians.com/chronicles/build-images-on-github-actions-with-docker-layer-caching
   build-docker-image:
+    timeout-minutes: 120
     name: "Build Docker Image"
     #runs-on: ubuntu-22.04 # runs-on: ubuntu-latest
     #runs-on: github-ubuntu-16core # NB: Premium GitHub runner with more cores
