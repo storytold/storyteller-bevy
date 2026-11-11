@@ -3,10 +3,15 @@ use bevy::{
     math::Affine3A,
     prelude::*,
     render::{mesh::skinning::SkinnedMesh, view::NoFrustumCulling},
+    utils::HashMap,
 };
-use space_editor::space_prefab::editor_registry::EditorRegistryExt;
+use bevy_rapier3d::geometry::Collider;
+use space_editor::{prelude::PrefabMarker, space_prefab::editor_registry::EditorRegistryExt};
 
-use crate::{hierarchy, scene::SceneElement};
+use crate::{
+    hierarchy,
+    scene::{SceneElement, SceneState},
+};
 pub use retargeting::*;
 
 mod retargeting;
@@ -34,6 +39,69 @@ impl Plugin for AnimPlugin {
             retargeting::RetargetingPlugin,
             timeline_animation::TimelinePlugin,
         ));
+
+        {
+            // TODO
+            app.register_type::<TempCharacterCollidersProcessed>();
+            app.editor_registry::<TempCharacterCollidersProcessed>();
+
+            use ColliderShape::*;
+
+            app.insert_resource(TempCharacterCollidersConfig(
+                [
+                    (
+                        "DEF-spine",
+                        vec![TempCharacterColliderConfig {
+                            shape: Capsule {
+                                radius: 0.108191,
+                                length: 0.135549,
+                                alignment: BoneAlignment::X,
+                            },
+                            transform: Transform::from_xyz(0., 0.117, -0.001),
+                        }],
+                    ),
+                    (
+                        "DEF-spine.001",
+                        vec![TempCharacterColliderConfig {
+                            shape: Capsule {
+                                radius: 0.091,
+                                length: 0.095,
+                                alignment: BoneAlignment::X,
+                            },
+                            transform: Transform::from_xyz(0., 0.068, 0.),
+                        }],
+                    ),
+                    (
+                        "DEF-spine.002",
+                        vec![
+                            TempCharacterColliderConfig {
+                                shape: Capsule {
+                                    radius: 0.082,
+                                    length: 0.062,
+                                    alignment: BoneAlignment::X,
+                                },
+                                transform: Transform::from_xyz(0., 0.006, 0.),
+                            },
+                            TempCharacterColliderConfig {
+                                shape: Capsule {
+                                    radius: 0.0823,
+                                    length: 0.03661,
+                                    alignment: BoneAlignment::X,
+                                },
+                                transform: Transform::from_xyz(0., 0.088, 0.010),
+                            },
+                        ],
+                    ),
+                ]
+                .into_iter()
+                .collect(),
+            ));
+
+            app.add_systems(
+                Update,
+                temp_attach_colliders_to_character.run_if(in_state(SceneState::Active)),
+            );
+        }
     }
 }
 
@@ -142,5 +210,95 @@ fn process_skinned_meshes(
                 InvBindPose(bind_pose_global.affine().inverse()),
             ));
         }
+    }
+}
+
+#[derive(Resource, Clone, Default, Deref)]
+struct TempCharacterCollidersConfig(HashMap<&'static str, Vec<TempCharacterColliderConfig>>);
+
+#[derive(Debug, Clone, Copy)]
+enum BoneAlignment {
+    X,
+    Y,
+    Z,
+}
+
+#[derive(Debug, Clone, Copy)]
+enum ColliderShape {
+    Capsule {
+        radius: f32,
+        length: f32,
+        alignment: BoneAlignment,
+    },
+    Box {
+        x: f32,
+        y: f32,
+        z: f32,
+    },
+}
+
+#[derive(Debug, Clone, Copy)]
+struct TempCharacterColliderConfig {
+    shape: ColliderShape,
+    transform: Transform,
+}
+
+#[derive(Component, Reflect, Default, Clone, Copy)]
+#[reflect(Component)]
+struct TempCharacterCollidersProcessed;
+
+fn temp_attach_colliders_to_character(
+    mut cmd: Commands,
+    r_colliders_map: Res<TempCharacterCollidersConfig>,
+    q_named_prefabs: Query<
+        (Entity, &Name),
+        (With<PrefabMarker>, Without<TempCharacterCollidersProcessed>),
+    >,
+    q_named_joints: Query<(Entity, &Name), With<SkeletalJoint>>,
+    q_children: Query<&Children>,
+) {
+    for target in q_named_prefabs.iter().filter_map(|(ent, name)| {
+        if name.as_str() == "base-human-female.glb" {
+            Some(ent)
+        } else {
+            None
+        }
+    }) {
+        for (joint, name) in q_children
+            .iter_descendants(target)
+            .filter_map(|ent| q_named_joints.get(ent).ok())
+        {
+            if let Some(colliders) = r_colliders_map.get(&name.as_str()) {
+                info!("Processing colliders for bone: '{name}'");
+
+                for TempCharacterColliderConfig { shape, transform } in colliders.iter().copied() {
+                    cmd.entity(joint).with_children(|cmd| {
+                        cmd.spawn((
+                            TransformBundle::from_transform(transform),
+                            match shape {
+                                ColliderShape::Capsule {
+                                    radius,
+                                    length,
+                                    alignment,
+                                } => match alignment {
+                                    BoneAlignment::X => Collider::capsule_x(length / 2., radius),
+                                    BoneAlignment::Y => Collider::capsule_x(length / 2., radius),
+                                    BoneAlignment::Z => Collider::capsule_x(length / 2., radius),
+                                },
+                                ColliderShape::Box { x, y, z } => {
+                                    Collider::cuboid(x / 2., y / 2., z / 2.)
+                                }
+                            },
+                            // SceneElement::Collider,
+                            bevy_mod_picking::PickableBundle::default(),
+                        ));
+                    });
+                }
+            } else {
+                warn!("No collider config found for bone: '{name}'");
+            }
+        }
+
+        cmd.entity(target).insert(TempCharacterCollidersProcessed);
     }
 }

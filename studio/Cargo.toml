@@ -20,7 +20,7 @@ path = "src/main-headless.rs"
 [dependencies]
 bevy-inspector-egui = "0.23.0"
 bevy_mod_raycast = "0.17.0"
-bevy_rapier3d = "0.25.0"
+bevy_rapier3d = { version = "0.25.0", features = ["simd-stable", "debug-render-3d"] }
 bevy_mod_outline = "0.7.0"
 bevy_web_asset = "0.8.0"
 bitflags = "2.4.0"
@@ -95,5 +95,4 @@ features = [
 	"backend_raycast",
 	"backend_sprite",
 	"debug",
-	"selection",
 ]

@@ -43,10 +43,11 @@ pub(super) fn spawn_translation_gizmo(
             TranslationWidget::ScreenSpace,
             MaterialMeshBundle {
                 mesh: meshes.translate_ss.clone(),
-                material: mats.translate_ss.clone(),
+                material: mats.translate_ss.handle.clone(),
                 transform: Transform::IDENTITY,
                 ..default()
             },
+            mats.translate_ss.clone(),
         ));
 
         // X
@@ -56,7 +57,7 @@ pub(super) fn spawn_translation_gizmo(
             TranslationWidget::Axis(Vec3::X),
             MaterialMeshBundle {
                 mesh: meshes.translate_line.clone(),
-                material: mats.translate_x.clone(),
+                material: mats.translate_x.handle.clone(),
                 transform: Transform {
                     rotation: ROT_X,
                     translation: vec3(0.6, 0., 0.),
@@ -64,6 +65,7 @@ pub(super) fn spawn_translation_gizmo(
                 },
                 ..default()
             },
+            mats.translate_x.clone(),
         ));
         cmd.spawn((
             NotShadowCaster,
@@ -71,7 +73,7 @@ pub(super) fn spawn_translation_gizmo(
             TranslationWidget::Axis(Vec3::X),
             MaterialMeshBundle {
                 mesh: meshes.translate_arrow.clone(),
-                material: mats.translate_x.clone(),
+                material: mats.translate_x.handle.clone(),
                 transform: Transform {
                     rotation: ROT_X,
                     translation: vec3(1., 0., 0.),
@@ -79,6 +81,7 @@ pub(super) fn spawn_translation_gizmo(
                 },
                 ..default()
             },
+            mats.translate_x.clone(),
         ));
 
         // Y
@@ -88,7 +91,7 @@ pub(super) fn spawn_translation_gizmo(
             TranslationWidget::Axis(Vec3::Y),
             MaterialMeshBundle {
                 mesh: meshes.translate_line.clone(),
-                material: mats.translate_y.clone(),
+                material: mats.translate_y.handle.clone(),
                 transform: Transform {
                     rotation: ROT_Y,
                     translation: vec3(0., 0.6, 0.),
@@ -96,6 +99,7 @@ pub(super) fn spawn_translation_gizmo(
                 },
                 ..default()
             },
+            mats.translate_y.clone(),
         ));
         cmd.spawn((
             NotShadowCaster,
@@ -103,7 +107,7 @@ pub(super) fn spawn_translation_gizmo(
             TranslationWidget::Axis(Vec3::Y),
             MaterialMeshBundle {
                 mesh: meshes.translate_arrow.clone(),
-                material: mats.translate_y.clone(),
+                material: mats.translate_y.handle.clone(),
                 transform: Transform {
                     rotation: ROT_Y,
                     translation: vec3(0., 1., 0.),
@@ -111,6 +115,7 @@ pub(super) fn spawn_translation_gizmo(
                 },
                 ..default()
             },
+            mats.translate_y.clone(),
         ));
 
         // Z
@@ -120,7 +125,7 @@ pub(super) fn spawn_translation_gizmo(
             TranslationWidget::Axis(Vec3::Z),
             MaterialMeshBundle {
                 mesh: meshes.translate_line.clone(),
-                material: mats.translate_z.clone(),
+                material: mats.translate_z.handle.clone(),
                 transform: Transform {
                     rotation: ROT_Z,
                     translation: vec3(0., 0., 0.6),
@@ -128,6 +133,7 @@ pub(super) fn spawn_translation_gizmo(
                 },
                 ..default()
             },
+            mats.translate_z.clone(),
         ));
         cmd.spawn((
             NotShadowCaster,
@@ -135,7 +141,7 @@ pub(super) fn spawn_translation_gizmo(
             TranslationWidget::Axis(Vec3::Z),
             MaterialMeshBundle {
                 mesh: meshes.translate_arrow.clone(),
-                material: mats.translate_z.clone(),
+                material: mats.translate_z.handle.clone(),
                 transform: Transform {
                     rotation: ROT_Z,
                     translation: vec3(0., 0., 1.),
@@ -143,6 +149,7 @@ pub(super) fn spawn_translation_gizmo(
                 },
                 ..default()
             },
+            mats.translate_z.clone(),
         ));
 
         // YZ Plane
@@ -152,7 +159,7 @@ pub(super) fn spawn_translation_gizmo(
             TranslationWidget::Plane(Vec3::X),
             MaterialMeshBundle {
                 mesh: meshes.translate_plane.clone(),
-                material: mats.translate_yz.clone(),
+                material: mats.translate_yz.handle.clone(),
                 transform: Transform {
                     rotation: ROT_X,
                     translation: vec3(0., CIRC_45, CIRC_45),
@@ -160,6 +167,7 @@ pub(super) fn spawn_translation_gizmo(
                 },
                 ..default()
             },
+            mats.translate_yz.clone(),
         ));
         // XZ Plane
         cmd.spawn((
@@ -168,7 +176,7 @@ pub(super) fn spawn_translation_gizmo(
             TranslationWidget::Plane(Vec3::Y),
             MaterialMeshBundle {
                 mesh: meshes.translate_plane.clone(),
-                material: mats.translate_xz.clone(),
+                material: mats.translate_xz.handle.clone(),
                 transform: Transform {
                     rotation: ROT_Y,
                     translation: vec3(CIRC_45, 0., CIRC_45),
@@ -176,6 +184,7 @@ pub(super) fn spawn_translation_gizmo(
                 },
                 ..default()
             },
+            mats.translate_xz.clone(),
         ));
         // XY Plane
         cmd.spawn((
@@ -184,7 +193,7 @@ pub(super) fn spawn_translation_gizmo(
             TranslationWidget::Plane(Vec3::Z),
             MaterialMeshBundle {
                 mesh: meshes.translate_plane.clone(),
-                material: mats.translate_xy.clone(),
+                material: mats.translate_xy.handle.clone(),
                 transform: Transform {
                     rotation: ROT_Z,
                     translation: vec3(CIRC_45, CIRC_45, 0.),
@@ -192,6 +201,7 @@ pub(super) fn spawn_translation_gizmo(
                 },
                 ..default()
             },
+            mats.translate_xy.clone(),
         ));
     });
 }

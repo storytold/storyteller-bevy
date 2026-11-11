@@ -14,8 +14,8 @@ use crate::{
 };
 
 use super::{
-    material::GizmoMaterial, on_gizmo_element_hover, on_gizmo_element_unhover, GizmoMats,
-    GizmoMeshes, InitialTransform, TransformGizmo, TransformGizmoBundle, GIZMO_RENDER_LAYER,
+    on_gizmo_element_hover, on_gizmo_element_unhover, GizmoMats, GizmoMeshes, InitialTransform,
+    TransformGizmo, TransformGizmoBundle, GIZMO_RENDER_LAYER,
 };
 
 #[derive(Component)]
@@ -60,11 +60,12 @@ pub(super) fn spawn_rotation_gizmo(
             RotationWidget::Trackball,
             MaterialMeshBundle {
                 mesh: meshes.rotate_ball.clone(),
-                material: mats.rotate_trackball.clone(),
+                material: mats.rotate_trackball.handle.clone(),
                 ..default()
             },
-            On::<Pointer<Over>>::run(on_trackball_hover),
-            On::<Pointer<Out>>::run(on_trackball_unhover),
+            mats.rotate_trackball.clone(),
+            On::<Pointer<Over>>::run(on_gizmo_element_hover),
+            On::<Pointer<Out>>::run(on_gizmo_element_unhover),
         ));
 
         // Screen-space
@@ -74,9 +75,10 @@ pub(super) fn spawn_rotation_gizmo(
             RotationWidget::ScreenSpace,
             MaterialMeshBundle {
                 mesh: meshes.rotate_ss.clone(),
-                material: mats.rotate_ss.clone(),
+                material: mats.rotate_ss.handle.clone(),
                 ..default()
             },
+            mats.rotate_ss.clone(),
             On::<Pointer<Over>>::run(on_gizmo_element_hover),
             On::<Pointer<Out>>::run(on_gizmo_element_unhover),
         ));
@@ -88,10 +90,11 @@ pub(super) fn spawn_rotation_gizmo(
             RotationWidget::Axis(Vec3::X),
             MaterialMeshBundle {
                 mesh: meshes.rotate_ring.clone(),
-                material: mats.rotate_x.clone(),
+                material: mats.rotate_x.handle.clone(),
                 transform: Transform::from_rotation(ROT_X),
                 ..default()
             },
+            mats.rotate_x.clone(),
             On::<Pointer<Over>>::run(on_gizmo_element_hover),
             On::<Pointer<Out>>::run(on_gizmo_element_unhover),
         ));
@@ -102,10 +105,11 @@ pub(super) fn spawn_rotation_gizmo(
             RotationWidget::Axis(Vec3::Y),
             MaterialMeshBundle {
                 mesh: meshes.rotate_ring.clone(),
-                material: mats.rotate_y.clone(),
+                material: mats.rotate_y.handle.clone(),
                 transform: Transform::from_rotation(ROT_Y),
                 ..default()
             },
+            mats.rotate_y.clone(),
             On::<Pointer<Over>>::run(on_gizmo_element_hover),
             On::<Pointer<Out>>::run(on_gizmo_element_unhover),
         ));
@@ -116,10 +120,11 @@ pub(super) fn spawn_rotation_gizmo(
             RotationWidget::Axis(Vec3::Z),
             MaterialMeshBundle {
                 mesh: meshes.rotate_ring.clone(),
-                material: mats.rotate_z.clone(),
+                material: mats.rotate_z.handle.clone(),
                 transform: Transform::from_rotation(ROT_Z),
                 ..default()
             },
+            mats.rotate_z.clone(),
             On::<Pointer<Over>>::run(on_gizmo_element_hover),
             On::<Pointer<Out>>::run(on_gizmo_element_unhover),
         ));
@@ -152,24 +157,6 @@ pub(super) fn update_ss_ring_rotation(
             });
         }
     }
-}
-
-fn on_trackball_hover(
-    ev: Listener<Pointer<Over>>,
-    mut ra_mats: ResMut<Assets<GizmoMaterial>>,
-    q_target: Query<&Handle<GizmoMaterial>>,
-) {
-    let mat = ra_mats.get_mut(q_target.get(ev.target).unwrap()).unwrap();
-    mat.color.set_a(0.05);
-}
-
-fn on_trackball_unhover(
-    ev: Listener<Pointer<Out>>,
-    mut ra_mats: ResMut<Assets<GizmoMaterial>>,
-    q_target: Query<&Handle<GizmoMaterial>>,
-) {
-    let mat = ra_mats.get_mut(q_target.get(ev.target).unwrap()).unwrap();
-    mat.color.set_a(0.);
 }
 
 pub(super) fn on_rotation_start(

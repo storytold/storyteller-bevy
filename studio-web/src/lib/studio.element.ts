@@ -1,4 +1,4 @@
-import { inject } from "@storyteller/framework";
+import { inject, on } from "@storyteller/framework";
 import * as studio from "@storyteller/studio";
 import {
 	type InitOptions,
@@ -32,7 +32,7 @@ export class StudioElement extends LitElement {
 	override connectedCallback(): void {
 		super.connectedCallback();
 
-		this.#resizeObserver = new ResizeObserver(this.#onResize.bind(this));
+		this.#resizeObserver = new ResizeObserver(this._onResize.bind(this));
 		this.#resizeObserver.observe(this);
 
 		if (!this._canvasProvider)
@@ -40,6 +40,10 @@ export class StudioElement extends LitElement {
 
 		if ((this.#canvas = this._canvasProvider.takeCanvas()))
 			this.appendChild(this.#canvas);
+
+		requestAnimationFrame(() => {
+			this._onResize();
+		});
 	}
 
 	override disconnectedCallback(): void {
@@ -61,7 +65,8 @@ export class StudioElement extends LitElement {
 		super.updated(changes);
 	}
 
-	#onResize(): void {
+	@on("window:scene-state")
+	_onResize(): void {
 		const { width, height } = this.getBoundingClientRect();
 
 		studio.resize(new ViewportSize(width, height));

@@ -18,24 +18,57 @@ pub(super) struct GizmoMeshes {
     pub rotate_ss: Handle<Mesh>,
 }
 
+#[derive(Component, Reflect, Clone, Debug, Default)]
+#[reflect(Component)]
+pub(super) struct GizmoMaterialSet {
+    pub handle: Handle<GizmoMaterial>,
+    base_color: Color,
+    hover_color: Color,
+}
+
+impl GizmoMaterialSet {
+    pub fn from_base_color(assets: &mut Assets<GizmoMaterial>, base_color: Color) -> Self {
+        let handle = assets.add(GizmoMaterial::from(base_color));
+        let hover_color = base_color * 2.;
+
+        Self {
+            handle,
+            base_color,
+            hover_color,
+        }
+    }
+
+    pub fn set_default(&mut self, assets: &mut Assets<GizmoMaterial>) {
+        if let Some(mat) = assets.get_mut(&self.handle) {
+            mat.color = self.base_color;
+        }
+    }
+
+    pub fn set_hover(&mut self, assets: &mut Assets<GizmoMaterial>) {
+        if let Some(mat) = assets.get_mut(&self.handle) {
+            mat.color = self.hover_color;
+        }
+    }
+}
+
 #[derive(Resource, Reflect, Debug, Default)]
 #[reflect(Resource)]
 pub(super) struct GizmoMats {
-    pub translate_x: Handle<GizmoMaterial>,
-    pub translate_y: Handle<GizmoMaterial>,
-    pub translate_z: Handle<GizmoMaterial>,
-    pub translate_yz: Handle<GizmoMaterial>,
-    pub translate_xz: Handle<GizmoMaterial>,
-    pub translate_xy: Handle<GizmoMaterial>,
-    pub translate_ss: Handle<GizmoMaterial>,
-    pub scale_x: Handle<GizmoMaterial>,
-    pub scale_y: Handle<GizmoMaterial>,
-    pub scale_z: Handle<GizmoMaterial>,
-    pub rotate_x: Handle<GizmoMaterial>,
-    pub rotate_y: Handle<GizmoMaterial>,
-    pub rotate_z: Handle<GizmoMaterial>,
-    pub rotate_trackball: Handle<GizmoMaterial>,
-    pub rotate_ss: Handle<GizmoMaterial>,
+    pub translate_x: GizmoMaterialSet,
+    pub translate_y: GizmoMaterialSet,
+    pub translate_z: GizmoMaterialSet,
+    pub translate_yz: GizmoMaterialSet,
+    pub translate_xz: GizmoMaterialSet,
+    pub translate_xy: GizmoMaterialSet,
+    pub translate_ss: GizmoMaterialSet,
+    pub scale_x: GizmoMaterialSet,
+    pub scale_y: GizmoMaterialSet,
+    pub scale_z: GizmoMaterialSet,
+    pub rotate_x: GizmoMaterialSet,
+    pub rotate_y: GizmoMaterialSet,
+    pub rotate_z: GizmoMaterialSet,
+    pub rotate_trackball: GizmoMaterialSet,
+    pub rotate_ss: GizmoMaterialSet,
 }
 
 #[allow(deprecated)]
@@ -99,30 +132,34 @@ pub(super) fn init_resources(
         uniform_scale_cube,
     });
 
-    let translate_x = ra_mats.add(GizmoMaterial::from(design_system::Color::RED));
-    let translate_yz = ra_mats.add(GizmoMaterial::from(design_system::Color::RED));
+    let translate_x = GizmoMaterialSet::from_base_color(&mut ra_mats, design_system::Color::RED);
+    let translate_yz = GizmoMaterialSet::from_base_color(&mut ra_mats, design_system::Color::RED);
 
-    let translate_y = ra_mats.add(GizmoMaterial::from(design_system::Color::GREEN));
-    let translate_xz = ra_mats.add(GizmoMaterial::from(design_system::Color::GREEN));
+    let translate_y = GizmoMaterialSet::from_base_color(&mut ra_mats, design_system::Color::GREEN);
+    let translate_xz = GizmoMaterialSet::from_base_color(&mut ra_mats, design_system::Color::GREEN);
 
-    let translate_z = ra_mats.add(GizmoMaterial::from(design_system::Color::BLUE));
-    let translate_xy = ra_mats.add(GizmoMaterial::from(design_system::Color::BLUE));
+    let translate_z = GizmoMaterialSet::from_base_color(&mut ra_mats, design_system::Color::BLUE);
+    let translate_xy = GizmoMaterialSet::from_base_color(&mut ra_mats, design_system::Color::BLUE);
 
-    let translate_ss = ra_mats.add(GizmoMaterial::from(Color::WHITE));
+    let translate_ss = GizmoMaterialSet::from_base_color(&mut ra_mats, Color::WHITE);
 
-    let rotate_x = ra_mats.add(GizmoMaterial::from(design_system::Color::RED));
-    let rotate_y = ra_mats.add(GizmoMaterial::from(design_system::Color::GREEN));
-    let rotate_z = ra_mats.add(GizmoMaterial::from(design_system::Color::BLUE));
-    let rotate_ss = ra_mats.add(GizmoMaterial::from(Color::WHITE));
+    let rotate_x = GizmoMaterialSet::from_base_color(&mut ra_mats, design_system::Color::RED);
+    let rotate_y = GizmoMaterialSet::from_base_color(&mut ra_mats, design_system::Color::GREEN);
+    let rotate_z = GizmoMaterialSet::from_base_color(&mut ra_mats, design_system::Color::BLUE);
+    let rotate_ss = GizmoMaterialSet::from_base_color(&mut ra_mats, Color::WHITE);
 
-    let scale_x = ra_mats.add(GizmoMaterial::from(design_system::Color::RED));
-    let scale_y = ra_mats.add(GizmoMaterial::from(design_system::Color::GREEN));
-    let scale_z = ra_mats.add(GizmoMaterial::from(design_system::Color::BLUE));
+    let scale_x = GizmoMaterialSet::from_base_color(&mut ra_mats, design_system::Color::RED);
+    let scale_y = GizmoMaterialSet::from_base_color(&mut ra_mats, design_system::Color::GREEN);
+    let scale_z = GizmoMaterialSet::from_base_color(&mut ra_mats, design_system::Color::BLUE);
 
-    let rotate_trackball = ra_mats.add(GizmoMaterial {
-        color: Color::WHITE.with_a(0.0),
-        blend_mode: AlphaMode::Blend,
-    });
+    let rotate_trackball = GizmoMaterialSet {
+        handle: ra_mats.add(GizmoMaterial {
+            color: Color::WHITE.with_a(0.0),
+            blend_mode: AlphaMode::Blend,
+        }),
+        base_color: Color::WHITE.with_a(0.0),
+        hover_color: Color::WHITE.with_a(0.05),
+    };
 
     cmd.insert_resource(GizmoMats {
         translate_x,

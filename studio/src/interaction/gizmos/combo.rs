@@ -36,10 +36,11 @@ pub(super) fn spawn_combo_translation_rotation_gizmo(
             TranslationWidget::ScreenSpace,
             MaterialMeshBundle {
                 mesh: meshes.translate_ss.clone(),
-                material: mats.translate_ss.clone(),
+                material: mats.translate_ss.handle.clone(),
                 transform: Transform::IDENTITY,
                 ..default()
             },
+            mats.translate_ss.clone(),
             On::<Pointer<Over>>::run(on_gizmo_element_hover),
             On::<Pointer<Out>>::run(on_gizmo_element_unhover),
             On::<Pointer<DragStart>>::run(on_translation_start),
@@ -54,10 +55,11 @@ pub(super) fn spawn_combo_translation_rotation_gizmo(
             RotationWidget::Axis(Vec3::X),
             MaterialMeshBundle {
                 mesh: meshes.rotate_ring.clone(),
-                material: mats.rotate_x.clone(),
+                material: mats.rotate_x.handle.clone(),
                 transform: Transform::from_rotation(ROT_X),
                 ..default()
             },
+            mats.rotate_x.clone(),
             On::<Pointer<Over>>::run(on_gizmo_element_hover),
             On::<Pointer<Out>>::run(on_gizmo_element_unhover),
             On::<Pointer<DragStart>>::run(on_rotation_start),
@@ -71,7 +73,7 @@ pub(super) fn spawn_combo_translation_rotation_gizmo(
             TranslationWidget::Axis(Vec3::X),
             MaterialMeshBundle {
                 mesh: meshes.translate_arrow.clone(),
-                material: mats.translate_x.clone(),
+                material: mats.translate_x.handle.clone(),
                 transform: Transform {
                     rotation: ROT_X,
                     translation: vec3(1.2, 0., 0.),
@@ -79,6 +81,7 @@ pub(super) fn spawn_combo_translation_rotation_gizmo(
                 },
                 ..default()
             },
+            mats.translate_x.clone(),
             On::<Pointer<Over>>::run(on_gizmo_element_hover),
             On::<Pointer<Out>>::run(on_gizmo_element_unhover),
             On::<Pointer<DragStart>>::run(on_translation_start),
@@ -93,10 +96,11 @@ pub(super) fn spawn_combo_translation_rotation_gizmo(
             RotationWidget::Axis(Vec3::Y),
             MaterialMeshBundle {
                 mesh: meshes.rotate_ring.clone(),
-                material: mats.rotate_y.clone(),
+                material: mats.rotate_y.handle.clone(),
                 transform: Transform::from_rotation(ROT_Y),
                 ..default()
             },
+            mats.rotate_y.clone(),
             On::<Pointer<Over>>::run(on_gizmo_element_hover),
             On::<Pointer<Out>>::run(on_gizmo_element_unhover),
             On::<Pointer<DragStart>>::run(on_rotation_start),
@@ -110,7 +114,7 @@ pub(super) fn spawn_combo_translation_rotation_gizmo(
             TranslationWidget::Axis(Vec3::Y),
             MaterialMeshBundle {
                 mesh: meshes.translate_arrow.clone(),
-                material: mats.translate_y.clone(),
+                material: mats.translate_y.handle.clone(),
                 transform: Transform {
                     rotation: ROT_Y,
                     translation: vec3(0., 1.2, 0.),
@@ -118,6 +122,7 @@ pub(super) fn spawn_combo_translation_rotation_gizmo(
                 },
                 ..default()
             },
+            mats.translate_y.clone(),
             On::<Pointer<Over>>::run(on_gizmo_element_hover),
             On::<Pointer<Out>>::run(on_gizmo_element_unhover),
             On::<Pointer<DragStart>>::run(on_translation_start),
@@ -132,10 +137,11 @@ pub(super) fn spawn_combo_translation_rotation_gizmo(
             RotationWidget::Axis(Vec3::Z),
             MaterialMeshBundle {
                 mesh: meshes.rotate_ring.clone(),
-                material: mats.rotate_z.clone(),
+                material: mats.rotate_z.handle.clone(),
                 transform: Transform::from_rotation(ROT_Z),
                 ..default()
             },
+            mats.rotate_z.clone(),
             On::<Pointer<Over>>::run(on_gizmo_element_hover),
             On::<Pointer<Out>>::run(on_gizmo_element_unhover),
             On::<Pointer<DragStart>>::run(on_rotation_start),
@@ -149,7 +155,7 @@ pub(super) fn spawn_combo_translation_rotation_gizmo(
             TranslationWidget::Axis(Vec3::Z),
             MaterialMeshBundle {
                 mesh: meshes.translate_arrow.clone(),
-                material: mats.translate_z.clone(),
+                material: mats.translate_z.handle.clone(),
                 transform: Transform {
                     rotation: ROT_Z,
                     translation: vec3(0., 0., 1.2),
@@ -157,6 +163,7 @@ pub(super) fn spawn_combo_translation_rotation_gizmo(
                 },
                 ..default()
             },
+            mats.translate_z.clone(),
             On::<Pointer<Over>>::run(on_gizmo_element_hover),
             On::<Pointer<Out>>::run(on_gizmo_element_unhover),
             On::<Pointer<DragStart>>::run(on_translation_start),

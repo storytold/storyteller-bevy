@@ -2,6 +2,10 @@
 
 use bevy::{app::PluginGroupBuilder, asset::AssetMetaCheck, prelude::*};
 use bevy_mod_picking::DefaultPickingPlugins;
+use bevy_rapier3d::{
+    plugin::{NoUserData, RapierPhysicsPlugin},
+    render::RapierDebugRenderPlugin,
+};
 use bevy_web_asset::WebAssetPlugin;
 use scene::ImportSceneEvent;
 
@@ -171,7 +175,12 @@ pub fn start(init: InitParams, mode: StudioMode, window_config: Option<Window>) 
     ));
 
     if matches!(mode, StudioMode::Editor) {
-        app.add_plugins((DefaultPickingPlugins, EditorPlugins));
+        app.add_plugins((
+            DefaultPickingPlugins,
+            RapierPhysicsPlugin::<NoUserData>::default(),
+            RapierDebugRenderPlugin::default(),
+            EditorPlugins,
+        ));
 
         // Only for registering components for undo
         use space_editor::prelude::space_undo::AppAutoUndo;

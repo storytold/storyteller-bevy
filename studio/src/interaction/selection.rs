@@ -4,12 +4,15 @@ use bevy::{prelude::*, render::mesh::skinning::SkinnedMesh};
 use bevy_mod_outline::{
     AutoGenerateOutlineNormalsPlugin, OutlineBundle, OutlinePlugin, OutlineVolume,
 };
-use bevy_mod_picking::{prelude::Pointer, selection::Select, PickableBundle};
+use bevy_mod_picking::PickableBundle;
+use bevy_mod_raycast::prelude::{Raycast, RaycastSettings};
+use bevy_rapier3d::{pipeline::QueryFilter, plugin::RapierContext};
 use space_editor::prelude::space_undo::{self, NewChange, RemovedEntity};
 
 use crate::{
-    input::{self, Action, InputAction, Lifecycle},
+    input::{self, Lifecycle, SelectionAction},
     scene::{SceneElement, SceneSpawnerSystem, SceneState},
+    MainCamera,
 };
 
 pub struct SelectionPlugin;
@@ -122,29 +125,90 @@ fn tag_scene_elements(
 
 fn update_selection(
     mut cmd: Commands,
-    // FIXME: These events aren't aware of our input actions, so we receive a
-    //        selection event when LMB is released after orbiting the camera.
-    //        Should drop bevy_mod_picking's Selection plugin/feature and just
-    //        use our own conditional click listener.
-    mut ev_select: EventReader<Pointer<Select>>,
-    mut ev_input: EventReader<InputAction>,
+    mut er_selection: EventReader<SelectionAction>,
+    mut raycast: Raycast,
     q_parents: Query<&Parent>,
-    q_selectable: Query<&Selectable>,
+    q_selectables: Query<&Selectable>,
+    q_pickables: Query<&bevy_mod_picking::prelude::Pickable>,
+    q_camera: Query<(&Camera, &GlobalTransform), With<MainCamera>>,
+    r_rapier_context: Option<Res<RapierContext>>,
 ) {
-    if let Some(event) = ev_select.read().last() {
-        // Find the nearest Selectable parent of the target entity
-        if let Some(ent) = nearest_selectable_parent(event.target, &q_parents, &q_selectable) {
-            cmd.insert_resource(Selection(ent));
-        } else {
-            cmd.remove_resource::<Selection>();
+    for SelectionAction(lifecycle, action) in er_selection.read() {
+        match (lifecycle, action) {
+            (_, input::Selection::Clear) => {
+                cmd.remove_resource::<Selection>();
+            }
+            (_, input::Selection::Single(mouse_pos)) | (_, input::Selection::Multi(mouse_pos)) => {
+                let is_multi = matches!(action, input::Selection::Multi(_));
+
+                // Cast a camera-to-world ray...
+                let (cam, cam_xform) = q_camera.single();
+                let ray = cam.viewport_to_world(cam_xform, *mouse_pos).unwrap();
+
+                // Hit test against standard meshes...
+                let raycast_hits = raycast.cast_ray(
+                    ray,
+                    &RaycastSettings {
+                        filter: &|ent: Entity| q_pickables.contains(ent),
+                        ..default()
+                    },
+                );
+                // And also against Rapier colliders
+                let rapier_hit = r_rapier_context.as_ref().and_then(|ctx| {
+                    ctx.cast_ray(
+                        ray.origin,
+                        *ray.direction,
+                        f32::MAX,
+                        false,
+                        QueryFilter::default(),
+                    )
+                });
+
+                // Combine both sets of hit results and bail early if it's empty
+                let mut combined_hits = raycast_hits
+                    .iter()
+                    .map(|(ent, data)| (*ent, data.distance()))
+                    .chain(rapier_hit)
+                    .collect::<Vec<_>>();
+
+                if combined_hits.is_empty() {
+                    if !is_multi {
+                        cmd.remove_resource::<Selection>();
+                    }
+                    continue;
+                }
+
+                // Sort by distance from the camera and look for a `Selectable`
+                // parent among the results
+                combined_hits.sort_unstable_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap());
+
+                if let Some(ent) = combined_hits
+                    .into_iter()
+                    .find_map(|(ent, _)| nearest_selectable_parent(ent, &q_parents, &q_selectables))
+                {
+                    cmd.insert_resource(Selection(ent));
+                } else {
+                    cmd.remove_resource::<Selection>();
+                }
+            }
+            (Lifecycle::Ongoing, input::Selection::Marquee(Rect { min: _, max: _ })) => {
+                // TODO
+                // let center = (*max - *min) / 2.;
+                // let width = max.x - min.x;
+                // let height = max.y - min.y;
+
+                // gizmos.rect_2d(
+                //     center,
+                //     0.,
+                //     vec2(width, height),
+                //     Color::rgba(1., 1., 0., 0.4),
+                // );
+            }
+            (Lifecycle::Stop, input::Selection::Marquee(Rect { min: _, max: _ })) => {
+                // TODO
+            }
+            _ => {}
         }
-    } else if ev_input.read().any(|action| {
-        matches!(
-            action,
-            InputAction(Lifecycle::Stop, Action::Selection(input::Selection::Clear))
-        )
-    }) {
-        cmd.remove_resource::<Selection>();
     }
 }
 
@@ -171,14 +235,14 @@ pub struct MarkedForDeletion;
 
 fn process_delete_inputs(
     mut cmd: Commands,
-    mut er_input: EventReader<InputAction>,
+    mut er_selection: EventReader<SelectionAction>,
     mut ew_changes: EventWriter<space_undo::NewChange>,
     r_selection: Res<Selection>,
 ) {
-    if er_input.read().any(|action| {
+    if er_selection.read().any(|action| {
         matches!(
             action,
-            InputAction(Lifecycle::Stop, Action::Selection(input::Selection::Delete))
+            SelectionAction(Lifecycle::Stop, input::Selection::Delete)
         )
     }) {
         let entity = **r_selection;

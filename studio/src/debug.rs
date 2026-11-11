@@ -13,7 +13,7 @@ use crate::StudioMode;
 use crate::{
     anim::SkeletalJoint,
     camera_controller::{CameraController, CameraMotionSystem},
-    input::{Action, InputAction, Lifecycle},
+    input::{self, EditorAction, Lifecycle},
     interaction::Selectable,
     is_editor,
     scene::SceneElement,
@@ -109,11 +109,13 @@ impl Plugin for DebugPlugin {
     }
 }
 
-fn toggle_debug_mode(mut input: EventReader<InputAction>, mut r_debug: ResMut<DebugMode>) {
-    if input
-        .read()
-        .any(|action| matches!(action, InputAction(Lifecycle::Stop, Action::ToggleDebug)))
-    {
+fn toggle_debug_mode(mut er_editor: EventReader<EditorAction>, mut r_debug: ResMut<DebugMode>) {
+    if er_editor.read().any(|action| {
+        matches!(
+            action,
+            EditorAction(Lifecycle::Stop, input::Editor::ToggleDebug)
+        )
+    }) {
         **r_debug = !**r_debug;
     }
 }
@@ -252,7 +254,7 @@ mod wasm {
             debugModeActive: boolean
         }
     }
-    
+
     declare global {
         export interface GlobalEventHandlersEventMap {
             "debug-mode-toggled": DebugModeToggled

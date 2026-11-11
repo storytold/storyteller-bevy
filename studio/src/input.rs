@@ -2,18 +2,30 @@ use bevy::{
     input::mouse::{MouseMotion, MouseWheel},
     prelude::*,
     utils::HashSet,
+    window::PrimaryWindow,
 };
 use space_editor::prelude::space_undo::UndoRedo;
 
-use crate::is_editor;
+use crate::{is_editor, math::NearlyZero};
 
 #[derive(SystemSet, Hash, Debug, PartialEq, Eq, Clone)]
 pub struct StudioInputSystem;
 
+#[derive(SystemSet, Hash, Debug, PartialEq, Eq, Clone)]
+pub struct CameraInputSystem;
+
+#[derive(SystemSet, Hash, Debug, PartialEq, Eq, Clone)]
+pub struct EditorInputSystem;
+
+#[derive(SystemSet, Hash, Debug, PartialEq, Eq, Clone)]
+pub struct SelectionInputSystem;
+
 pub struct StudioInputPlugin;
 impl Plugin for StudioInputPlugin {
     fn build(&self, app: &mut App) {
-        app.add_event::<InputAction>();
+        app.add_event::<CameraAction>()
+            .add_event::<SelectionAction>()
+            .add_event::<EditorAction>();
 
         // Reading each frame of the mouse delta allows
         // to get rid of the bug that delta is counted from the last reading,
@@ -28,15 +40,29 @@ impl Plugin for StudioInputPlugin {
 
         app.add_systems(
             PreUpdate,
-            (
-                translate_selection_events,
-                translate_debug_toggle,
-                translate_dcc_camera_events,
-                translate_fps_camera_events,
-                send_undo_event.run_if(is_editor),
-            )
+            (translate_dcc_camera_events, translate_fps_camera_events)
                 .in_set(StudioInputSystem)
+                .in_set(CameraInputSystem)
                 .after(bevy::input::InputSystem)
+                .after(read_mouse_delta),
+        );
+
+        app.add_systems(
+            PreUpdate,
+            (translate_debug_toggle, send_undo_event.run_if(is_editor))
+                .in_set(StudioInputSystem)
+                .in_set(EditorInputSystem)
+                .after(bevy::input::InputSystem)
+                .after(read_mouse_delta),
+        );
+
+        app.add_systems(
+            PreUpdate,
+            (apply_deferred, translate_selection_events)
+                .in_set(StudioInputSystem)
+                .in_set(SelectionInputSystem)
+                .after(bevy::input::InputSystem)
+                .after(CameraInputSystem)
                 .after(read_mouse_delta),
         );
 
@@ -47,89 +73,26 @@ impl Plugin for StudioInputPlugin {
     }
 }
 
-/// Logs all `InputAction`s emitted, along with the input state at the time they
-/// were fired, with `debug` verbosity.
-fn log_input_actions(
-    ri_keyboard: Res<ButtonInput<KeyCode>>,
-    ri_mouse_buttons: Res<ButtonInput<MouseButton>>,
-    mut er_input_actions: EventReader<InputAction>,
-) {
-    if er_input_actions.is_empty() {
-        return;
-    }
-
-    let lmb = if ri_mouse_buttons.pressed(MouseButton::Left) {
-        'X'
-    } else {
-        '-'
-    };
-    let mmb = if ri_mouse_buttons.pressed(MouseButton::Middle) {
-        'X'
-    } else {
-        '-'
-    };
-    let rmb = if ri_mouse_buttons.pressed(MouseButton::Right) {
-        'X'
-    } else {
-        '-'
-    };
-
-    use KeyCode::*;
-    let mod_keys = [AltLeft, AltRight, ShiftLeft, ControlLeft, ControlRight]
-        .into_iter()
-        .collect::<HashSet<_>>();
-    let action_keys = [
-        KeyCode::KeyW,
-        KeyCode::KeyA,
-        KeyCode::KeyS,
-        KeyCode::KeyD,
-        KeyCode::KeyE,
-        KeyCode::KeyQ,
-        KeyCode::Escape,
-        KeyCode::Quote,
-        KeyCode::Delete,
-        KeyCode::KeyF,
-    ]
-    .into_iter()
-    .collect::<HashSet<_>>();
-
-    let keys_pressed = ri_keyboard.get_pressed().copied().collect::<HashSet<_>>();
-    let keys_display = keys_pressed
-        .intersection(&mod_keys)
-        .map(|key| format!("{key:?}"))
-        .chain(
-            keys_pressed
-                .intersection(&action_keys)
-                .map(|key| format!("{key:?}")),
-        )
-        .collect::<Vec<_>>()
-        .join("+");
-
-    for action in er_input_actions.read() {
-        debug!(
-            "Mouse: [{lmb}{mmb}{rmb}]  \
-            Keyboard: [{keys_display}]  \
-            Action: [{action:.2?}]"
-        );
-    }
-}
-
-#[derive(Event, Clone, Copy, Debug)]
-pub struct InputAction(pub Lifecycle, pub Action);
+// #[derive(Event, Clone, Copy, Debug)]
+// pub struct InputAction(pub Lifecycle, pub Action);
 
 #[derive(Clone, Copy, Debug)]
 pub enum Lifecycle {
     Start,
     Ongoing,
     Stop,
+    Cancel,
 }
 
-#[derive(Clone, Copy, Debug)]
-pub enum Action {
-    Camera(CameraMotion),
-    Selection(Selection),
-    ToggleDebug,
-}
+// #[derive(Clone, Copy, Debug)]
+// pub enum Action {
+//     Camera(CameraMotion),
+//     Selection(Selection),
+//     ToggleDebug,
+// }
+
+#[derive(Event, Clone, Copy, Debug)]
+pub struct CameraAction(pub Lifecycle, pub CameraMotion);
 
 #[derive(Clone, Copy, Debug)]
 pub enum CameraMotion {
@@ -139,11 +102,14 @@ pub enum CameraMotion {
     Orbit(Vec2),
     Rotate(Vec2),
 }
-impl From<CameraMotion> for Action {
-    fn from(value: CameraMotion) -> Self {
-        Action::Camera(value)
-    }
-}
+// impl From<CameraMotion> for Action {
+//     fn from(value: CameraMotion) -> Self {
+//         Action::Camera(value)
+//     }
+// }
+
+#[derive(Event, Clone, Copy, Debug)]
+pub struct SelectionAction(pub Lifecycle, pub Selection);
 
 #[derive(Clone, Copy, Debug)]
 pub enum Selection {
@@ -153,47 +119,145 @@ pub enum Selection {
     Focus,
     /// Delete the currently selected entity and its descendants
     Delete,
+    /// Select the single target under the cursor position
+    Single(Vec2),
+    /// Add or remove the target under the cursor position to the current
+    /// selection
+    Multi(Vec2),
+    /// Select all targets that overlap the marquee selection
+    Marquee(Rect),
 }
-impl From<Selection> for Action {
-    fn from(value: Selection) -> Self {
-        Action::Selection(value)
-    }
+// impl From<Selection> for Action {
+//     fn from(value: Selection) -> Self {
+//         Action::Selection(value)
+//     }
+// }
+
+#[derive(Event, Clone, Copy, Debug)]
+pub struct EditorAction(pub Lifecycle, pub Editor);
+
+#[derive(Clone, Copy, Debug)]
+pub enum Editor {
+    ToggleDebug,
 }
 
 // TODO: Make the bindings of raw device inputs to InputActions configurable
 
 fn translate_selection_events(
-    keyboard: Res<ButtonInput<KeyCode>>,
-    mut input: EventWriter<InputAction>,
+    r_mouse_motion: Res<LastFrameMouseDelta>,
+    ri_mouse_buttons: Res<ButtonInput<MouseButton>>,
+    ri_keyboard: Res<ButtonInput<KeyCode>>,
+    mut l_pointer_drag_start: Local<Option<Vec2>>,
+    mut l_drag_dist2: Local<f32>,
+    q_window: Query<&Window, With<PrimaryWindow>>,
+    mut er_camera_actions: EventReader<CameraAction>,
+    mut ew_actions: EventWriter<SelectionAction>,
 ) {
-    if keyboard.just_pressed(KeyCode::Escape) {
-        input.send(InputAction(Lifecycle::Start, Selection::Clear.into()));
-    } else if keyboard.just_released(KeyCode::Escape) {
-        input.send(InputAction(Lifecycle::Stop, Selection::Clear.into()));
+    // Keyboard actions -- clear, focus, etc.
+    if ri_keyboard.just_pressed(KeyCode::Escape) {
+        ew_actions.send(SelectionAction(Lifecycle::Start, Selection::Clear));
+    } else if ri_keyboard.just_released(KeyCode::Escape) {
+        ew_actions.send(SelectionAction(Lifecycle::Stop, Selection::Clear));
     }
 
-    if keyboard.just_pressed(KeyCode::KeyF) {
-        input.send(InputAction(Lifecycle::Start, Selection::Focus.into()));
-    } else if keyboard.just_released(KeyCode::KeyF) {
-        input.send(InputAction(Lifecycle::Stop, Selection::Focus.into()));
+    if ri_keyboard.just_pressed(KeyCode::KeyF) {
+        ew_actions.send(SelectionAction(Lifecycle::Start, Selection::Focus));
+    } else if ri_keyboard.just_released(KeyCode::KeyF) {
+        ew_actions.send(SelectionAction(Lifecycle::Stop, Selection::Focus));
     }
 
-    if keyboard.just_pressed(KeyCode::Delete) {
-        input.send(InputAction(Lifecycle::Start, Selection::Delete.into()));
-    } else if keyboard.just_released(KeyCode::Delete) {
-        input.send(InputAction(Lifecycle::Stop, Selection::Delete.into()));
+    if ri_keyboard.just_pressed(KeyCode::Delete) {
+        ew_actions.send(SelectionAction(Lifecycle::Start, Selection::Delete));
+    } else if ri_keyboard.just_released(KeyCode::Delete) {
+        ew_actions.send(SelectionAction(Lifecycle::Stop, Selection::Delete));
+    }
+
+    // Mouse-based actions
+    if !er_camera_actions.is_empty() {
+        // We don't want to emit any mouse-triggered selection actions if
+        // we've already emitted some kind of camera motion this frame. This
+        // avoids UX jank where releasing the LMB at the end of e.g.
+        // orbiting the camera causes the object under the cursor to become
+        // selected as an unintended side-effect.
+        er_camera_actions.clear();
+        return;
+    }
+
+    let Some(mouse_pos) = q_window
+        .get_single()
+        .ok()
+        .and_then(|window| window.cursor_position())
+    else {
+        return;
+    };
+
+    if ri_mouse_buttons.just_pressed(MouseButton::Left) {
+        *l_drag_dist2 = 0.;
+        *l_pointer_drag_start = Some(mouse_pos);
+
+        ew_actions.send(SelectionAction(
+            Lifecycle::Start,
+            Selection::Marquee(Rect::from_corners(mouse_pos, mouse_pos)),
+        ));
+    } else if ri_mouse_buttons.pressed(MouseButton::Left) {
+        *l_drag_dist2 += r_mouse_motion.0.length_squared();
+
+        let Some(drag_start) = *l_pointer_drag_start else {
+            return;
+        };
+
+        ew_actions.send(SelectionAction(
+            Lifecycle::Ongoing,
+            Selection::Marquee(Rect::from_corners(drag_start, mouse_pos)),
+        ));
+    } else if ri_mouse_buttons.just_released(MouseButton::Left) {
+        *l_drag_dist2 += r_mouse_motion.0.length_squared();
+
+        let Some(drag_start) = l_pointer_drag_start.take() else {
+            return;
+        };
+
+        // If the total drag distance is nearly zero, treat this as a single-click
+        if l_drag_dist2.nearly_zero_within(1e-3) {
+            ew_actions.send(SelectionAction(
+                Lifecycle::Cancel,
+                Selection::Marquee(Rect::from_corners(drag_start, mouse_pos)),
+            ));
+
+            if ri_keyboard.any_pressed([
+                KeyCode::ShiftLeft,
+                KeyCode::ShiftRight,
+                KeyCode::ControlLeft,
+                KeyCode::ControlRight,
+            ]) {
+                ew_actions.send(SelectionAction(
+                    Lifecycle::Stop,
+                    Selection::Multi(mouse_pos),
+                ));
+            } else {
+                ew_actions.send(SelectionAction(
+                    Lifecycle::Stop,
+                    Selection::Single(mouse_pos),
+                ));
+            }
+        } else {
+            ew_actions.send(SelectionAction(
+                Lifecycle::Stop,
+                Selection::Marquee(Rect::from_corners(drag_start, mouse_pos)),
+            ));
+        }
     }
 }
 
 fn translate_debug_toggle(
     keyboard: Res<ButtonInput<KeyCode>>,
-    mut input: EventWriter<InputAction>,
+    mut input: EventWriter<EditorAction>,
 ) {
     if keyboard.pressed(KeyCode::ControlLeft) || keyboard.pressed(KeyCode::ControlRight) {
         if keyboard.just_pressed(KeyCode::Backquote) {
-            input.send(InputAction(Lifecycle::Start, Action::ToggleDebug));
+            input.send(EditorAction(Lifecycle::Start, Editor::ToggleDebug));
         } else if keyboard.just_released(KeyCode::Backquote) {
-            input.send(InputAction(Lifecycle::Stop, Action::ToggleDebug));
+            input.send(EditorAction(Lifecycle::Stop, Editor::ToggleDebug));
         }
     }
 }
@@ -202,7 +266,7 @@ fn translate_dcc_camera_events(
     mouse_motion: Res<LastFrameMouseDelta>,
     mouse_buttons: Res<ButtonInput<MouseButton>>,
     keyboard: Res<ButtonInput<KeyCode>>,
-    mut input: EventWriter<InputAction>,
+    mut input: EventWriter<CameraAction>,
 ) {
     let delta = mouse_motion.get();
     // Camera Pan
@@ -212,14 +276,11 @@ fn translate_dcc_camera_events(
         } else {
             Lifecycle::Ongoing
         };
-        input.send(InputAction(lifecycle, CameraMotion::Pan(delta).into()));
+        input.send(CameraAction(lifecycle, CameraMotion::Pan(delta)));
     }
     // Stop Camera Panning
     else if mouse_buttons.just_released(MouseButton::Middle) {
-        input.send(InputAction(
-            Lifecycle::Stop,
-            CameraMotion::Pan(Vec2::ZERO).into(),
-        ));
+        input.send(CameraAction(Lifecycle::Stop, CameraMotion::Pan(Vec2::ZERO)));
     }
     // Camera Orbit/Zoom
     else if keyboard.any_pressed([KeyCode::AltLeft, KeyCode::AltRight]) {
@@ -237,18 +298,18 @@ fn translate_dcc_camera_events(
                 CameraMotion::Zoom(delta.y)
             };
 
-            input.send(InputAction(lifecycle, motion.into()));
+            input.send(CameraAction(lifecycle, motion));
         }
         // Stop Camera Orbit
         else if mouse_buttons.just_released(MouseButton::Left) {
-            input.send(InputAction(
+            input.send(CameraAction(
                 Lifecycle::Stop,
-                CameraMotion::Orbit(Vec2::ZERO).into(),
+                CameraMotion::Orbit(Vec2::ZERO),
             ));
         }
         // Stop Camera Zoom
         else if mouse_buttons.just_released(MouseButton::Right) {
-            input.send(InputAction(Lifecycle::Stop, CameraMotion::Zoom(0.).into()));
+            input.send(CameraAction(Lifecycle::Stop, CameraMotion::Zoom(0.)));
         }
     }
     // Stop Camera Orbit & Zoom
@@ -257,14 +318,14 @@ fn translate_dcc_camera_events(
     {
         // Stop Camera Orbit
         if mouse_buttons.pressed(MouseButton::Left) {
-            input.send(InputAction(
+            input.send(CameraAction(
                 Lifecycle::Stop,
-                CameraMotion::Orbit(Vec2::ZERO).into(),
+                CameraMotion::Orbit(Vec2::ZERO),
             ));
         }
         // Stop Camera Zoom
         else if mouse_buttons.pressed(MouseButton::Right) {
-            input.send(InputAction(Lifecycle::Stop, CameraMotion::Zoom(0.).into()));
+            input.send(CameraAction(Lifecycle::Stop, CameraMotion::Zoom(0.)));
         }
     }
     // Camera Rotation
@@ -275,13 +336,13 @@ fn translate_dcc_camera_events(
             Lifecycle::Ongoing
         };
 
-        input.send(InputAction(lifecycle, CameraMotion::Rotate(delta).into()));
+        input.send(CameraAction(lifecycle, CameraMotion::Rotate(delta)));
     }
     // Stop Camera Rotation
     else if mouse_buttons.just_released(MouseButton::Right) {
-        input.send(InputAction(
+        input.send(CameraAction(
             Lifecycle::Stop,
-            CameraMotion::Rotate(Vec2::ZERO).into(),
+            CameraMotion::Rotate(Vec2::ZERO),
         ));
     }
     // Alternative Camera Rotation (designed for laptop)
@@ -292,13 +353,13 @@ fn translate_dcc_camera_events(
             Lifecycle::Ongoing
         };
 
-        input.send(InputAction(lifecycle, CameraMotion::Rotate(delta).into()));
+        input.send(CameraAction(lifecycle, CameraMotion::Rotate(delta)));
     }
     // Stop Camera Rotation
     else if keyboard.just_released(KeyCode::ShiftLeft) {
-        input.send(InputAction(
+        input.send(CameraAction(
             Lifecycle::Stop,
-            CameraMotion::Rotate(Vec2::ZERO).into(),
+            CameraMotion::Rotate(Vec2::ZERO),
         ));
     }
 }
@@ -306,18 +367,11 @@ fn translate_dcc_camera_events(
 fn translate_fps_camera_events(
     mut mouse_wheel: EventReader<MouseWheel>,
     keyboard: Res<ButtonInput<KeyCode>>,
-    mut input: EventWriter<InputAction>,
+    mut input: EventWriter<CameraAction>,
 ) {
     // Camera Translation (FPS-like)
-
-    let wasd_keys = [
-        KeyCode::KeyW,
-        KeyCode::KeyA,
-        KeyCode::KeyS,
-        KeyCode::KeyD,
-        KeyCode::KeyE,
-        KeyCode::KeyQ,
-    ];
+    use KeyCode::*;
+    let wasd_keys = [KeyW, KeyA, KeyS, KeyD, KeyE, KeyQ];
     let wasd_keys_set = wasd_keys.into_iter().collect::<HashSet<_>>();
 
     // A little unfortunate that `get_pressed()` doesn't just return a reference
@@ -332,12 +386,12 @@ fn translate_fps_camera_events(
         let mut mvmt = Vec3::ZERO;
 
         #[rustfmt::skip] {
-        if wasd_keys_pressed.contains(&KeyCode::KeyW) { mvmt.z -= 1.; }
-        if wasd_keys_pressed.contains(&KeyCode::KeyA) { mvmt.x -= 1.; }
-        if wasd_keys_pressed.contains(&KeyCode::KeyS) { mvmt.z += 1.; }
-        if wasd_keys_pressed.contains(&KeyCode::KeyD) { mvmt.x += 1.; }
-        if wasd_keys_pressed.contains(&KeyCode::KeyE) { mvmt.y += 1.; }
-        if wasd_keys_pressed.contains(&KeyCode::KeyQ) { mvmt.y -= 1.; }
+        if wasd_keys_pressed.contains(&KeyW) { mvmt.z -= 1.; }
+        if wasd_keys_pressed.contains(&KeyA) { mvmt.x -= 1.; }
+        if wasd_keys_pressed.contains(&KeyS) { mvmt.z += 1.; }
+        if wasd_keys_pressed.contains(&KeyD) { mvmt.x += 1.; }
+        if wasd_keys_pressed.contains(&KeyE) { mvmt.y += 1.; }
+        if wasd_keys_pressed.contains(&KeyQ) { mvmt.y -= 1.; }
         };
 
         let mvmt = mvmt.normalize_or_zero();
@@ -354,13 +408,13 @@ fn translate_fps_camera_events(
             Lifecycle::Ongoing
         };
 
-        input.send(InputAction(lifecycle, CameraMotion::Translate(mvmt).into()));
+        input.send(CameraAction(lifecycle, CameraMotion::Translate(mvmt)));
     }
     // Stop Translation
     else if keyboard.any_just_released(wasd_keys) {
-        input.send(InputAction(
+        input.send(CameraAction(
             Lifecycle::Stop,
-            CameraMotion::Translate(Vec3::ZERO).into(),
+            CameraMotion::Translate(Vec3::ZERO),
         ));
     }
 
@@ -371,10 +425,7 @@ fn translate_fps_camera_events(
         // let rem_y = (100. / y).abs() % 1.;
 
         // if (rem_x.is_nan() || rem_x < 1e-5_f32) && (rem_y.is_nan() || rem_y < 1e-5_f32) {
-        input.send(InputAction(
-            Lifecycle::Ongoing,
-            CameraMotion::Zoom(y).into(),
-        ));
+        input.send(CameraAction(Lifecycle::Ongoing, CameraMotion::Zoom(y)));
         // } else {
         // FIXME: I had high hopes for this, but the input translation from
         //        Bevy / winit is herky-jerky-janky af. It seems to be
@@ -433,5 +484,88 @@ fn send_undo_event(mut events: EventWriter<UndoRedo>, keyboard: Res<ButtonInput<
     {
         events.send(UndoRedo::Redo);
         info!("Redo event sent");
+    }
+}
+
+/// Logs all `InputAction`s emitted, along with the input state at the time they
+/// were fired, with `debug` verbosity.
+fn log_input_actions(
+    ri_keyboard: Res<ButtonInput<KeyCode>>,
+    ri_mouse_buttons: Res<ButtonInput<MouseButton>>,
+    mut er_camera_actions: EventReader<CameraAction>,
+    mut er_selection_actions: EventReader<SelectionAction>,
+    mut er_editor_actions: EventReader<EditorAction>,
+) {
+    #[derive(Clone, Copy, Debug)]
+    #[allow(dead_code)] // Spurious warning; these fields _are_ being read by the `Debug` impl
+    enum InputAction {
+        Camera(CameraAction),
+        Selection(SelectionAction),
+        Editor(EditorAction),
+    }
+
+    let input_actions = er_camera_actions
+        .read()
+        .map(|&action| InputAction::Camera(action))
+        .chain(
+            er_selection_actions
+                .read()
+                .map(|&action| InputAction::Selection(action)),
+        )
+        .chain(
+            er_editor_actions
+                .read()
+                .map(|&action| InputAction::Editor(action)),
+        )
+        .collect::<Vec<_>>();
+
+    if input_actions.is_empty() {
+        return;
+    }
+
+    let lmb = if ri_mouse_buttons.pressed(MouseButton::Left) {
+        'X'
+    } else {
+        '-'
+    };
+    let mmb = if ri_mouse_buttons.pressed(MouseButton::Middle) {
+        'X'
+    } else {
+        '-'
+    };
+    let rmb = if ri_mouse_buttons.pressed(MouseButton::Right) {
+        'X'
+    } else {
+        '-'
+    };
+
+    use KeyCode::*;
+    let mod_keys = [AltLeft, AltRight, ShiftLeft, ControlLeft, ControlRight]
+        .into_iter()
+        .collect::<HashSet<_>>();
+    let action_keys = [
+        KeyW, KeyA, KeyS, KeyD, KeyE, KeyQ, Escape, Backquote, Delete, KeyF,
+    ]
+    .into_iter()
+    .collect::<HashSet<_>>();
+
+    let keys_pressed = ri_keyboard.get_pressed().copied().collect::<HashSet<_>>();
+    let keys_display = keys_pressed
+        .intersection(&mod_keys)
+        .map(|key| format!("{key:?}"))
+        .chain(
+            keys_pressed
+                .intersection(&action_keys)
+                .map(|key| format!("{key:?}")),
+        )
+        .collect::<Vec<_>>()
+        .join("+");
+
+    for action in input_actions {
+        debug!(
+            "Mouse: [{lmb}{mmb}{rmb}]  \
+            Keyboard: [{keys_display}]  \
+            Action: [{action:.2?}]"
+        );
     }
 }

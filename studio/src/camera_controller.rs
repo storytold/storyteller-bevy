@@ -6,7 +6,7 @@ use bevy::{
 };
 
 use crate::{
-    input::{self, Action, CameraMotion, InputAction, Lifecycle},
+    input::{self, CameraAction, CameraMotion, Lifecycle, SelectionAction},
     interaction::Selection,
     math::{
         Easing, InterpPosition, InterpVelocity, Interpolation, InterpolationSystem, NearlyEq,
@@ -96,10 +96,10 @@ impl CameraControllerBundle {
 
 fn camera_control_kinematic(
     mut q_window: Query<&mut Window, With<PrimaryWindow>>,
-    mut input: EventReader<InputAction>,
+    mut er_camera: EventReader<CameraAction>,
     mut q_camera: Query<(&mut CameraController, &mut Transform, &Projection)>,
 ) {
-    if input.is_empty() {
+    if er_camera.is_empty() {
         return;
     }
 
@@ -107,30 +107,28 @@ fn camera_control_kinematic(
     let mut any_started = false;
     let mut any_stopped = false;
 
-    for action in input.read().filter(|action| {
-        !matches!(
-            action,
-            InputAction(_, Action::Camera(CameraMotion::Translate(_)))
-        )
-    }) {
-        if let InputAction(lifecycle, Action::Camera(motion)) = action {
-            let (mut controller, mut xform, proj) = q_camera.single_mut();
-            let window = q_window.single();
+    for action in er_camera
+        .read()
+        .filter(|action| !matches!(action, CameraAction(_, CameraMotion::Translate(_))))
+    {
+        let CameraAction(lifecycle, motion) = action;
+        let (mut controller, mut xform, proj) = q_camera.single_mut();
+        let window = q_window.single();
 
-            match lifecycle {
-                Lifecycle::Start => any_started = true,
-                Lifecycle::Ongoing => any_ongoing = true,
-                Lifecycle::Stop => any_stopped = true,
-            }
+        match lifecycle {
+            Lifecycle::Start => any_started = true,
+            Lifecycle::Ongoing => any_ongoing = true,
+            Lifecycle::Stop => any_stopped = true,
+            _ => {}
+        }
 
-            use CameraMotion::*;
-            match motion {
-                Pan(delta) => do_pan(proj, window, *delta, &mut xform, &mut controller),
-                Zoom(delta) => do_zoom(window, *delta, &mut xform, &mut controller),
-                Orbit(delta) => do_orbit(window, *delta, *lifecycle, &mut xform, &mut controller),
-                Rotate(delta) => do_rotate(window, *delta, &mut xform, &mut controller),
-                _ => {}
-            }
+        use CameraMotion::*;
+        match motion {
+            Pan(delta) => do_pan(proj, window, *delta, &mut xform, &mut controller),
+            Zoom(delta) => do_zoom(window, *delta, &mut xform, &mut controller),
+            Orbit(delta) => do_orbit(window, *delta, *lifecycle, &mut xform, &mut controller),
+            Rotate(delta) => do_rotate(window, *delta, &mut xform, &mut controller),
+            _ => {}
         }
     }
 
@@ -143,12 +141,12 @@ fn camera_control_kinematic(
 
 fn process_physical_inputs(
     mut cmd: Commands,
-    mut input: EventReader<InputAction>,
+    mut er_camera: EventReader<CameraAction>,
     q_camera: Query<(Entity, &Velocity), With<CameraController>>,
     mut q_interp: Query<&mut InterpVelocity>,
 ) {
-    for action in input.read() {
-        let &InputAction(_, Action::Camera(CameraMotion::Translate(delta))) = action else {
+    for action in er_camera.read() {
+        let &CameraAction(_, CameraMotion::Translate(delta)) = action else {
             continue;
         };
 
@@ -181,7 +179,7 @@ fn process_physical_inputs(
 fn process_focus_inputs(
     mut cmd: Commands,
     r_selection: Option<Res<Selection>>,
-    mut input: EventReader<InputAction>,
+    mut er_selection: EventReader<SelectionAction>,
     mut q_camera: Query<(Entity, &CameraController, &mut Velocity)>,
     q_interp_vel: Query<&InterpVelocity>,
     mut q_interp_pos: Query<&mut InterpPosition>,
@@ -191,10 +189,10 @@ fn process_focus_inputs(
         return;
     };
 
-    if input.read().any(|action| {
+    if er_selection.read().any(|action| {
         matches!(
             action,
-            InputAction(Lifecycle::Stop, Action::Selection(input::Selection::Focus))
+            SelectionAction(Lifecycle::Stop, input::Selection::Focus)
         )
     }) {
         let Ok(target) = q_global_xforms
